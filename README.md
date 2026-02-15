@@ -12,6 +12,7 @@ Empieza a JUGAR
 ### Elige tu personaje 
 
 
+### Prepara tu partida
 
 ---
 
