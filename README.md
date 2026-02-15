@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎲 RollVerse 🎲
+# 🎲 Ravenloft Castle 🎲
 
 ### *Comienza tu aventura*
 
