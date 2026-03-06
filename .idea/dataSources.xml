@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="ravenloft_db@localhost" uuid="ec01eb30-dff6-4f86-85c6-fe6d18f12dee">
+    <data-source source="LOCAL" name="ravenloft_db@localhost" uuid="e6f4f7f7-ff8a-4c80-961e-287b2e7abdd7">
       <driver-ref>mysql.8</driver-ref>
       <synchronize>true</synchronize>
       <imported>true</imported>
