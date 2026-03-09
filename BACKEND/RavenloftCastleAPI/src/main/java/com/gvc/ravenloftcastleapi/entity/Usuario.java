@@ -42,8 +42,8 @@ public class Usuario implements UserDetails {
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Suscripcion> suscripciones;
 
-    @ManyToMany(mappedBy = "usuarios")
-    private List<Campana> campanas;
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MisionParticipante> misionesParticipando;
 
     // ── UserDetails ──────────────────────────────────────────────────────────
 
@@ -59,6 +59,9 @@ public class Usuario implements UserDetails {
     }
 
     @Override
+    public String getPassword() { return password; }
+
+    @Override
     public boolean isAccountNonExpired()  { return true; }
 
     @Override
@@ -70,5 +73,3 @@ public class Usuario implements UserDetails {
     @Override
     public boolean isEnabled()            { return true; }
 }
-
-

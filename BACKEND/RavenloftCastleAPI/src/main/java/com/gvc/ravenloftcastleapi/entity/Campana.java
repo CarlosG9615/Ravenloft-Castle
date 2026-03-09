@@ -1,5 +1,6 @@
 package com.gvc.ravenloftcastleapi.entity;
 
+import com.gvc.ravenloftcastleapi.enums.TipoSuscripcion;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,10 +20,6 @@ public class Campana {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(columnDefinition = "INT UNSIGNED")
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "master_id", nullable = false)
-    private Usuario master;
 
     @Column(nullable = false, length = 150)
     private String nombre;
@@ -48,13 +45,12 @@ public class Campana {
     @Column(nullable = false)
     private boolean active;
 
-    @ManyToMany
-    @JoinTable(
-        name = "usuario_campanas",
-        joinColumns = @JoinColumn(name = "campana_id"),
-        inverseJoinColumns = @JoinColumn(name = "usuario_id")
-    )
-    private List<Usuario> usuarios;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "nivel_acceso", nullable = false, length = 50)
+    private TipoSuscripcion nivelAcceso;
+
+    @Column(name = "codigo_invitacion", unique = true, length = 100)
+    private String codigoInvitacion;
 
     @OneToMany(mappedBy = "campana", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CampanaEnemigo> enemigos;
@@ -68,5 +64,3 @@ public class Campana {
     @OneToMany(mappedBy = "campana", cascade = CascadeType.ALL)
     private List<TiradaDado> tiradas;
 }
-
-
