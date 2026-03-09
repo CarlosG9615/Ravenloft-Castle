@@ -1,5 +1,6 @@
 package com.gvc.ravenloftcastleapi.entity;
 
+import com.gvc.ravenloftcastleapi.enums.TipoSuscripcion;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,8 +27,9 @@ public class Suscripcion {
     @Column(nullable = false, length = 100)
     private String nombre;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private String tipo;
+    private TipoSuscripcion tipo;
 
     @Column(nullable = false, length = 50)
     private String estado;
@@ -38,5 +40,3 @@ public class Suscripcion {
     @Column(name = "fecha_baja")
     private LocalDate fechaBaja;
 }
-
-

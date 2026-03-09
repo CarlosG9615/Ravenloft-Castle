@@ -43,6 +43,7 @@ public class Mision {
 
     @OneToMany(mappedBy = "mision", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MisionEscenario> escenarios;
+
+    @OneToMany(mappedBy = "mision", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MisionParticipante> participantes;
 }
-
-
