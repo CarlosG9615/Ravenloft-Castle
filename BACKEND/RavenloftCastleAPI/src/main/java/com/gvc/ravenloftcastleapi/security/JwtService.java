@@ -23,9 +23,11 @@ import java.util.stream.Collectors;
 public class JwtService {
 
 
-    @Value("${JWT_SECRET}")
+
+    @Value("${jwt.secret}")
     private String secret;
-    @Value("${JWT_EXPIRATION}")
+
+    @Value("${jwt.expiration}")
     private String expiration;
 
     private SecretKey generateSecureKey() {
