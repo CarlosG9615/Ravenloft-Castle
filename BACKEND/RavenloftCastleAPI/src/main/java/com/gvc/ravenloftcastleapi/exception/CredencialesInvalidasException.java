@@ -6,8 +6,6 @@ public class CredencialesInvalidasException extends RuntimeException {
         super("Email o contraseña incorrectos");
     }
 
-//    public CredencialesInvalidasException(String message) {
-//        super(message);
-//    }
+
 }
 
