@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Metal+Mania&display=swap');
+
+:root {
+  --orange-fire: #FF6B35;
+  --orange-light: #FF8C42;
+   --red-blood: #8b0000; 
+  --yellow-gold: #FFB800;
+  --bg-primary: #0a0203;  
+  --bg-secondary: #1A1A1A;
+  --bg-tertiary: #2C2C2C;
+  --text-primary: #ffffff; 
+  --text-secondary: #C5B299;
+  --overlay-light: rgba(255, 107, 53, 0.08);
+  --overlay-medium: rgba(255, 107, 53, 0.15);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0203;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(139,0,0,0.5);
+  border-radius: 3px;
+  border: none;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139,0,0,0.8);
+}
