@@ -1,73 +1,36 @@
-# React + TypeScript + Vite
+<div align="center">
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# 🎲 Ravenloft Castle 🎲
 
-Currently, two official plugins are available:
+### *Tu aventura comienza aquí*
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+🎲 🐉🏰 💀 🗡️ 🐲 🔮 🛡️ ⚰️ ⚔️
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## ¡Empieza a jugar!
 
-## Expanding the ESLint configuration
+</div>
 
+En **Ravenloft Castle**, cada decisión puede cambiar el destino de la partida.
+Crea a tu héroe, reúne a tu grupo y adéntrate en una campaña llena de desafíos, misterio y gloria.
 
+### Elige tu personaje 
+#### Prepara a tu guerrero
+Podrás crearlo y mejorarlo con tu progreso en las misiones.
+Ten en cuenta que, cuanto más avances, más difícil será tu aventura... y mayor será la recompensa.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Prepara tu partida
+#### Cómo jugar
+Tus amigos y tú podréis repartiros los papeles según el estilo de partida que queráis vivir.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- ¿Quieres ser el **máster** y guiar la historia? **¡Puedes!**
+- ¿Prefieres que otra persona lleve las riendas y enfrentarte a los peligros con tu personaje? **¡También puedes!**
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+<div align="center">
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### ⚔️ Reúne a tu grupo, lanza los dados y conquista Ravenloft ⚔️
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+</div>
