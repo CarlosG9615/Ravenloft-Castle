@@ -41,28 +41,40 @@ public class Personaje {
     private int experiencia;
 
     @Column(name = "salud_max", nullable = false)
-    private int saludMax;
+    private int puntosGolpeMax;
 
     @Column(name = "salud_actual", nullable = false)
-    private int saludActual;
+    private int puntosGolpeActual;
+
+    @Column(name = "str", nullable = false)
+    private int fuerza;
+
+    @Column(name = "dex", nullable = false)
+    private int destreza;
+
+    @Column(name = "con", nullable = false)
+    private int constitucion;
+
+    @Column(name = "ing", nullable = false)
+    private int inteligencia;
+
+    @Column(name = "wis", nullable = false)
+    private int sabiduria;
+
+    @Column(name = "cha", nullable = false)
+    private int carisma;
+
+    @Column(name = "clase_armadura", nullable = false)
+    private int claseArmadura;
 
     @Column(nullable = false)
-    private int str;
+    private int iniciativa;
 
     @Column(nullable = false)
-    private int dex;
+    private int velocidad;
 
-    @Column(nullable = false)
-    private int con;
-
-    @Column(nullable = false)
-    private int ing;
-
-    @Column(nullable = false)
-    private int wis;
-
-    @Column(nullable = false)
-    private int cha;
+    @Column(name = "bonif_competencia", nullable = false)
+    private int bonificacionCompetencia;
 
     @Column(length = 50)
     private String alineamiento;
@@ -79,5 +91,3 @@ public class Personaje {
     @OneToMany(mappedBy = "personaje", cascade = CascadeType.ALL)
     private List<CampanaPersonaje> campanas;
 }
-
-
