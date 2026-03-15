@@ -26,10 +26,20 @@ public class JoinController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<Campana>> findByTipo(@RequestParam TipoSuscripcion tipo,
+    public ResponseEntity<Page<Campana>> findByTipo(@RequestParam String tipo,
                                                     @RequestParam(defaultValue = "0") int page,
                                                     @RequestParam(defaultValue = "10") int size) {
-        Page<Campana> result = joinService.findByTipo(tipo, PageRequest.of(page, size));
+
+        TipoSuscripcion tipooEnum;
+        try {
+            tipooEnum = TipoSuscripcion.fromString(tipo);
+        } catch (IllegalArgumentException e) {
+            // Manejar error si el tipo no es válido.
+            // O dejar que propague si tenemos un GlobalExceptionHandler para IllegalArgumentException (que lo tenemos)
+            throw new IllegalArgumentException("Tipo de suscripcion invalido: " + tipo);
+        }
+
+        Page<Campana> result = joinService.findByTipo(tipooEnum, PageRequest.of(page, size));
         return ResponseEntity.ok(result);
     }
 
