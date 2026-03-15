@@ -43,7 +43,35 @@ public class Habilidad {
     private int supervivencia;
 
     @Column(nullable = false)
-    private int intimidacion;
+    private int intimidad;
+
+    @Column(name = "acrobacias")
+    private Integer acrobacias;
+
+    @Column(name = "engañar")
+    private Integer enganar;
+
+    @Column(name = "historia")
+    private Integer historia;
+
+    @Column(name = "interpretacion")
+    private Integer interpretacion;
+
+    @Column(name = "investigacion")
+    private Integer investigacion;
+
+    @Column(name = "juego_de_manos")
+    private Integer juegoDeManos;
+
+    @Column(name = "naturaleza")
+    private Integer naturaleza;
+
+    @Column(name = "perspicacia")
+    private Integer perspicacia;
+
+    @Column(name = "religion")
+    private Integer religion;
+
+    @Column(name = "trato_con_animales")
+    private Integer tratoConAnimales;
 }
-
-
