@@ -45,7 +45,6 @@ public class Campana {
     @Column(nullable = false)
     private boolean active;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "nivel_acceso", nullable = false, length = 50)
     private TipoSuscripcion nivelAcceso;
 

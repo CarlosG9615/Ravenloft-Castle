@@ -1,4 +1,4 @@
-package com.gvc.ravenloftcastleapi.controller;
+package com.gvc.ravenloftcastleapi.controller.autenticacion;
 
 import com.gvc.ravenloftcastleapi.dto.autenticacion.LoginRequestDTO;
 import com.gvc.ravenloftcastleapi.dto.autenticacion.LoginResponseDTO;
