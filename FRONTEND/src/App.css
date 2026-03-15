@@ -1,0 +1,21 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  
+   background-color: #0d0604;
+
+}
+
+
+.main-content {
+  padding-top: 0;
+  flex: 1;
+  margin-left: 0;
+  background: none;
+  overflow-y: auto;
+  min-height: calc(100vh - 80px);
+}
