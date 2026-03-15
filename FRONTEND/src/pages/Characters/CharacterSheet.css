@@ -1,0 +1,266 @@
+/* ================================
+   CHARACTER SHEET — RavenLoft Style
+   ================================ */
+
+.sheet-page {
+  background: #0a0203;
+  min-height: 100vh;
+  padding-top: 90px;
+}
+
+/* TABS */
+.sheet-tabs {
+  border-bottom: 1px solid rgba(139,0,0,0.3);
+  gap: 4px;
+}
+
+.sheet-tab {
+  font-family: 'Metal Mania', cursive;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.5) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 6px 6px 0 0 !important;
+  padding: 10px 20px;
+  transition: all 0.3s;
+}
+
+.sheet-tab:hover {
+  color: rgba(255,255,255,0.85) !important;
+  border-color: rgba(139,0,0,0.3) !important;
+}
+
+.sheet-tab.active {
+  color: white !important;
+  background: rgba(139,0,0,0.2) !important;
+  border-color: rgba(139,0,0,0.5) !important;
+  border-bottom-color: transparent !important;
+}
+
+/* FICHA PRINCIPAL */
+.sheet-card {
+  background: rgba(15,5,5,0.95);
+  border: 1px solid rgba(139,0,0,0.3);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 0 40px rgba(139,0,0,0.15), inset 0 1px 0 rgba(139,0,0,0.2);
+}
+
+/* CABECERA */
+.sheet-logo {
+  width: 160px;
+  filter: drop-shadow(0 0 10px rgba(139,0,0,0.4));
+}
+
+.sheet-field-label {
+  font-family: 'Metal Mania', cursive;
+  font-size: 11px;
+  color: rgba(139,0,0,0.9);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.sheet-input {
+  background: rgba(255,255,255,0.04);
+  border: none;
+  border-bottom: 1px solid rgba(139,0,0,0.4);
+  color: white;
+  font-size: 14px;
+  padding: 4px 8px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.sheet-input:focus {
+  border-bottom-color: rgba(139,0,0,0.9);
+  background: rgba(139,0,0,0.06);
+}
+
+.sheet-input::placeholder {
+  color: rgba(255,255,255,0.2);
+}
+
+.sheet-divider {
+  border-color: rgba(139,0,0,0.25);
+  opacity: 1;
+}
+
+/* TÍTULOS DE SECCIÓN */
+.sheet-section-title {
+  font-family: 'Metal Mania', cursive;
+  font-size: 14px;
+  color: rgba(200,80,60,0.9);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-bottom: 1px solid rgba(139,0,0,0.2);
+  padding-bottom: 6px;
+}
+
+/* STAT BOXES */
+.stat-box {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(139,0,0,0.25);
+  border-radius: 10px;
+  padding: 12px 10px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-label {
+  font-family: 'Metal Mania', cursive;
+  font-size: 9px;
+  color: rgba(200,80,60,0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.stat-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(139,0,0,0.3);
+  color: white;
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+  width: 60px;
+  outline: none;
+  padding: 2px 0;
+}
+
+.stat-input:focus {
+  border-bottom-color: rgba(139,0,0,0.8);
+}
+
+.stat-input::placeholder {
+  color: rgba(255,255,255,0.15);
+}
+
+.stat-mod {
+  font-size: 13px;
+  color: rgba(255,255,255,0.4);
+}
+
+/* HP BOX */
+.hp-box {
+  background: rgba(139,0,0,0.08);
+  border: 1px solid rgba(139,0,0,0.35);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.hp-label {
+  font-family: 'Metal Mania', cursive;
+  font-size: 9px;
+  color: rgba(200,80,60,0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hp-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(139,0,0,0.4);
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  width: 70px;
+  outline: none;
+}
+
+.hp-current {
+  color: rgba(200,80,60,0.9);
+}
+
+.hp-sublabel {
+  font-size: 10px;
+  color: rgba(255,255,255,0.3);
+}
+
+/* TABLAS */
+.sheet-table {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(139,0,0,0.2);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+.sheet-table-header {
+  background: rgba(139,0,0,0.2);
+  padding: 8px 12px;
+  font-family: 'Metal Mania', cursive;
+  font-size: 11px;
+  color: rgba(255,255,255,0.7);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.sheet-table-row {
+  padding: 7px 12px;
+  color: rgba(255,255,255,0.75);
+  border-top: 1px solid rgba(139,0,0,0.1);
+  transition: background 0.2s;
+}
+
+.sheet-table-row:hover {
+  background: rgba(139,0,0,0.08);
+}
+
+.sheet-table-empty {
+  padding: 16px 12px;
+  color: rgba(255,255,255,0.25);
+  font-style: italic;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* PUNTO DE COMPETENCIA */
+.proficiency-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(139,0,0,0.6);
+  background: transparent;
+  flex-shrink: 0;
+}
+
+/* INPUTS DENTRO DE TABLAS */
+.bonus-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(139,0,0,0.2);
+  color: rgba(255,255,255,0.8);
+  font-size: 13px;
+  text-align: center;
+  width: 45px;
+  outline: none;
+}
+
+.bonus-input:focus {
+  border-bottom-color: rgba(139,0,0,0.7);
+}
+
+.bonus-input::placeholder {
+  color: rgba(255,255,255,0.2);
+}
+
+/* STAT PEQUEÑO EN HABILIDADES */
+.skill-stat {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+}

@@ -1,0 +1,170 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+
+/* =============================
+   AUTH PAGES — Login y Register
+   ============================= */
+
+.auth-page {
+  background: #0a0203;
+  overflow: hidden;
+}
+
+/* CONTENEDOR CENTRAL */
+.auth-wrapper {
+  width: 500px;
+}
+
+/* LOGO */
+.auth-logo {
+  width: 300px;
+  margin-bottom: -100px;
+  position: relative;
+  z-index: 3;
+  cursor: pointer;
+  filter: drop-shadow(0 0 15px rgba(139,0,0,0.5)) drop-shadow(0 0 30px rgba(139,0,0,0.2));
+  transition: transform 0.3s;
+}
+.auth-logo:hover {
+  transform: scale(1.05);
+}
+
+/* CARD */
+.auth-card {
+  background: transparent;
+  border: 1px solid rgba(139,0,0,0.2);
+  border-radius: 20px;
+  padding: 48px 44px 40px;
+  box-shadow: 0 0 20px rgba(139,0,0,0.3), 0 0 50px rgba(139,0,0,0.1);
+}
+
+/* AVATAR — absoluto a la izquierda */
+.auth-avatar-login {
+  position: absolute;
+  bottom: -150px;
+  left: -280px;
+  width: 350px;
+  object-fit: contain;
+  filter: brightness(0.85) drop-shadow(0 0 15px rgba(139,0,0,0.2));
+  z-index: 2;
+}
+
+/* AVATAR REGISTER */
+.auth-avatar-register {
+  position: absolute;
+  bottom: -60px;
+  left: -270px;
+  width: 320px;
+  object-fit: contain;
+  filter: brightness(0.75) drop-shadow(0 0 15px rgba(139,0,0,0.2));
+  z-index: 2;
+}
+
+/* TÍTULO */
+.auth-title {
+  font-family: 'Metal Mania', cursive;
+  font-size: 28px;
+  color: white;
+  margin-bottom: 6px;
+  text-shadow: 0 0 20px rgba(255,107,53,0.3);
+  letter-spacing: 1px;
+}
+
+/* SUBTÍTULO */
+.auth-subtitle {
+  font-size: 14px;
+  color: rgba(255,255,255,0.4);
+  font-style: italic;
+  margin-bottom: 28px;
+}
+
+/* LABELS */
+.auth-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 6px;
+}
+
+/* INPUTS */
+.auth-input {
+  background: rgba(255,255,255,0.05) !important;
+  border: 1px solid rgba(255,107,53,0.25) !important;
+  border-radius: 8px !important;
+  color: white !important;
+  font-size: 15px;
+  padding: 12px 16px;
+}
+.auth-input::placeholder {
+  color: rgba(255,255,255,0.25);
+}
+.auth-input:focus {
+  background: rgba(255,107,53,0.06) !important;
+  border-color: rgba(255,107,53,0.7) !important;
+  box-shadow: 0 0 0 3px rgba(255,107,53,0.12) !important;
+  color: white !important;
+}
+
+/* BOTÓN OJO */
+.auth-eye-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.5;
+  z-index: 5;
+}
+.auth-eye-btn:hover {
+  opacity: 1;
+}
+
+/* BOTÓN PRINCIPAL */
+.auth-btn-primary {
+  background: linear-gradient(135deg, #c0392b 0%, #e74c3c 50%, #c0392b 100%);
+  border: 1px solid rgba(255,107,53,0.5);
+  border-radius: 8px;
+  color: white;
+  font-family: 'Metal Mania', cursive;
+  font-size: 15px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  box-shadow: 0 4px 15px rgba(192,57,43,0.4);
+  transition: all 0.3s;
+}
+.auth-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(255,107,53,0.5);
+  color: white;
+}
+
+/* DIVISOR */
+.auth-divider {
+  border-color: rgba(255,107,53,0.2);
+  opacity: 1;
+}
+.auth-divider-text {
+  font-size: 12px;
+  color: rgba(255,255,255,0.35);
+  white-space: nowrap;
+}
+
+/* BOTÓN SECUNDARIO */
+.auth-btn-secondary {
+  background: transparent;
+  border: 1px solid rgba(255,107,53,0.3);
+  border-radius: 8px;
+  color: rgba(255,107,53,0.8);
+  font-size: 14px;
+  transition: all 0.3s;
+}
+.auth-btn-secondary:hover {
+  background: rgba(255,107,53,0.08);
+  border-color: rgba(255,107,53,0.6);
+  color: rgba(255,107,53,1);
+}

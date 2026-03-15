@@ -1,0 +1,239 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(2px);
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  z-index: 2000;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* LOGO - SOLO ICONO */
+.logo-section {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  min-width: 60px; /* ← Espacio reservado para el icono */
+}
+
+.logo {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(255, 107, 53, 0.6));
+  transition: all 0.3s ease;
+}
+
+.logo:hover {
+  filter: drop-shadow(0 0 20px rgba(255, 184, 0, 0.8));
+  transform: scale(1.1);
+}
+
+/* TEXTO ELIMINADO */
+.logo-text {
+  display: none; /* ← Oculto */
+}
+
+/* MENÚ HORIZONTAL */
+.nav-menu {
+  display: flex;
+  gap: 35px; /* ← Espacio entre items */
+  align-items: center;
+  flex: 1;
+  justify-content: flex-start;
+  margin: 0 40px; /* ← Separación del logo y acciones */
+}
+
+.nav-link {
+  font-family: 'Metal Mania', cursive;
+  font-size: 15px; /* ← Ligeramente más pequeño */
+  color:rgba(255, 255, 255, 0.85) !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  padding: 10px 15px;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  white-space: nowrap; /* ← Evita que se rompa el texto */
+}
+
+.nav-link:hover {
+  color: white;
+  border-bottom-color: rgba(139,0,0,0.8);
+}
+
+.nav-link.active {
+  color: white ;
+  border-bottom-color: rgba(139,0,0,0.8);
+}
+
+/* ACCIONES DERECHA */
+.header-actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  min-width: 200px; /* ← Espacio reservado */
+  justify-content: flex-end;
+}
+
+.theme-toggle,
+.icon-btn {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(139,0,0,0.2);
+  border: 2px solid rgba(139,0,0,0.4);
+}
+
+.theme-toggle:hover,
+.icon-btn:hover {
+  background: rgba(139,0,0,0.4);
+  border-color: rgba(139,0,0,0.7);
+}
+
+.theme-icon {
+  font-size: 20px;
+}
+
+.login-btn {
+ display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: rgba(255,255,255,0.85);
+  font-family: 'Metal Mania', cursive;
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+  
+}
+
+.login-btn:hover {
+  color: white;
+  transform: translateY(-1px);
+}
+
+.login-btn svg {
+  stroke-width: 2.5;
+}
+.icon-btn-clean {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+  padding: 0;
+}
+.icon-btn-clean:hover {
+  opacity: 1;
+}
+
+/* MENÚ MÓVIL - HAMBURGUESA */
+.mobile-menu-btn {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 10px;
+}
+
+.mobile-menu-btn span {
+  width: 25px;
+  height: 3px;
+  background: var(--orange-fire);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.mobile-menu {
+  display: none;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1200px) {
+  .nav-menu {
+    gap: 20px; /* ← Menos espacio en pantallas medianas */
+  }
+  
+  .nav-link {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .nav-menu {
+    display: none; /* ← Ocultar menú horizontal */
+  }
+
+  .mobile-menu-btn {
+    display: flex; /* ← Mostrar hamburguesa */
+  }
+
+  .mobile-menu {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 80px;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(15px);
+    border-bottom: 2px solid rgba(255, 107, 53, 0.4);
+    padding: 20px;
+    gap: 10px;
+  }
+
+  .mobile-nav-link {
+    font-family: 'Metal Mania', cursive;
+    font-size: 16px;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    padding: 15px 20px;
+    border-left: 4px solid transparent;
+    transition: all 0.3s ease;
+    text-decoration: none;
+  }
+
+  .mobile-nav-link:hover,
+  .mobile-nav-link.active {
+    color: var(--orange-fire);
+    border-left-color: var(--orange-fire);
+    background: rgba(255, 107, 53, 0.1);
+  }
+
+  .header-actions {
+    gap: 10px;
+  }
+
+  .login-btn span {
+    display: none; /* ← Ocultar texto "Login" en móvil */
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 20px;
+  }
+
+  .logo {
+    width: 40px;
+    height: 40px;
+  }
+}
