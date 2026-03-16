@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface MisionParticipanteRepository extends JpaRepository<MisionParticipante, Long> {
@@ -12,5 +13,9 @@ public interface MisionParticipanteRepository extends JpaRepository<MisionPartic
     List<MisionParticipante> findByMisionId(Long misionId);
 
     List<MisionParticipante> findByUsuarioId(Long usuarioId);
+
+    boolean existsByMisionIdAndUsuarioId(Long misionId, Long usuarioId);
+
+    Optional<MisionParticipante> findByMisionIdAndUsuarioId(Long misionId, Long usuarioId);
 }
 

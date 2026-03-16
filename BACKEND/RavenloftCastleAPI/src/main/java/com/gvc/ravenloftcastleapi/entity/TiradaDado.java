@@ -24,8 +24,16 @@ public class TiradaDado {
     private Personaje personaje;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mision_id", nullable = false)
+    private Mision mision;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "campana_id", nullable = false)
     private Campana campana;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "mision_progreso_id")
+    private MisionProgreso misionProgreso;
 
     @Column(name = "tipo_tirada", nullable = false, length = 50)
     private String tipoTirada;

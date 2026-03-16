@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,43 +27,21 @@ public class PersonajeCreateDTO {
 
     @NotNull
     @Min(1)
+    @Max(20)
     private Integer nivel;
 
     @NotNull
-    @Min(1)
-    @Max(30)
-    private Integer fuerza;
+    @Valid
+    private StatsBaseDTO statsBase;
 
     @NotNull
-    @Min(1)
-    @Max(30)
-    private Integer destreza;
+    @Valid
+    private StatsDTO statsFinales;
 
     @NotNull
-    @Min(1)
-    @Max(30)
-    private Integer constitucion;
+    @Valid
+    private HabilidadDTO habilidades;
 
-    @NotNull
-    @Min(1)
-    @Max(30)
-    private Integer inteligencia;
-
-    @NotNull
-    @Min(1)
-    @Max(30)
-    private Integer sabiduria;
-
-    @NotNull
-    @Min(1)
-    @Max(30)
-    private Integer carisma;
-
-    @NotNull
-    @Min(1)
-    private Integer puntosGolpeMax;
-
-    @NotNull
     @Min(0)
     private Integer puntosGolpeActual;
 
@@ -77,9 +56,6 @@ public class PersonajeCreateDTO {
     @Min(0)
     private Integer velocidad;
 
-    @NotNull
-    @Min(1)
-    private Integer bonificacionCompetencia;
 
     private String alineamiento;
 

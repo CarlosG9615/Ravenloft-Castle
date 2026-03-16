@@ -1,6 +1,7 @@
 package com.gvc.ravenloftcastleapi.controller.personaje;
 
 import com.gvc.ravenloftcastleapi.dto.personaje.PersonajeCreateDTO;
+import com.gvc.ravenloftcastleapi.dto.personaje.PersonajeCreacionConfigDTO;
 import com.gvc.ravenloftcastleapi.dto.personaje.PersonajeResponseDTO;
 import com.gvc.ravenloftcastleapi.service.PersonajeService;
 import jakarta.validation.Valid;
@@ -26,6 +27,11 @@ public class PersonajeController {
     @GetMapping
     public ResponseEntity<List<PersonajeResponseDTO>> list() {
         return ResponseEntity.ok(personajeService.listByUserEmail(getCurrentUserEmail()));
+    }
+
+    @GetMapping("/configuracion-creacion")
+    public ResponseEntity<PersonajeCreacionConfigDTO> getCreationConfig() {
+        return ResponseEntity.ok(personajeService.getCreationConfig());
     }
 
     @GetMapping("/usuario/{usuarioId}")
