@@ -21,6 +21,11 @@ public class GlobalExceptionHandler {
         return buildError(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    @ExceptionHandler(SuscripcionNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleSuscripcionNotFound(SuscripcionNotFoundException ex) {
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
     @ExceptionHandler(CredencialesInvalidasException.class)
     public ResponseEntity<Map<String, Object>> handleCredencialesInvalidas(CredencialesInvalidasException ex) {
         return buildError(HttpStatus.UNAUTHORIZED, ex.getMessage());
