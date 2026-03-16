@@ -46,4 +46,10 @@ public class Mision {
 
     @OneToMany(mappedBy = "mision", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MisionParticipante> participantes;
+
+    @OneToMany(mappedBy = "mision", cascade = CascadeType.ALL)
+    private List<TiradaDado> tiradas;
+
+    @OneToMany(mappedBy = "mision", cascade = CascadeType.ALL)
+    private List<MisionProgreso> progresos;
 }

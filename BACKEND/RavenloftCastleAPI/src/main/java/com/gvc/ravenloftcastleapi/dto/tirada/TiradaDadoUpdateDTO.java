@@ -3,10 +3,8 @@ package com.gvc.ravenloftcastleapi.dto.tirada;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
-public record TiradaDadoCreateDTO(
-        @NotNull Long personajeId,
+public record TiradaDadoUpdateDTO(
         Long misionProgresoId,
         @NotBlank String tipoTirada,
         @NotBlank String dado,
@@ -15,3 +13,4 @@ public record TiradaDadoCreateDTO(
         boolean ventaja,
         String descripcion
 ) {}
+

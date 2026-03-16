@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Entity
 @Table(name = "mision_escenario")
@@ -35,6 +36,9 @@ public class MisionEscenario {
 
     @Column(name = "multiplicador_enemigos", nullable = false, precision = 4, scale = 2)
     private BigDecimal multiplicadorEnemigos;
+
+    @OneToMany(mappedBy = "misionEscenario")
+    private List<MisionProgreso> progresos;
 }
 
 

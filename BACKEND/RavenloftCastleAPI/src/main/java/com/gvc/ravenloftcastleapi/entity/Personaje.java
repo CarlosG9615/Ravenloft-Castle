@@ -89,5 +89,8 @@ public class Personaje {
     private List<TiradaDado> tiradas;
 
     @OneToMany(mappedBy = "personaje", cascade = CascadeType.ALL)
+    private List<MisionProgreso> progresos;
+
+    @OneToMany(mappedBy = "personaje", cascade = CascadeType.ALL)
     private List<CampanaPersonaje> campanas;
 }
