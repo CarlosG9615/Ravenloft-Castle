@@ -16,6 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/personajes")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:5173")
 public class PersonajeController {
 
     private final PersonajeService personajeService;

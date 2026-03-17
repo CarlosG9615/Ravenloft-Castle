@@ -15,6 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/misiones/{misionId}/progresos")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:5173")
 public class MisionProgresoController {
 
     private final MisionProgresoService misionProgresoService;
