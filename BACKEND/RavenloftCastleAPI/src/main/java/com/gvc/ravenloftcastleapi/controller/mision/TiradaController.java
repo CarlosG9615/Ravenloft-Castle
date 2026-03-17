@@ -17,6 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/misiones/{misionId}/tiradas")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:5173")
 public class TiradaController {
 
     private final TiradaService tiradaService;
