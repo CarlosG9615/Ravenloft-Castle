@@ -14,5 +14,7 @@ public interface CampanaRepository extends JpaRepository<Campana, Long> {
 
     Optional<Campana> findByCodigoInvitacion(String codigoInvitacion);
 
+    boolean existsByCodigoInvitacion(String codigoInvitacion);
+
     Page<Campana> findByNivelAcceso(TipoSuscripcion nivelAcceso, Pageable pageable);
 }

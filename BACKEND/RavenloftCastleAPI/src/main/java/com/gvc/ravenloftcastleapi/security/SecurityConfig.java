@@ -35,6 +35,12 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers(HttpMethod.GET ,"/api/usuarios/**").permitAll()
+                    .requestMatchers(HttpMethod.GET ,"/api/campanas/**").permitAll()
+                    .requestMatchers(HttpMethod.PUT, "/api/campanas/*/codigo-invitacion").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/api/campanas/*/codigo-invitacion/generar").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/api/campanas").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/campanas/*").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/api/campanas/*").hasRole("ADMIN")
 
                 .anyRequest().authenticated()
             )
