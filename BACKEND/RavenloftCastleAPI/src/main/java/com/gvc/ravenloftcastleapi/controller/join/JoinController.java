@@ -35,8 +35,6 @@ public class JoinController {
         try {
             tipooEnum = TipoSuscripcion.fromString(tipo);
         } catch (IllegalArgumentException e) {
-            // Manejar error si el tipo no es válido.
-            // O dejar que propague si tenemos un GlobalExceptionHandler para IllegalArgumentException (que lo tenemos)
             throw new IllegalArgumentException("Tipo de suscripcion invalido: " + tipo);
         }
 

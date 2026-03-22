@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 public class PersonajeResponseDTO {
 
     private Long id;
+    private Long usuarioId;
+    private String usuarioNombre;
     private String nombre;
     private String clase;
     private String raza;
@@ -29,5 +31,4 @@ public class PersonajeResponseDTO {
     private Integer velocidad;
     private Integer bonificacionCompetencia;
     private String alineamiento;
-    private Long usuarioId;
 }
