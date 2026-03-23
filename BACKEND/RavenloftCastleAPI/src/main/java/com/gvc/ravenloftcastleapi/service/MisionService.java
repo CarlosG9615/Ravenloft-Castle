@@ -1,0 +1,171 @@
+package com.gvc.ravenloftcastleapi.service;
+
+import com.gvc.ravenloftcastleapi.dto.mision.EscenarioResumenDTO;
+import com.gvc.ravenloftcastleapi.dto.mision.MisionCreateDTO;
+import com.gvc.ravenloftcastleapi.dto.mision.MisionDetalleDTO;
+import com.gvc.ravenloftcastleapi.dto.mision.MisionEscenarioCreateDTO;
+import com.gvc.ravenloftcastleapi.dto.mision.MisionUpdateDTO;
+import com.gvc.ravenloftcastleapi.entity.Campana;
+import com.gvc.ravenloftcastleapi.entity.Escenario;
+import com.gvc.ravenloftcastleapi.entity.Mision;
+import com.gvc.ravenloftcastleapi.entity.MisionEscenario;
+import com.gvc.ravenloftcastleapi.repository.CampanaRepository;
+import com.gvc.ravenloftcastleapi.repository.EscenarioRepository;
+import com.gvc.ravenloftcastleapi.repository.MisionEscenarioRepository;
+import com.gvc.ravenloftcastleapi.repository.MisionRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class MisionService {
+
+    private final MisionRepository misionRepository;
+    private final CampanaRepository campanaRepository;
+    private final EscenarioRepository escenarioRepository;
+    private final MisionEscenarioRepository misionEscenarioRepository;
+
+    @Transactional
+    public MisionDetalleDTO crearMision(MisionCreateDTO dto) {
+        Campana campana = campanaRepository.findById(dto.campanaId())
+                .orElseThrow(() -> new RuntimeException("Campaña no encontrada con id: " + dto.campanaId()));
+
+        Mision mision = Mision.builder()
+                .campana(campana)
+                .nombre(dto.nombre())
+                .descripcion(dto.descripcion())
+                .orden(dto.orden())
+                .dificultad(dto.dificultad())
+                .xpRecompensa(dto.xpRecompensa())
+                .completada(false)
+                .build();
+
+        Mision misionGuardada = misionRepository.save(mision);
+
+        if (dto.escenarios() != null && !dto.escenarios().isEmpty()) {
+            for (MisionEscenarioCreateDTO escenarioDTO : dto.escenarios()) {
+                Escenario escenario = escenarioRepository.findById(escenarioDTO.id())
+                        .orElseThrow(() -> new RuntimeException("Escenario no encontrado con id: " + escenarioDTO.id()));
+
+                MisionEscenario misionEscenario = MisionEscenario.builder()
+                        .mision(misionGuardada)
+                        .escenario(escenario)
+                        .orden(escenarioDTO.orden())
+                        .multiplicadorEnemigos(escenarioDTO.multiplicadorEnemigos() != null ? escenarioDTO.multiplicadorEnemigos() : BigDecimal.ONE)
+                        .dificultad(escenarioDTO.dificultad() != null ? escenarioDTO.dificultad() : 1)
+                        .build();
+
+                misionEscenarioRepository.save(misionEscenario);
+            }
+            // Recargar mision para tener los escenarios en la respuesta
+            misionGuardada = misionRepository.findById(misionGuardada.getId()).orElse(misionGuardada);
+        }
+
+        return mapToMisionDetalleDTO(misionGuardada);
+    }
+
+    @Transactional
+    public MisionDetalleDTO actualizarMision(Long id, MisionUpdateDTO dto) {
+        Mision mision = misionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Misión no encontrada con id: " + id));
+
+        if (dto.nombre() != null) mision.setNombre(dto.nombre());
+        if (dto.descripcion() != null) mision.setDescripcion(dto.descripcion());
+        if (dto.orden() != null) mision.setOrden(dto.orden());
+        if (dto.dificultad() != null) mision.setDificultad(dto.dificultad());
+        if (dto.xpRecompensa() != null) mision.setXpRecompensa(dto.xpRecompensa());
+        if (dto.completada() != null) mision.setCompletada(dto.completada());
+
+        if (dto.escenarios() != null) {
+            // Limpiar escenarios existentes
+            mision.getEscenarios().clear();
+            
+            // Añadir nuevos escenarios
+            for (MisionEscenarioCreateDTO escenarioDTO : dto.escenarios()) {
+                Escenario escenario = escenarioRepository.findById(escenarioDTO.id())
+                        .orElseThrow(() -> new RuntimeException("Escenario no encontrado con id: " + escenarioDTO.id()));
+
+                MisionEscenario nuevoEscenario = MisionEscenario.builder()
+                        .mision(mision)
+                        .escenario(escenario)
+                        .orden(escenarioDTO.orden())
+                        .multiplicadorEnemigos(escenarioDTO.multiplicadorEnemigos() != null ? escenarioDTO.multiplicadorEnemigos() : BigDecimal.ONE)
+                        .dificultad(escenarioDTO.dificultad() != null ? escenarioDTO.dificultad() : 1)
+                        .build();
+
+                mision.getEscenarios().add(nuevoEscenario);
+            }
+        }
+
+        Mision misionActualizada = misionRepository.save(mision);
+        return mapToMisionDetalleDTO(misionActualizada);
+    }
+    
+    @Transactional(readOnly = true)
+    public MisionDetalleDTO obtenerMisionPorId(Long id) {
+        Mision mision = misionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Misión no encontrada con id: " + id));
+
+        return mapToMisionDetalleDTO(mision);
+    }
+
+    @Transactional
+    public void marcarComoCompletada(Long id, boolean completada) {
+        Mision mision = misionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Misión no encontrada con id: " + id));
+        mision.setCompletada(completada);
+        misionRepository.save(mision);
+    }
+
+    @Transactional
+    public void eliminarMision(Long id) {
+        if (!misionRepository.existsById(id)) {
+            throw new RuntimeException("Misión no encontrada con id: " + id);
+        }
+        misionRepository.deleteById(id);
+    }
+
+    private MisionDetalleDTO mapToMisionDetalleDTO(Mision mision) {
+        return new MisionDetalleDTO(
+                mision.getId(),
+                mision.getNombre(),
+                mision.getDescripcion(),
+                mision.getOrden(),
+                mision.getDificultad(),
+                mision.getXpRecompensa(),
+                mision.isCompletada(),
+                mapToEscenariosDTO(mision.getEscenarios())
+        );
+    }
+
+    private List<EscenarioResumenDTO> mapToEscenariosDTO(List<MisionEscenario> escenarios) {
+        return Optional.ofNullable(escenarios)
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(this::mapToEscenarioDTO)
+                .collect(Collectors.toList());
+    }
+
+    private EscenarioResumenDTO mapToEscenarioDTO(MisionEscenario me) {
+        if (me == null || me.getEscenario() == null) {
+            return null;
+        }
+        Escenario escenario = me.getEscenario();
+        return new EscenarioResumenDTO(
+                escenario.getId(),
+                escenario.getNombre(),
+                escenario.getIluminacion(), // Es String, no Enum
+                escenario.getTerreno(),     // Es String, no Enum
+                me.getOrden(),
+                me.getMultiplicadorEnemigos().doubleValue() // Es BigDecimal, convertir a double
+        );
+    }
+}

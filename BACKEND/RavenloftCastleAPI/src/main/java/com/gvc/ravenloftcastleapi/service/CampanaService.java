@@ -124,6 +124,18 @@ public class CampanaService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<MisionResumenDTO> listarMisionesDeCampana(Long campanaId) {
+        Campana campana = campanaRepository.findById(campanaId)
+            .orElseThrow(() -> new RuntimeException("Campaña no encontrada con id: " + campanaId));
+
+        return Optional.ofNullable(campana.getMisiones())
+            .orElse(Collections.emptyList())
+            .stream()
+            .map(this::mapToMisionDTO)
+            .collect(Collectors.toList());
+    }
+
     private CampanaDetalleDTO mapToDetalleDTO(Campana campana) {
         return CampanaDetalleDTO.builder()
                 .id(campana.getId())
@@ -166,6 +178,8 @@ public class CampanaService {
         return new MisionResumenDTO(
                 mision.getId(),
                 mision.getNombre(),
+                mision.getDescripcion(),
+                mision.getOrden(),
                 mision.getDificultad(),
                 mision.getXpRecompensa(),
                 mision.isCompletada()

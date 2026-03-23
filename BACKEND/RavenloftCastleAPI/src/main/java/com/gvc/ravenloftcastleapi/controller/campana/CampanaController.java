@@ -4,6 +4,7 @@ import com.gvc.ravenloftcastleapi.dto.campana.CampanaCreateDTO;
 import com.gvc.ravenloftcastleapi.dto.campana.CampanaDetalleDTO;
 import com.gvc.ravenloftcastleapi.dto.campana.CodigoInvitacionDTO;
 import com.gvc.ravenloftcastleapi.dto.campana.CampanaUpdateDTO;
+import com.gvc.ravenloftcastleapi.dto.mision.MisionResumenDTO;
 import com.gvc.ravenloftcastleapi.service.CampanaService;
 import com.gvc.ravenloftcastleapi.service.JoinService;
 import com.gvc.ravenloftcastleapi.dto.personaje.PersonajeResponseDTO;
@@ -67,5 +68,10 @@ public class CampanaController {
     @GetMapping("/{id}/jugadores")
     public ResponseEntity<List<PersonajeResponseDTO>> listarJugadoresDeCampana(@PathVariable Long id) {
         return ResponseEntity.ok(campanaService.listarJugadoresDeCampana(id));
+    }
+
+    @GetMapping("/{id}/misiones")
+    public ResponseEntity<List<MisionResumenDTO>> listarMisionesDeCampana(@PathVariable Long id) {
+        return ResponseEntity.ok(campanaService.listarMisionesDeCampana(id));
     }
 }
