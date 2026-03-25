@@ -63,10 +63,10 @@ export function Home() {
    
   ];
   const carouselImages = [
-    { src: '/images/screenshot-1.jpg', alt: 'Tablero de juego' },
-    { src: '/images/screenshot-2.jpg', alt: 'Sistema de dados' },
-    { src: '/images/screenshot-3.jpg', alt: 'Creación de personajes' },
-    { src: '/images/screenshot-4.jpg', alt: 'Chat y comunicación' }
+    { src: '/images/screenshot-join.png', alt: 'Unirse a partida' },
+    { src: '/images/screenshot-ficha.png', alt: 'Ficha de personaje' },
+    { src: '/images/screenshot-diario.png', alt: 'Diario de aventuras' },
+    { src: '/images/screenshot-mapas.png', alt: 'Mapas interactivos' },
   ];
 
   return (
@@ -113,8 +113,31 @@ export function Home() {
           <div className="carousel">
             <div className="carousel-track">
               {carouselImages.map((image, index) => (
-                <div key={index} className="carousel-item">
-                  <img src={image.src} alt={image.alt} />
+                <div 
+                  key={index} 
+                  className="carousel-item"
+                  style={{ minWidth: '400px', width: '400px', height: '250px', flexShrink: 0 }}
+                >
+                  <img 
+                    src={image.src} 
+                    alt={image.alt}
+                    style={{ width: '400px', height: '250px', objectFit: 'cover', display: 'block' }}
+                  />
+                  <p className="carousel-caption">{image.alt}</p>
+                </div>
+              ))}
+               {/* BLOQUE 2 — duplicado */}
+              {carouselImages.map((image, index) => (
+                <div 
+                  key={index} 
+                  className="carousel-item"
+                  style={{ minWidth: '400px', width: '400px', height: '250px', flexShrink: 0 }}
+                >
+                  <img 
+                    src={image.src} 
+                    alt={image.alt}
+                    style={{ width: '400px', height: '250px', objectFit: 'cover', display: 'block' }}
+                  />
                   <p className="carousel-caption">{image.alt}</p>
                 </div>
               ))}

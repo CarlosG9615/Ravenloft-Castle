@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Auth.css';
+import { register } from '../../services/authService';
+import { BackButton } from '../../components/BackButton/BackButton';
 
 export function Register() {
   const navigate = useNavigate();
@@ -9,16 +11,28 @@ export function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ username, email, password });
+    setError('');
+    setLoading(true);
+
+    try {
+      await register(username, email, password);
+     
+      navigate('/login');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
- 
-
   return (
-     <div className="auth-page d-flex align-items-center justify-content-center min-vh-100">
+    <div className="auth-page d-flex align-items-center justify-content-center min-vh-100">
+      <BackButton />
 
       {/* CONTENEDOR CENTRAL */}
       <div className="auth-wrapper position-relative">
@@ -45,6 +59,13 @@ export function Register() {
 
           <h1 className="auth-title text-center">Crea tu cuenta</h1>
           <p className="auth-subtitle text-center">Tu leyenda comienza aquí</p>
+
+          {/* ERROR */}
+          {error && (
+            <div className="auth-error mb-3">
+              ⚠ {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
 
@@ -81,10 +102,11 @@ export function Register() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   className="form-control auth-input"
-                  placeholder="••••••••"
+                  placeholder="Mínimo 6 caracteres"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
+                  minLength={6}
                 />
                 <button
                   type="button"
@@ -97,8 +119,12 @@ export function Register() {
             </div>
 
             {/* BOTÓN PRINCIPAL */}
-            <button type="submit" className="btn auth-btn-primary w-100 mb-3">
-              Comenzar Aventura
+            <button
+              type="submit"
+              className="btn auth-btn-primary w-100 mb-3"
+              disabled={loading}
+            >
+              {loading ? 'Creando cuenta...' : 'Comenzar Aventura'}
             </button>
 
           </form>

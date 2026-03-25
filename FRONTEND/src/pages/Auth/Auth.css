@@ -8,6 +8,15 @@
   background: #0a0203;
   overflow: hidden;
 }
+.auth-error {
+  background: rgba(139,0,0,0.15);
+  border: 1px solid rgba(139,0,0,0.4);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: rgba(255,100,100,0.9);
+  font-size: 13px;
+  text-align: center;
+}
 
 /* CONTENEDOR CENTRAL */
 .auth-wrapper {
@@ -40,6 +49,7 @@
 /* AVATAR — absoluto a la izquierda */
 .auth-avatar-login {
   position: absolute;
+  pointer-events: none;
   bottom: -150px;
   left: -280px;
   width: 350px;
@@ -167,4 +177,119 @@
   background: rgba(255,107,53,0.08);
   border-color: rgba(255,107,53,0.6);
   color: rgba(255,107,53,1);
+}
+/* RECORDAR CUENTA */
+.auth-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--red-blood);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.auth-remember-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin: 0;
+}
+
+/* ENLACE OLVIDASTE CONTRASEÑA */
+.auth-forgot-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--orange-fire);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  opacity: 0.8;
+}
+
+.auth-forgot-link:hover {
+  color: var(--yellow-gold);
+  opacity: 1;
+}
+
+/* MODAL RECUPERAR CONTRASEÑA */
+.forgot-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.forgot-modal {
+  background: #140608;
+  border: 1px solid rgba(139, 0, 0, 0.5);
+  border-radius: 16px;
+  padding: 36px 32px;
+  width: 100%;
+  max-width: 400px;
+  position: relative;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(139, 0, 0, 0.2);
+  animation: dropdownFadeIn 0.2s ease;
+}
+
+.forgot-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.forgot-close:hover { color: var(--text-primary); }
+
+.forgot-icon {
+  font-size: 36px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.forgot-title {
+  font-family: 'Metal Mania', cursive;
+  font-size: 22px;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.forgot-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.forgot-success {
+  background: rgba(0, 100, 0, 0.2);
+  border: 1px solid rgba(0, 150, 0, 0.4);
+  border-radius: 8px;
+  padding: 14px;
+  color: rgba(100, 255, 100, 0.9);
+  font-size: 14px;
+  text-align: center;
+}
+.form-check-input {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+.form-check-label {
+  pointer-events: auto !important;
+  z-index: 10 !important;
 }

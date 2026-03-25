@@ -1,0 +1,21 @@
+.back-button {
+  position: fixed;
+  top: 80px;
+  left: 24px;
+  z-index: 100;
+
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  color: var(--text-primary);
+  transform: translateX(-4px);
+}

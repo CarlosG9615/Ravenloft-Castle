@@ -1,0 +1,305 @@
+/* ================================
+   CHARACTERS — Selección de Avatar
+   ================================ */
+
+.characters-page {
+  background: #0a0203;
+  min-height: 100vh;
+  padding-top: 90px;
+}
+
+/* TÍTULO */
+.characters-title {
+  font-family: 'Metal Mania', cursive;
+  font-size: 36px;
+  color: white;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  text-shadow: 0 0 20px rgba(139,0,0,0.6);
+}
+
+.characters-subtitle {
+  font-family: 'Metal Mania', cursive;
+  font-size: 20px;
+  color: rgba(255,255,255,0.7);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(139,0,0,0.3);
+  padding-bottom: 10px;
+}
+
+/* GRID DE AVATARES */
+.avatars-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  background: rgba(15,5,5,0.95);
+  border: 1px solid rgba(139,0,0,0.3);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 0 30px rgba(139,0,0,0.1);
+}
+
+/* THUMB AVATAR */
+.avatar-thumb {
+  aspect-ratio: 1;
+  border: 2px solid rgba(139,0,0,0.2);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(255,255,255,0.03);
+}
+
+.avatar-thumb:hover {
+  border-color: rgba(139,0,0,0.7);
+  transform: scale(1.05);
+  box-shadow: 0 0 12px rgba(139,0,0,0.4);
+}
+
+.avatar-thumb.selected {
+  border-color: rgba(200,50,50,0.9);
+  box-shadow: 0 0 20px rgba(139,0,0,0.6), inset 0 0 10px rgba(139,0,0,0.2);
+  transform: scale(1.05);
+}
+
+.avatar-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* PREVIEW CARD */
+.avatar-preview-card {
+  background: rgba(15,5,5,0.95);
+  border: 1px solid rgba(139,0,0,0.35);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(139,0,0,0.15);
+  position: sticky;
+  top: 100px;
+}
+
+.avatar-preview-img-wrap {
+  width: 100%;
+  aspect-ratio: 3/4;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(139,0,0,0.3);
+  background: rgba(255,255,255,0.02);
+  margin-bottom: 16px;
+}
+
+.avatar-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.avatar-preview-img:hover {
+  transform: scale(1.03);
+}
+
+.avatar-preview-name {
+  font-family: 'Metal Mania', cursive;
+  font-size: 18px;
+  color: white;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(139,0,0,0.5);
+  margin: 0;
+}
+
+/* BOTONES */
+.characters-btn-primary {
+  background: linear-gradient(135deg, #8b0000 0%, #c0392b 100%);
+  border: 1px solid rgba(139,0,0,0.5);
+  border-radius: 8px;
+  color: white;
+  font-family: 'Metal Mania', cursive;
+  font-size: 15px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 12px;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(139,0,0,0.3);
+}
+
+.characters-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(139,0,0,0.5);
+  color: white;
+}
+
+.characters-btn-secondary {
+  background: transparent;
+  border: 1px solid rgba(139,0,0,0.3);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.6);
+  font-size: 13px;
+  padding: 10px;
+  transition: all 0.3s;
+}
+
+.characters-btn-secondary:hover {
+  background: rgba(139,0,0,0.1);
+  border-color: rgba(139,0,0,0.6);
+  color: white;
+}
+
+/* CARDS DE PERSONAJES EXISTENTES */
+.character-card {
+  background: rgba(15,5,5,0.95);
+  border: 1px solid rgba(139,0,0,0.25);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s;
+  aspect-ratio: 3/4;
+  display: flex;
+  flex-direction: column;
+}
+
+.character-card:hover {
+  border-color: rgba(139,0,0,0.6);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(139,0,0,0.2);
+}
+
+.character-card-add {
+  border: 2px dashed rgba(139,0,0,0.3);
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.character-card-add:hover {
+  border-color: rgba(139,0,0,0.7);
+  background: rgba(139,0,0,0.05);
+}
+
+.character-card-add-icon {
+  font-size: 48px;
+  color: rgba(139,0,0,0.6);
+  line-height: 1;
+}
+
+.character-card-add-text {
+  font-family: 'Metal Mania', cursive;
+  font-size: 13px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.character-card-img {
+  width: 100%;
+  flex: 1;
+  object-fit: cover;
+}
+
+.character-card-info {
+  padding: 12px;
+  background: rgba(0,0,0,0.6);
+}
+
+.character-card-info h5 {
+  font-family: 'Metal Mania', cursive;
+  font-size: 14px;
+  color: white;
+  margin: 0 0 4px;
+  letter-spacing: 1px;
+}
+
+.character-card-info p {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  margin: 0;
+}
+
+/* ESTADO VACÍO */
+.characters-empty {
+  background: rgba(15,5,5,0.95);
+  border: 1px dashed rgba(139,0,0,0.3);
+  border-radius: 16px;
+  padding: 80px 40px;
+  text-align: center;
+}
+
+.characters-empty-icon {
+  font-size: 64px;
+  opacity: 0.3;
+  margin-bottom: 20px;
+}
+
+.characters-empty-title {
+  font-family: 'Metal Mania', cursive;
+  font-size: 24px;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+.characters-empty-desc {
+  font-size: 14px;
+  color: rgba(255,255,255,0.3);
+  margin: 0;
+}
+
+/* MENU CARDS */
+.menu-card {
+  background: rgba(15,5,5,0.95);
+  border: 1px solid rgba(139,0,0,0.3);
+  border-radius: 16px;
+  padding: 48px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px rgba(139,0,0,0.1);
+  height: 100%;
+}
+
+.menu-card:hover {
+  border-color: rgba(139,0,0,0.7);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 40px rgba(139,0,0,0.25);
+  background: rgba(139,0,0,0.08);
+}
+
+.menu-card-icon {
+  font-size: 56px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 10px rgba(139,0,0,0.5));
+}
+
+.menu-card-title {
+  font-family: 'Metal Mania', cursive;
+  font-size: 26px;
+  color: white;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  text-shadow: 0 0 15px rgba(139,0,0,0.5);
+}
+
+.menu-card-desc {
+  font-size: 14px;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .avatars-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .avatars-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
