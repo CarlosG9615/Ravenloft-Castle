@@ -324,12 +324,15 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  height: 290px;
 }
 
 .carousel-track {
   display: flex;
   gap: 30px;
   animation: scroll 20s linear infinite;
+  width: max-content;
+  min-width: 100%;
 }
 
 .carousel-track:hover {
@@ -347,13 +350,16 @@
 
 .carousel-item {
   min-width: 400px;
+  width: 400px; 
   height: 250px;
+  flex-shrink: 0;
   border-radius: 12px;
   overflow: hidden;
-  border: none;
+  border: 2px solid red;;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   transition: all 0.3s ease;
   position: relative;
+  display: block !important; 
 }
 
 .carousel-item:hover {
