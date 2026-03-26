@@ -76,22 +76,5 @@ public class JoinService {
 
         return new JoinResponseDTO("Unido correctamente a la campaña");
     }
-
-    @Transactional
-    public void salirDeCampana(String userEmail, Long campanaId) {
-        Usuario user = usuarioRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
-        if (!campanaRepository.existsById(campanaId)) {
-            throw new RuntimeException("Campaña no encontrada");
-        }
-
-        var relaciones = campanaPersonajeRepository.findByCampanaIdAndPersonajeUsuarioId(campanaId, user.getId());
-
-        if (relaciones.isEmpty()) {
-            throw new RuntimeException("El usuario no está unido a esta campaña");
-        }
-
-        campanaPersonajeRepository.deleteAll(relaciones);
-    }
 }
+
