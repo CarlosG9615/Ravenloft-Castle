@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/join")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:5173")
 public class JoinController {
 
     private final JoinService joinService;
@@ -26,10 +27,18 @@ public class JoinController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<Campana>> findByTipo(@RequestParam TipoSuscripcion tipo,
+    public ResponseEntity<Page<Campana>> findByTipo(@RequestParam String tipo,
                                                     @RequestParam(defaultValue = "0") int page,
                                                     @RequestParam(defaultValue = "10") int size) {
-        Page<Campana> result = joinService.findByTipo(tipo, PageRequest.of(page, size));
+
+        TipoSuscripcion tipooEnum;
+        try {
+            tipooEnum = TipoSuscripcion.fromString(tipo);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Tipo de suscripcion invalido: " + tipo);
+        }
+
+        Page<Campana> result = joinService.findByTipo(tipooEnum, PageRequest.of(page, size));
         return ResponseEntity.ok(result);
     }
 
