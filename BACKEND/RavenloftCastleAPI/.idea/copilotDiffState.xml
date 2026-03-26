@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/src/main/java/com/gvc/ravenloftcastleapi/controller/tirada/TiradaController.java">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/src/main/java/com/gvc/ravenloftcastleapi/controller/tirada/TiradaController.java" />
+              <option name="updatedContent" value="package com.gvc.ravenloftcastleapi.controller.tirada;&#10;&#10;import com.gvc.ravenloftcastleapi.dto.tirada.HistorialTiradasDTO;&#10;import com.gvc.ravenloftcastleapi.dto.tirada.TiradaDadoCreateDTO;&#10;import com.gvc.ravenloftcastleapi.dto.tirada.TiradaDadoResponseDTO;&#10;import com.gvc.ravenloftcastleapi.dto.tirada.TiradaDadoUpdateDTO;&#10;import com.gvc.ravenloftcastleapi.service.TiradaService;&#10;import jakarta.validation.Valid;&#10;import lombok.RequiredArgsConstructor;&#10;import org.springframework.http.HttpStatus;&#10;import org.springframework.http.ResponseEntity;&#10;import org.springframework.security.core.context.SecurityContextHolder;&#10;import org.springframework.web.bind.annotation.*;&#10;&#10;import java.util.List;&#10;&#10;@RestController&#10;@RequestMapping(&quot;/api/misiones/{misionId}/tiradas&quot;)&#10;@RequiredArgsConstructor&#10;public class TiradaController {&#10;&#10;    private final TiradaService tiradaService;&#10;&#10;    private String getCurrentUserEmail() {&#10;        return SecurityContextHolder.getContext().getAuthentication().getName();&#10;    }&#10;&#10;    @PostMapping&#10;    public ResponseEntity&lt;TiradaDadoResponseDTO&gt; create(@PathVariable Long misionId,&#10;                                                        @Valid @RequestBody TiradaDadoCreateDTO dto) {&#10;        return ResponseEntity.status(HttpStatus.CREATED)&#10;                .body(tiradaService.crearEnMision(getCurrentUserEmail(), misionId, dto));&#10;    }&#10;&#10;    @GetMapping&#10;    public ResponseEntity&lt;List&lt;TiradaDadoResponseDTO&gt;&gt; list(@PathVariable Long misionId) {&#10;        return ResponseEntity.ok(tiradaService.listarPorMision(getCurrentUserEmail(), misionId));&#10;    }&#10;&#10;    @GetMapping(&quot;/{tiradaId}&quot;)&#10;    public ResponseEntity&lt;TiradaDadoResponseDTO&gt; getById(@PathVariable Long misionId, @PathVariable Long tiradaId) {&#10;        return ResponseEntity.ok(tiradaService.getByIdEnMision(getCurrentUserEmail(), misionId, tiradaId));&#10;    }&#10;&#10;    @PutMapping(&quot;/{tiradaId}&quot;)&#10;    public ResponseEntity&lt;TiradaDadoResponseDTO&gt; update(@PathVariable Long misionId,&#10;                                                        @PathVariable Long tiradaId,&#10;                                                        @Valid @RequestBody TiradaDadoUpdateDTO dto) {&#10;        return ResponseEntity.ok(tiradaService.actualizarEnMision(getCurrentUserEmail(), misionId, tiradaId, dto));&#10;    }&#10;&#10;    @DeleteMapping(&quot;/{tiradaId}&quot;)&#10;    public ResponseEntity&lt;Void&gt; delete(@PathVariable Long misionId, @PathVariable Long tiradaId) {&#10;        tiradaService.eliminarEnMision(getCurrentUserEmail(), misionId, tiradaId);&#10;        return ResponseEntity.noContent().build();&#10;    }&#10;&#10;    @GetMapping(&quot;/personajes/{personajeId}/historial&quot;)&#10;    public ResponseEntity&lt;HistorialTiradasDTO&gt; historial(@PathVariable Long misionId, @PathVariable Long personajeId) {&#10;        return ResponseEntity.ok(tiradaService.historialPorPersonajeEnMision(getCurrentUserEmail(), misionId, personajeId));&#10;    }&#10;}&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/src/main/java/com/gvc/ravenloftcastleapi/entity/RolParticipante.java">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/src/main/java/com/gvc/ravenloftcastleapi/entity/RolParticipante.java" />
+              <option name="updatedContent" value="package com.gvc.ravenloftcastleapi.entity;&#10;&#10;public enum RolParticipante {&#10;    JUGADOR,&#10;    MASTER&#10;}&#10;" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
