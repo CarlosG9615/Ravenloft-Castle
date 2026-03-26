@@ -9,4 +9,4 @@
 # Environment variable files
 *.env
 .env
-/target/
+**/target/
