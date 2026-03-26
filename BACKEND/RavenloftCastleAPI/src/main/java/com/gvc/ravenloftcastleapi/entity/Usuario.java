@@ -45,6 +45,9 @@ public class Usuario implements UserDetails {
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MisionParticipante> misionesParticipando;
 
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MisionProgreso> progresosMision;
+
     // ── UserDetails ──────────────────────────────────────────────────────────
 
     @Override

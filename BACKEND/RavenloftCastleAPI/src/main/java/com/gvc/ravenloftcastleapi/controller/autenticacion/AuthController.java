@@ -1,4 +1,4 @@
-package com.gvc.ravenloftcastleapi.controller;
+package com.gvc.ravenloftcastleapi.controller.autenticacion;
 
 import com.gvc.ravenloftcastleapi.dto.autenticacion.LoginRequestDTO;
 import com.gvc.ravenloftcastleapi.dto.autenticacion.LoginResponseDTO;
@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
     private final AuthService authService;
