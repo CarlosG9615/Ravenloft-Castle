@@ -1,4 +1,4 @@
-package com.gvc.ravenloftcastleapi.dto.mision;
+package com.gvc.ravenloftcastleapi.dto.escenario;
 
 public record EscenarioResumenDTO(
         Long id,
@@ -6,6 +6,6 @@ public record EscenarioResumenDTO(
         String iluminacion,
         String terreno,
         int orden,
-        double multiplicadorEnemigos
+        double multiplicadorEnemigos,
+        int dificultad
 ) {}
-

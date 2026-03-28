@@ -1,6 +1,6 @@
 package com.gvc.ravenloftcastleapi.service;
 
-import com.gvc.ravenloftcastleapi.dto.mision.EscenarioResumenDTO;
+import com.gvc.ravenloftcastleapi.dto.escenario.EscenarioResumenDTO;
 import com.gvc.ravenloftcastleapi.dto.mision.MisionCreateDTO;
 import com.gvc.ravenloftcastleapi.dto.mision.MisionDetalleDTO;
 import com.gvc.ravenloftcastleapi.dto.mision.MisionEscenarioCreateDTO;
@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -128,9 +127,63 @@ public class MisionService {
     @Transactional
     public void eliminarMision(Long id) {
         if (!misionRepository.existsById(id)) {
-            throw new RuntimeException("Misión no encontrada con id: " + id);
+            throw new RuntimeException("Misin no encontrada con id: " + id);
         }
         misionRepository.deleteById(id);
+    }
+
+    @Transactional
+    public MisionDetalleDTO vincularEscenario(Long misionId, MisionEscenarioCreateDTO dto) {
+        Mision mision = misionRepository.findById(misionId)
+                .orElseThrow(() -> new RuntimeException("Misin no encontrada con id: " + misionId));
+
+        Escenario escenario = escenarioRepository.findById(dto.id())
+                .orElseThrow(() -> new RuntimeException("Escenario no encontrado con id: " + dto.id()));
+
+        MisionEscenario misionEscenario = MisionEscenario.builder()
+                .mision(mision)
+                .escenario(escenario)
+                .orden(dto.orden())
+                .multiplicadorEnemigos(dto.multiplicadorEnemigos() != null ? dto.multiplicadorEnemigos() : BigDecimal.ONE)
+                .dificultad(dto.dificultad() != null ? dto.dificultad() : 1)
+                .build();
+
+        misionEscenarioRepository.save(misionEscenario);
+
+        mision.getEscenarios().add(misionEscenario);
+        return mapToMisionDetalleDTO(mision);
+    }
+
+    @Transactional
+    public MisionDetalleDTO desvincularEscenario(Long misionId, Long escenarioId) {
+        Mision mision = misionRepository.findById(misionId)
+                .orElseThrow(() -> new RuntimeException("Misión no encontrada con id: " + misionId));
+
+        MisionEscenario vinculo = mision.getEscenarios().stream()
+                .filter(me -> me.getEscenario().getId().equals(escenarioId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("El escenario no está vinculado a la misión."));
+
+        mision.getEscenarios().remove(vinculo);
+        misionEscenarioRepository.delete(vinculo);
+
+        return mapToMisionDetalleDTO(mision);
+    }
+
+    @Transactional
+    public MisionDetalleDTO actualizarDificultadEscenario(Long misionId, Long escenarioId, int dificultad) {
+        Mision mision = misionRepository.findById(misionId)
+                .orElseThrow(() -> new RuntimeException("Misión no encontrada con id: " + misionId));
+
+        MisionEscenario vinculo = mision.getEscenarios().stream()
+                .filter(me -> me.getEscenario().getId().equals(escenarioId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("El escenario no está vinculado a la misión."));
+
+        vinculo.setDificultad(dificultad);
+        misionEscenarioRepository.save(vinculo);
+
+        return mapToMisionDetalleDTO(mision);
     }
 
     private MisionDetalleDTO mapToMisionDetalleDTO(Mision mision) {
@@ -165,7 +218,8 @@ public class MisionService {
                 escenario.getIluminacion(), // Es String, no Enum
                 escenario.getTerreno(),     // Es String, no Enum
                 me.getOrden(),
-                me.getMultiplicadorEnemigos().doubleValue() // Es BigDecimal, convertir a double
+                me.getMultiplicadorEnemigos().doubleValue(), // Es BigDecimal, convertir a double
+                me.getDificultad()
         );
     }
 }

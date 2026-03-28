@@ -1,5 +1,7 @@
 package com.gvc.ravenloftcastleapi.dto.mision;
 
+import com.gvc.ravenloftcastleapi.dto.escenario.EscenarioResumenDTO;
+
 import java.util.List;
 
 public record MisionDetalleDTO(
