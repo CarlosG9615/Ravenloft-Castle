@@ -16,6 +16,10 @@ public interface MisionParticipanteRepository extends JpaRepository<MisionPartic
 
     boolean existsByMisionIdAndUsuarioId(Long misionId, Long usuarioId);
 
+    boolean existsByMisionIdAndUsuarioIdAndIdNot(Long misionId, Long usuarioId, Long id);
+
+    Optional<MisionParticipante> findByIdAndMisionId(Long id, Long misionId);
+
     Optional<MisionParticipante> findByMisionIdAndUsuarioId(Long misionId, Long usuarioId);
 }
 
