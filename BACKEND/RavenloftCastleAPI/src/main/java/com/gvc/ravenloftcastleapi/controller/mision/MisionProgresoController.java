@@ -64,5 +64,23 @@ public class MisionProgresoController {
     ) {
         return ResponseEntity.ok(misionProgresoService.getById(getCurrentUserEmail(), misionId, progresoId));
     }
+
+    @PutMapping("/{progresoId}")
+    public ResponseEntity<MisionProgresoResponseDTO> actualizar(
+            @PathVariable Long misionId,
+            @PathVariable Long progresoId,
+            @Valid @RequestBody MisionProgresoSaveDTO dto
+    ) {
+        return ResponseEntity.ok(misionProgresoService.actualizarGuardado(getCurrentUserEmail(), misionId, progresoId, dto));
+    }
+
+    @DeleteMapping("/{progresoId}")
+    public ResponseEntity<Void> eliminar(
+            @PathVariable Long misionId,
+            @PathVariable Long progresoId
+    ) {
+        misionProgresoService.eliminarGuardado(getCurrentUserEmail(), misionId, progresoId);
+        return ResponseEntity.noContent().build();
+    }
 }
 

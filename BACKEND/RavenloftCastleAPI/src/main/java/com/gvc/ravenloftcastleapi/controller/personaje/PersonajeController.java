@@ -55,4 +55,10 @@ public class PersonajeController {
     public ResponseEntity<PersonajeResponseDTO> update(@PathVariable Long id, @Valid @RequestBody PersonajeCreateDTO dto) {
         return ResponseEntity.ok(personajeService.updateForUserEmail(getCurrentUserEmail(), id, dto));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        personajeService.deleteForUserEmail(getCurrentUserEmail(), id);
+        return ResponseEntity.noContent().build();
+    }
 }
