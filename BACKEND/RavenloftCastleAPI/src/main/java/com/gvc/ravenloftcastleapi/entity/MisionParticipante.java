@@ -28,6 +28,10 @@ public class MisionParticipante {
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "personaje_id")
+    private Personaje personaje;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private RolParticipante rol;

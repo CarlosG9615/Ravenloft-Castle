@@ -16,6 +16,16 @@ public interface MisionParticipanteRepository extends JpaRepository<MisionPartic
 
     boolean existsByMisionIdAndUsuarioId(Long misionId, Long usuarioId);
 
+    boolean existsByMisionIdAndUsuarioIdAndIdNot(Long misionId, Long usuarioId, Long id);
+
+    boolean existsByMisionIdAndUsuarioIdAndRol(Long misionId, Long usuarioId, com.gvc.ravenloftcastleapi.enums.RolParticipante rol);
+
+    Optional<MisionParticipante> findByIdAndMisionId(Long id, Long misionId);
+
     Optional<MisionParticipante> findByMisionIdAndUsuarioId(Long misionId, Long usuarioId);
+
+    Optional<MisionParticipante> findByMisionIdAndPersonajeId(Long misionId, Long personajeId);
+
+    List<MisionParticipante> findByMisionIdAndPersonajeIsNotNull(Long misionId);
 }
 

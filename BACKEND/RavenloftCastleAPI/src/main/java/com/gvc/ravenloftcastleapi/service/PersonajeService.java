@@ -187,6 +187,20 @@ public class PersonajeService {
         return toResponse(personajeRepository.save(personaje));
     }
 
+    @Transactional
+    public void deleteForUserEmail(String email, Long id) {
+        Usuario currentUser = getUsuarioByEmail(email);
+        Personaje personaje = personajeRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Personaje no encontrado"));
+
+        boolean isOwner = personaje.getUsuario().getId().equals(currentUser.getId());
+        if (!isAdmin(currentUser) && !isOwner) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes eliminar personajes de otro usuario");
+        }
+
+        personajeRepository.delete(personaje);
+    }
+
     private Usuario getUsuarioByEmail(String email) {
         return usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -196,6 +210,14 @@ public class PersonajeService {
         if (!user.getId().equals(usuarioId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes operar personajes de otro usuario");
         }
+    }
+
+    private boolean isAdmin(Usuario user) {
+        if (user.getRole() == null || user.getRole().getNombre() == null) {
+            return false;
+        }
+        String roleName = user.getRole().getNombre().toUpperCase().replace("ROLE_", "");
+        return "ADMIN".equals(roleName);
     }
 
     private void validateBaseStats(StatsBaseDTO statsBase) {

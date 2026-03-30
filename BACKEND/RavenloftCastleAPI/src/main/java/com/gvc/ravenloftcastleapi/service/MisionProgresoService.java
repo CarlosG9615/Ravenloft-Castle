@@ -6,6 +6,7 @@ import com.gvc.ravenloftcastleapi.entity.Mision;
 import com.gvc.ravenloftcastleapi.entity.MisionEscenario;
 import com.gvc.ravenloftcastleapi.entity.MisionProgreso;
 import com.gvc.ravenloftcastleapi.entity.Personaje;
+import com.gvc.ravenloftcastleapi.entity.TiradaDado;
 import com.gvc.ravenloftcastleapi.entity.Usuario;
 import com.gvc.ravenloftcastleapi.enums.TipoGuardadoProgreso;
 import com.gvc.ravenloftcastleapi.repository.CampanaPersonajeRepository;
@@ -14,6 +15,7 @@ import com.gvc.ravenloftcastleapi.repository.MisionParticipanteRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionProgresoRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionRepository;
 import com.gvc.ravenloftcastleapi.repository.PersonajeRepository;
+import com.gvc.ravenloftcastleapi.repository.TiradaDadoRepository;
 import com.gvc.ravenloftcastleapi.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -36,6 +38,7 @@ public class MisionProgresoService {
     private final PersonajeRepository personajeRepository;
     private final CampanaPersonajeRepository campanaPersonajeRepository;
     private final MisionEscenarioRepository misionEscenarioRepository;
+    private final TiradaDadoRepository tiradaDadoRepository;
 
     @Transactional
     public MisionProgresoResponseDTO guardarAutosave(String email, Long misionId, MisionProgresoSaveDTO dto) {
@@ -145,6 +148,50 @@ public class MisionProgresoService {
         return toResponse(progreso);
     }
 
+    @Transactional
+    public MisionProgresoResponseDTO actualizarGuardado(String email, Long misionId, Long progresoId, MisionProgresoSaveDTO dto) {
+        Usuario usuario = getUsuarioByEmail(email);
+        MisionProgreso progreso = misionProgresoRepository.findByIdAndMisionId(progresoId, misionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Guardado de progreso no encontrado"));
+
+        validarAccesoGestion(progreso, usuario);
+
+        if (progreso.getTipoGuardado() == TipoGuardadoProgreso.AUTOSAVE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El autosave se actualiza solo mediante /autosave");
+        }
+
+        if (!progreso.getPersonaje().getId().equals(dto.personajeId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes mover un guardado a otro personaje");
+        }
+
+        MisionEscenario escenario = getEscenarioValido(misionId, dto.misionEscenarioId());
+        aplicarDatosGuardado(progreso, dto, escenario, progreso.getTipoGuardado(), progreso.getNumeroGuardado());
+
+        if (progreso.getTipoGuardado() == TipoGuardadoProgreso.MANUAL
+                && (progreso.getNombreGuardado() == null || progreso.getNombreGuardado().isBlank())) {
+            progreso.setNombreGuardado("Guardado manual #" + progreso.getNumeroGuardado());
+        }
+
+        return toResponse(misionProgresoRepository.save(progreso));
+    }
+
+    @Transactional
+    public void eliminarGuardado(String email, Long misionId, Long progresoId) {
+        Usuario usuario = getUsuarioByEmail(email);
+        MisionProgreso progreso = misionProgresoRepository.findByIdAndMisionId(progresoId, misionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Guardado de progreso no encontrado"));
+
+        validarAccesoGestion(progreso, usuario);
+
+        List<TiradaDado> tiradasAsociadas = tiradaDadoRepository.findByMisionProgresoIdOrderByFechaDesc(progresoId);
+        if (!tiradasAsociadas.isEmpty()) {
+            tiradasAsociadas.forEach(t -> t.setMisionProgreso(null));
+            tiradaDadoRepository.saveAll(tiradasAsociadas);
+        }
+
+        misionProgresoRepository.delete(progreso);
+    }
+
     private void aplicarDatosGuardado(
             MisionProgreso progreso,
             MisionProgresoSaveDTO dto,
@@ -221,6 +268,20 @@ public class MisionProgresoService {
         if (!progreso.getUsuario().getId().equals(usuarioId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El guardado no pertenece al usuario autenticado");
         }
+    }
+
+    private void validarAccesoGestion(MisionProgreso progreso, Usuario usuarioActual) {
+        if (!isAdmin(usuarioActual) && !progreso.getUsuario().getId().equals(usuarioActual.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes permisos para gestionar este guardado");
+        }
+    }
+
+    private boolean isAdmin(Usuario usuario) {
+        if (usuario.getRole() == null || usuario.getRole().getNombre() == null) {
+            return false;
+        }
+        String role = usuario.getRole().getNombre().toUpperCase().replace("ROLE_", "");
+        return "ADMIN".equals(role);
     }
 
     private MisionProgresoResponseDTO toResponse(MisionProgreso progreso) {
