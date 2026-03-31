@@ -1,5 +1,7 @@
 package com.gvc.ravenloftcastleapi.dto.enemigo;
 import com.gvc.ravenloftcastleapi.dto.personaje.StatsDTO;
+
+
 public record EnemigoDetalleDTO(
         Long id,
         String nombre,

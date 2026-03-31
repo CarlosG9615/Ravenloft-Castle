@@ -3,13 +3,20 @@ package com.gvc.ravenloftcastleapi.service;
 import com.gvc.ravenloftcastleapi.dto.campana.CampanaCreateDTO;
 import com.gvc.ravenloftcastleapi.dto.campana.CampanaDetalleDTO;
 import com.gvc.ravenloftcastleapi.dto.campana.CampanaUpdateDTO;
+import com.gvc.ravenloftcastleapi.dto.campana.CampanaEnemigoUpdateDTO;
+import com.gvc.ravenloftcastleapi.dto.campana.CampanaEnemigoResponseDTO;
 import com.gvc.ravenloftcastleapi.dto.mision.MisionResumenDTO;
 import com.gvc.ravenloftcastleapi.dto.personaje.PersonajeResponseDTO;
+import com.gvc.ravenloftcastleapi.dto.enemigo.CampanaEnemigoDTO;
+import com.gvc.ravenloftcastleapi.dto.enemigo.EnemigoResumenDTO;
 import com.gvc.ravenloftcastleapi.entity.Campana;
 import com.gvc.ravenloftcastleapi.entity.CampanaPersonaje;
+import com.gvc.ravenloftcastleapi.entity.CampanaEnemigo;
+import com.gvc.ravenloftcastleapi.entity.Enemigo;
 import com.gvc.ravenloftcastleapi.entity.Mision;
 import com.gvc.ravenloftcastleapi.entity.Personaje;
 import com.gvc.ravenloftcastleapi.repository.CampanaRepository;
+import com.gvc.ravenloftcastleapi.repository.EnemigoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,6 +35,7 @@ import java.util.stream.Collectors;
 public class CampanaService {
 
     private final CampanaRepository campanaRepository;
+    private final EnemigoRepository enemigoRepository;
 
     @Transactional
     public CampanaDetalleDTO crearCampana(CampanaCreateDTO dto) {
@@ -61,7 +69,7 @@ public class CampanaService {
     public List<CampanaDetalleDTO> listarCampanasPublicas() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isAdmin = auth != null && auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
 
         List<Campana> campanas = campanaRepository.findAll();
         return campanas.stream()
@@ -127,13 +135,99 @@ public class CampanaService {
     @Transactional(readOnly = true)
     public List<MisionResumenDTO> listarMisionesDeCampana(Long campanaId) {
         Campana campana = campanaRepository.findById(campanaId)
-            .orElseThrow(() -> new RuntimeException("Campaña no encontrada con id: " + campanaId));
+                .orElseThrow(() -> new RuntimeException("Campaña no encontrada"));
+        return campana.getMisiones().stream()
+                .map(this::mapToMisionDTO)
+                .collect(Collectors.toList());
+    }
 
-        return Optional.ofNullable(campana.getMisiones())
-            .orElse(Collections.emptyList())
-            .stream()
-            .map(this::mapToMisionDTO)
-            .collect(Collectors.toList());
+    @Transactional
+    public void asignarEnemigo(Long campanaId, CampanaEnemigoDTO dto) {
+        Campana campana = campanaRepository.findById(campanaId)
+                .orElseThrow(() -> new RuntimeException("Campaña no encontrada con id: " + campanaId));
+
+        Enemigo enemigo = enemigoRepository.findById(dto.enemigoId())
+                .orElseThrow(() -> new RuntimeException("Enemigo no encontrado con id: " + dto.enemigoId()));
+
+        if (campana.getEnemigos() == null) {
+            campana.setEnemigos(new java.util.ArrayList<>());
+        }
+
+        // Check if Enemy is already assigned to the campaign, perhaps update
+        Optional<CampanaEnemigo> existente = campana.getEnemigos().stream()
+                .filter(ce -> ce.getEnemigo().getId().equals(enemigo.getId()) && ce.getDificultad() == dto.dificultad())
+                .findFirst();
+
+        if (existente.isPresent()) {
+            existente.get().setCantidad(existente.get().getCantidad() + dto.cantidad());
+        } else {
+            CampanaEnemigo campanaEnemigo = new CampanaEnemigo();
+            campanaEnemigo.setCampana(campana);
+            campanaEnemigo.setEnemigo(enemigo);
+            campanaEnemigo.setCantidad(dto.cantidad());
+            campanaEnemigo.setDificultad(dto.dificultad());
+            campana.getEnemigos().add(campanaEnemigo);
+        }
+
+        campanaRepository.save(campana);
+    }
+
+    @Transactional
+    public void editarEnemigoCampana(Long campanaId, Long enemigoId, CampanaEnemigoUpdateDTO dto) {
+        Campana campana = campanaRepository.findById(campanaId)
+                .orElseThrow(() -> new RuntimeException("Campaña no encontrada con id: " + campanaId));
+
+        CampanaEnemigo campanaEnemigo = campana.getEnemigos().stream()
+                .filter(ce -> ce.getEnemigo().getId().equals(enemigoId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("El enemigo no está asignado a esta campaña"));
+
+        if (dto.cantidad() != null) {
+            campanaEnemigo.setCantidad(dto.cantidad());
+        }
+        if (dto.dificultad() != null) {
+            campanaEnemigo.setDificultad(dto.dificultad());
+        }
+
+        campanaRepository.save(campana);
+    }
+
+    @Transactional
+    public void eliminarEnemigoCampana(Long campanaId, Long enemigoId) {
+        Campana campana = campanaRepository.findById(campanaId)
+                .orElseThrow(() -> new RuntimeException("Campaña no encontrada con id: " + campanaId));
+
+        boolean remoted = campana.getEnemigos().removeIf(ce -> ce.getEnemigo().getId().equals(enemigoId));
+
+        if (!remoted) {
+            throw new RuntimeException("El enemigo no está asignado a esta campaña");
+        }
+
+        campanaRepository.save(campana);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CampanaEnemigoResponseDTO> listarEnemigosDeCampana(Long campanaId) {
+        Campana campana = campanaRepository.findById(campanaId)
+                .orElseThrow(() -> new RuntimeException("Campaña no encontrada con id: " + campanaId));
+
+        return Optional.ofNullable(campana.getEnemigos())
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(ce -> new CampanaEnemigoResponseDTO(
+                        ce.getId(),
+                        new EnemigoResumenDTO(
+                                ce.getEnemigo().getId(),
+                                ce.getEnemigo().getNombre(),
+                                ce.getEnemigo().getTipo(),
+                                ce.getEnemigo().getCr().doubleValue(),
+                                ce.getEnemigo().getSalud(),
+                                ce.getEnemigo().getCa()
+                        ),
+                        ce.getCantidad(),
+                        ce.getDificultad()
+                ))
+                .collect(Collectors.toList());
     }
 
     private CampanaDetalleDTO mapToDetalleDTO(Campana campana) {
