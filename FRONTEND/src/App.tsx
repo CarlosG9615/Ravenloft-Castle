@@ -15,6 +15,7 @@ import { CharacterCreate } from './pages/Characters/CharacterCreate';
 import { CharactersList } from './pages/Characters/CharactersList';
 import { ScrollToTop } from './components/ScrollToTop/ScrollToTop';
 import { JoinGame } from './pages/JoinGame/JoinGame';
+import { CreateCampaign } from './pages/CreateCampaign/CreateCampaign';
 import './App.css';
 
 function Layout() {
@@ -57,6 +58,9 @@ function Layout() {
           <Route path="/join" element={
             <PrivateRoute><JoinGame /></PrivateRoute>
           } />
+          <Route path="/create" element={
+          <PrivateRoute><CreateCampaign /></PrivateRoute>
+        } />
 
         </Routes>
       </main>

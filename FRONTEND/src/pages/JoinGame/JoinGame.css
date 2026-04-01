@@ -549,3 +549,176 @@
   .jg-controles { flex-direction: column; }
   .jg-busqueda-wrap { width: 100%; }
 }
+/* ── PESTAÑAS ── */
+.jg-pestanas {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid rgba(139,0,0,0.25);
+}
+
+.jg-pestana {
+  font-family: 'Metal Mania', cursive;
+  font-size: 14px;
+  letter-spacing: 1px;
+  padding: 12px 28px;
+  border-radius: 8px 8px 0 0;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jg-pestana:hover {
+  color: rgba(255,255,255,0.7);
+  background: rgba(139,0,0,0.08);
+}
+
+.jg-pestana.active {
+  background: rgba(139,0,0,0.2);
+  border-color: rgba(139,0,0,0.4);
+  color: white;
+}
+
+/* ── GRID MISIONES ── */
+.jg-misiones-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+/* ── CARD MISIÓN ── */
+.jg-mision-card {
+  background: rgba(15,5,5,0.9);
+  border: 1px solid rgba(139,0,0,0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  animation: cardFadeIn 0.5s ease both;
+}
+
+.jg-mision-card:hover {
+  border-color: rgba(200,50,30,0.6);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(139,0,0,0.3);
+}
+
+/* IMAGEN/ICONO */
+.jg-mision-img-wrap {
+  position: relative;
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  background: rgba(20,5,5,0.95);
+}
+
+.jg-mision-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.jg-mision-card:hover .jg-mision-img {
+  transform: scale(1.05);
+}
+
+.jg-mision-icono {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  opacity: 0.3;
+  background: radial-gradient(ellipse at center, rgba(139,0,0,0.15) 0%, transparent 70%);
+}
+
+.jg-mision-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(15,5,5,0.95) 0%, transparent 60%);
+}
+
+.jg-mision-tipo-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0,0,0,0.7);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(4px);
+}
+
+.jg-mision-dif-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+}
+
+/* INFO MISIÓN */
+.jg-mision-info {
+  padding: 14px 16px;
+}
+
+.jg-mision-nombre {
+  font-family: 'Metal Mania', cursive;
+  font-size: 15px;
+  color: white;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  text-shadow: 0 0 10px rgba(139,0,0,0.3);
+}
+
+.jg-mision-desc {
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.5;
+  margin-bottom: 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.jg-mision-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.jg-mision-recompensa {
+  font-size: 12px;
+  color: rgba(255,200,80,0.85);
+  font-weight: 600;
+}
+
+.jg-mision-nivel {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.07);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.jg-mision-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+}
