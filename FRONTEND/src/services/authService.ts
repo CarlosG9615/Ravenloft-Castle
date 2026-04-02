@@ -1,7 +1,7 @@
 import { API_URL, publicHeaders, authHeaders } from './api';
 
 // LOGIN — guarda token Y datos del usuario
-export const login = async (email: string, password: string) => {
+export const login = async (email: string, password: string, rememberMe: boolean = false) => {
   const response = await fetch(`${API_URL}/api/auth/login`, {
     method: 'POST',
     headers: publicHeaders(),
@@ -14,10 +14,6 @@ export const login = async (email: string, password: string) => {
 
   const data = await response.json();
 
-  // Guardamos token
-  sessionStorage.setItem('token', data.token);
-
-  // Guardamos datos del usuario (ajusta los campos según lo que devuelva tu backend)
   const userData = {
     id: data.id ?? data.userId ?? data.usuario?.id,
     nombre: data.nombre ?? data.username ?? data.usuario?.nombre,
@@ -25,7 +21,18 @@ export const login = async (email: string, password: string) => {
     avatar: data.avatar ?? data.usuario?.avatar ?? null,
     rol: data.rol ?? data.role ?? data.usuario?.rol,
   };
-  sessionStorage.setItem('user', JSON.stringify(userData));
+
+  const storage = rememberMe ? localStorage : sessionStorage;
+  
+  // Limpiamos ambos storages primero
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('user');
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+
+  // Guardamos token y datos en el storage adecuado
+  storage.setItem('token', data.token);
+  storage.setItem('user', JSON.stringify(userData));
 
   return { token: data.token, user: userData };
 };
@@ -49,7 +56,8 @@ export const register = async (nombre: string, email: string, password: string) 
 export const logout = () => {
   sessionStorage.removeItem('token');
   sessionStorage.removeItem('user');
-  localStorage.removeItem('rememberedEmail');
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
 };
 
 // OBTENER PERFIL del usuario logueado

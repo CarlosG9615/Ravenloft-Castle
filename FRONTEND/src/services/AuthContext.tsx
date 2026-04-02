@@ -14,7 +14,7 @@ interface AuthContextType {
   user: UserData | null;
   token: string | null;
   isLoggedIn: boolean;
-  setUserData: (user: UserData, token: string) => void;
+  setUserData: (user: UserData, token: string, rememberMe?: boolean) => void;
   logout: () => void;
   updateUser: (updated: Partial<UserData>) => void;
 }
@@ -27,8 +27,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Al montar, recuperar sesión guardada
   useEffect(() => {
-    const savedToken = sessionStorage.getItem('token');
-    const savedUser = sessionStorage.getItem('user');
+    const savedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const savedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
     if (savedToken && savedUser) {
       try {
         setToken(savedToken);
@@ -36,15 +36,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         sessionStorage.removeItem('token');
         sessionStorage.removeItem('user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
       }
     }
   }, []);
 
-  const setUserData = (userData: UserData, userToken: string) => {
+  const setUserData = (userData: UserData, userToken: string, rememberMe: boolean = false) => {
     setUser(userData);
     setToken(userToken);
-    sessionStorage.setItem('token', userToken);
-    sessionStorage.setItem('user', JSON.stringify(userData));
+    const storage = rememberMe ? localStorage : sessionStorage;
+    
+    // Limpiamos ambos por si acaso
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+
+    storage.setItem('token', userToken);
+    storage.setItem('user', JSON.stringify(userData));
   };
 
   const logout = () => {
@@ -52,6 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('user');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     localStorage.removeItem('rememberedEmail');
   };
 
@@ -59,7 +71,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     const newUser = { ...user, ...updated };
     setUser(newUser);
-    sessionStorage.setItem('user', JSON.stringify(newUser));
+    
+    if (localStorage.getItem('user')) {
+      localStorage.setItem('user', JSON.stringify(newUser));
+    } else {
+      sessionStorage.setItem('user', JSON.stringify(newUser));
+    }
   };
 
   return (
