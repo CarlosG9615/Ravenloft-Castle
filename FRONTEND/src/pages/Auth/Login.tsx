@@ -43,8 +43,8 @@ export function Login() {
     setLoading(true);
 
     try {
-      const data = await login(email, password);
-      setUserData(data.user, data.token);
+      const data = await login(email, password, rememberMe);
+      setUserData(data.user, data.token, rememberMe);
 
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
