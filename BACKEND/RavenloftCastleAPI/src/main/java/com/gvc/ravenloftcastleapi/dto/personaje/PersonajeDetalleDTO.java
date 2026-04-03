@@ -12,6 +12,7 @@ public class PersonajeDetalleDTO {
     int saludMax;
     int saludActual;
     String alineamiento;
+    String avatar;
 
     // Raza y clase embebidos (no solo el id)
     RazaResumenDTO raza;

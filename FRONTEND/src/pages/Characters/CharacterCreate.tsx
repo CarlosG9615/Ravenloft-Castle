@@ -4,6 +4,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './CharacterCreate.css';
 import { BackButton } from '../../components/BackButton/BackButton';
 import { CharacterSheet } from './CharacterSheet';
+import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
+import { createPersonaje, type PersonajeCreatePayload } from '../../services/personajeService';
 
 // ── DATOS D&D 5e ──────────────────────────────────────────
 const RAZAS = [
@@ -22,6 +24,8 @@ const CLASES = [
   'Bárbaro', 'Bardo', 'Clérigo', 'Druida', 'Explorador',
   'Guerrero', 'Hechicero', 'Mago', 'Monje', 'Paladín', 'Pícaro', 'Brujo'
 ];
+
+const GENEROS = ['Male', 'Female'] as const;
 
 const TRASFONDOS = [
   { nombre: 'Acólito',          descripcion: 'Has pasado tu vida al servicio de un templo.',              competencias: ['Perspicacia', 'Religión'] },
@@ -50,16 +54,19 @@ const STAT_LABELS: Record<StatKey, string> = {
 const PUNTOS_ESTANDAR = [15, 14, 13, 12, 10, 8];
 const MAX_PALABRAS = 120;
 
-const calcMod = (val: number) => {
+const calcularModificador = (val: number) => {
   const mod = Math.floor((val - 10) / 2);
   return mod >= 0 ? `+${mod}` : `${mod}`;
 };
 
-const tirar4d6 = () => {
+const calcularTirada = () => {
   const dados = Array.from({ length: 4 }, () => Math.floor(Math.random() * 6) + 1);
   dados.sort((a, b) => a - b);
   return dados.slice(1).reduce((a, b) => a + b, 0);
 };
+
+const normalizarClase = (nombre: string) =>
+  nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 const contarPalabras = (texto: string) =>
   texto.trim() === '' ? 0 : texto.trim().split(/\s+/).length;
@@ -92,6 +99,7 @@ export function CharacterCreate() {
   // Paso 3
   const [avatarSeleccionado, setAvatarSeleccionado] = useState<string | null>(null);
   const [avatarCustom, setAvatarCustom] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
 
   const razaData = RAZAS.find(r => r.nombre === raza);
   const trasfondoData = TRASFONDOS.find(t => t.nombre === trasfondo);
@@ -113,7 +121,9 @@ export function CharacterCreate() {
   }, {} as Record<StatKey, number>);
 
   const palabras = contarPalabras(historia);
-  const imagenFinal = avatarCustom ?? (avatarSeleccionado ? `/images/avatars/${avatarSeleccionado}.png` : null);
+  const claseApariencia = clase ? normalizarClase(clase) : normalizarClase(CLASES[0]);
+  const avatarsDisponibles = GENEROS.map(genero => `${claseApariencia}${genero}`);
+  const imagenFinal = avatarSeleccionado ? getCartaUrl(avatarSeleccionado) : (avatarCustom ?? null);
 
   const handleHistoria = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (contarPalabras(e.target.value) <= MAX_PALABRAS) setHistoria(e.target.value);
@@ -126,7 +136,7 @@ export function CharacterCreate() {
     STATS.filter(s => s !== statActual).map(s => statsEstandar[s]).filter(v => v !== null) as number[];
 
   const generarTiradas = () => {
-    setTiradas(Array.from({ length: 6 }, (_, i) => ({ id: i, valor: tirar4d6() })));
+    setTiradas(Array.from({ length: 6 }, (_, i) => ({ id: i, valor: calcularTirada() })));
     setTiradaAsignada({ fuerza: null, destreza: null, constitucion: null, inteligencia: null, sabiduria: null, carisma: null });
   };
 
@@ -153,11 +163,138 @@ export function CharacterCreate() {
     reader.readAsDataURL(file);
   };
 
+  const seleccionarAvatar = (avatarId: string) => {
+    setAvatarSeleccionado(avatarId);
+    setAvatarCustom(null);
+  };
+
   const paso1Valido = nombre.trim() && raza && clase && trasfondo;
   const paso2Valido = metodo === 'puntos'
     ? STATS.every(s => statsEstandar[s] !== null)
     : STATS.every(s => tiradaAsignada[s] !== null);
   const paso3Valido = avatarSeleccionado !== null || avatarCustom !== null;
+
+  const normalizarTexto = (valor: string) =>
+    valor.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  const buildHabilidades = () => {
+    const comps = trasfondoData?.competencias.map(normalizarTexto) ?? [];
+    const tiene = (nombre: string) => comps.includes(normalizarTexto(nombre));
+    return {
+      atletismo: tiene('Atletismo') ? 2 : 0,
+      sigilo: tiene('Sigilo') ? 2 : 0,
+      persuasion: tiene('Persuasión') ? 2 : 0,
+      percepcion: tiene('Percepción') ? 2 : 0,
+      arcanos: tiene('Arcanos') ? 2 : 0,
+      medicina: tiene('Medicina') ? 2 : 0,
+      supervivencia: tiene('Supervivencia') ? 2 : 0,
+      intimidacion: tiene('Intimidar') ? 2 : 0,
+    };
+  };
+
+  const normalizarStatsBaseBackend = (base: Record<StatKey, number>) => {
+    const TARGET_TOTAL = 75;
+    const MIN = 8;
+    const MAX = 15;
+
+    const result: Record<StatKey, number> = {
+      fuerza: Math.min(MAX, Math.max(MIN, base.fuerza)),
+      destreza: Math.min(MAX, Math.max(MIN, base.destreza)),
+      constitucion: Math.min(MAX, Math.max(MIN, base.constitucion)),
+      inteligencia: Math.min(MAX, Math.max(MIN, base.inteligencia)),
+      sabiduria: Math.min(MAX, Math.max(MIN, base.sabiduria)),
+      carisma: Math.min(MAX, Math.max(MIN, base.carisma)),
+    };
+
+    let total = STATS.reduce((acc, stat) => acc + result[stat], 0);
+    if (total < TARGET_TOTAL) {
+      const asc = [...STATS].sort((a, b) => result[a] - result[b]);
+      while (total < TARGET_TOTAL) {
+        let changed = false;
+        for (const stat of asc) {
+          if (result[stat] < MAX && total < TARGET_TOTAL) {
+            result[stat] += 1;
+            total += 1;
+            changed = true;
+          }
+        }
+        if (!changed) break;
+      }
+    }
+
+    if (total > TARGET_TOTAL) {
+      const desc = [...STATS].sort((a, b) => result[b] - result[a]);
+      while (total > TARGET_TOTAL) {
+        let changed = false;
+        for (const stat of desc) {
+          if (result[stat] > MIN && total > TARGET_TOTAL) {
+            result[stat] -= 1;
+            total -= 1;
+            changed = true;
+          }
+        }
+        if (!changed) break;
+      }
+    }
+
+    return result;
+  };
+
+  const handleConfirmar = async () => {
+    if (guardando) return;
+
+    const userRaw = sessionStorage.getItem('user');
+    const user = userRaw ? JSON.parse(userRaw) : null;
+    const usuarioId = Number(user?.id);
+
+    if (!usuarioId) {
+      alert('No se pudo identificar el usuario. Vuelve a iniciar sesion.');
+      return;
+    }
+
+    const statsBaseBackend = normalizarStatsBaseBackend(statsBase);
+
+    const payload: PersonajeCreatePayload = {
+      nombre: nombre.trim(),
+      clase,
+      raza,
+      nivel: 1,
+      statsBase: {
+        fuerza: statsBaseBackend.fuerza,
+        destreza: statsBaseBackend.destreza,
+        constitucion: statsBaseBackend.constitucion,
+        inteligencia: statsBaseBackend.inteligencia,
+        sabiduria: statsBaseBackend.sabiduria,
+        carisma: statsBaseBackend.carisma,
+      },
+      statsFinales: {
+        fuerza: statsFinal.fuerza,
+        destreza: statsFinal.destreza,
+        constitucion: statsFinal.constitucion,
+        inteligencia: statsFinal.inteligencia,
+        sabiduria: statsFinal.sabiduria,
+        carisma: statsFinal.carisma,
+      },
+      habilidades: buildHabilidades(),
+      claseArmadura: 10 + Math.floor((statsFinal.destreza - 10) / 2),
+      iniciativa: Math.floor((statsFinal.destreza - 10) / 2),
+      velocidad: 30,
+      avatar: avatarSeleccionado,
+      alineamiento: 'Neutral',
+      usuarioId,
+    };
+
+    try {
+      setGuardando(true);
+      await createPersonaje(payload);
+      navigate('/characters');
+    } catch (error) {
+      console.error('Error creando personaje:', error);
+      alert('No se pudo guardar el personaje. Revisa los datos e intentalo de nuevo.');
+    } finally {
+      setGuardando(false);
+    }
+  };
 
   useEffect(() => {
     const handlePopState = () => {
@@ -170,6 +307,16 @@ export function CharacterCreate() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [paso]);
+
+  useEffect(() => {
+    if (!avatarCustom) {
+      const avatarPorDefecto = `${claseApariencia}Male`;
+      setAvatarSeleccionado(prev => {
+        if (prev && prev.startsWith(claseApariencia)) return prev;
+        return avatarPorDefecto;
+      });
+    }
+  }, [claseApariencia, avatarCustom]);
 
   const PASOS = ['Identidad', 'Características', 'Apariencia', 'Ficha Final'];
 
@@ -319,7 +466,7 @@ export function CharacterCreate() {
                         )}
                         <span className="create-stat-final">
                           {statsEstandar[stat] !== null
-                            ? <>{statsFinal[stat]} <small>{calcMod(statsFinal[stat])}</small></>
+                            ? <>{statsFinal[stat]} <small>{calcularModificador(statsFinal[stat])}</small></>
                             : <small className="text-muted">—</small>}
                         </span>
                       </div>
@@ -365,7 +512,7 @@ export function CharacterCreate() {
                           )}
                           <span className="create-stat-final">
                             {tiradaAsignada[stat] !== null
-                              ? <>{statsFinal[stat]} <small>{calcMod(statsFinal[stat])}</small></>
+                              ? <>{statsFinal[stat]} <small>{calcularModificador(statsFinal[stat])}</small></>
                               : <small className="text-muted">—</small>}
                           </span>
                         </div>
@@ -405,21 +552,32 @@ export function CharacterCreate() {
             <div className="row g-4 align-items-start">
               <div className="col-lg-8">
                 <div className="avatars-grid">
-                  {/* Los avatares filtrados se añadirán aquí cuando estén las imágenes */}
-                  <div className="create-avatar-placeholder-grid">
-                    <p className="text-muted text-center">
-                      Los avatares de <strong>{raza} · {clase}</strong> aparecerán aquí.
-                    </p>
-                    <p className="text-muted text-center small">Por ahora usa la opción de subir tu propia imagen.</p>
-                  </div>
+                  {avatarsDisponibles.map(avatarId => (
+                    <button
+                      key={avatarId}
+                      type="button"
+                      className={`avatar-option ${avatarSeleccionado === avatarId ? 'active' : ''}`}
+                      onClick={() => seleccionarAvatar(avatarId)}
+                    >
+                      <img
+                        src={getAvatarUrl(avatarId)}
+                        alt={avatarId}
+                        className="avatar-option-img"
+                        loading="lazy"
+                      />
+                    </button>
+                  ))}
                 </div>
+                <p className="create-method-desc mt-3 mb-0">
+                  Solo se muestran avatares de la clase seleccionada: <strong>{claseApariencia}</strong>
+                </p>
               </div>
 
               <div className="col-lg-4">
                 <div className="avatar-preview-card">
                   <div className="avatar-preview-img-wrap">
                     {imagenFinal
-                      ? <img src={imagenFinal} alt="avatar" className="avatar-preview-img" />
+                      ? <img src={imagenFinal} alt="carta" className="avatar-preview-img" />
                       : <div className="avatar-preview-empty">Sin selección</div>
                     }
                   </div>
@@ -437,8 +595,8 @@ export function CharacterCreate() {
             </div>
           </div>
         )}
-          {/* ══ PASO 4: FICHA FINAL ══ */}
-              {paso === 4 && (
+
+        {paso === 4 && (
                 <CharacterSheet
                   nombre={nombre}
                   raza={raza}
@@ -449,7 +607,7 @@ export function CharacterCreate() {
                   stats={statsFinal}
                   modo="wizard"
                   onVolver={() => setPaso(3)}
-                  onConfirmar={() => navigate('/characters')}
+                  onConfirmar={handleConfirmar}
                 />
               )}
       

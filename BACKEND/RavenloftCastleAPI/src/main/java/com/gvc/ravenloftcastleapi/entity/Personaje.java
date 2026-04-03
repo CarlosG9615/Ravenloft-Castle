@@ -76,6 +76,9 @@ public class Personaje {
     @Column(name = "bonif_competencia", nullable = false)
     private int bonificacionCompetencia;
 
+    @Column
+    private String avatar;
+
     @Column(length = 50)
     private String alineamiento;
 

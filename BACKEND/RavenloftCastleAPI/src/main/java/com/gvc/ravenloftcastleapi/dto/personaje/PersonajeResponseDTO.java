@@ -30,5 +30,6 @@ public class PersonajeResponseDTO {
     private Integer iniciativa;
     private Integer velocidad;
     private Integer bonificacionCompetencia;
+    private String avatar;
     private String alineamiento;
 }
