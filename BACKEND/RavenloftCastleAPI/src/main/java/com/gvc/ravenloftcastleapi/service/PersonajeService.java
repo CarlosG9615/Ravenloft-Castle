@@ -134,6 +134,7 @@ public class PersonajeService {
                 .iniciativa(dto.getIniciativa())
                 .velocidad(dto.getVelocidad())
                 .bonificacionCompetencia(computeProficiencyByLevel(dto.getNivel()))
+                .avatar(dto.getAvatar())
                 .alineamiento(dto.getAlineamiento())
                 .build();
 
@@ -176,6 +177,7 @@ public class PersonajeService {
         personaje.setIniciativa(dto.getIniciativa());
         personaje.setVelocidad(dto.getVelocidad());
         personaje.setBonificacionCompetencia(computeProficiencyByLevel(dto.getNivel()));
+        personaje.setAvatar(dto.getAvatar());
         personaje.setAlineamiento(dto.getAlineamiento());
 
         if (personaje.getHabilidad() == null) {
@@ -372,6 +374,7 @@ public class PersonajeService {
                 .iniciativa(personaje.getIniciativa())
                 .velocidad(personaje.getVelocidad())
                 .bonificacionCompetencia(personaje.getBonificacionCompetencia())
+                .avatar(personaje.getAvatar())
                 .alineamiento(personaje.getAlineamiento())
                 .usuarioId(personaje.getUsuario().getId())
                 .build();

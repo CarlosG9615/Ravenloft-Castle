@@ -40,6 +40,9 @@ function Layout() {
             <PrivateRoute><UserProfile /></PrivateRoute>
           } />
           <Route path="/characters" element={
+            <PrivateRoute><CharactersList /></PrivateRoute>
+          } />
+          <Route path="/characters/menu" element={
             <PrivateRoute><CharactersMenu /></PrivateRoute>
           } />
           <Route path="/characters/new" element={

@@ -1,5 +1,45 @@
 import { API_URL, authHeaders } from './api';
 
+export interface PersonajeCreatePayload {
+  nombre: string;
+  clase: string;
+  raza: string;
+  nivel: number;
+  statsBase: {
+    fuerza: number;
+    destreza: number;
+    constitucion: number;
+    inteligencia: number;
+    sabiduria: number;
+    carisma: number;
+  };
+  statsFinales: {
+    fuerza: number;
+    destreza: number;
+    constitucion: number;
+    inteligencia: number;
+    sabiduria: number;
+    carisma: number;
+  };
+  habilidades: {
+    atletismo: number;
+    sigilo: number;
+    persuasion: number;
+    percepcion: number;
+    arcanos: number;
+    medicina: number;
+    supervivencia: number;
+    intimidacion: number;
+  };
+  puntosGolpeActual?: number;
+  claseArmadura: number;
+  iniciativa: number;
+  velocidad: number;
+  avatar?: string | null;
+  alineamiento?: string;
+  usuarioId: number;
+}
+
 // LISTAR personajes del usuario logueado
 export const getPersonajes = async () => {
   const response = await fetch(`${API_URL}/api/personajes`, {
@@ -21,26 +61,7 @@ export const getPersonaje = async (id: number) => {
 };
 
 // CREAR personaje
-export const createPersonaje = async (datos: {
-  nombre: string;
-  clase: string;
-  raza: string;
-  nivel: number;
-  fuerza: number;
-  destreza: number;
-  constitucion: number;
-  inteligencia: number;
-  sabiduria: number;
-  carisma: number;
-  puntosGolpeMax: number;
-  puntosGolpeActual: number;
-  claseArmadura: number;
-  iniciativa: number;
-  velocidad: number;
-  bonificacionCompetencia: number;
-  alineamiento: string;
-  usuarioId: number;
-}) => {
+export const createPersonaje = async (datos: PersonajeCreatePayload) => {
   const response = await fetch(`${API_URL}/api/personajes`, {
     method: 'POST',
     headers: authHeaders(),

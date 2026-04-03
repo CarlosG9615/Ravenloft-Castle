@@ -57,6 +57,8 @@ public class PersonajeCreateDTO {
     private Integer velocidad;
 
 
+    private String avatar;
+
     private String alineamiento;
 
     @NotNull

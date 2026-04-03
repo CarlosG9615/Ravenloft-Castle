@@ -265,6 +265,7 @@ public class CampanaService {
                 .nivel(personaje.getNivel())
                 .fuerza(personaje.getFuerza())
                 .destreza(personaje.getDestreza())
+                .avatar(personaje.getAvatar())
                 .build();
     }
 

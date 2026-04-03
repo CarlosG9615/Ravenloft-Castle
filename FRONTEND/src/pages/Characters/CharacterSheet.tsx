@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './CharacterSheet.css';
 import { BackButton } from '../../components/BackButton/BackButton';
+import { getPersonaje } from '../../services/personajeService';
+import { getCartaUrl } from '../../utils/imageUtils';
 
 // ── INTERFACES ───────────────────────────────────────────
 interface Stats {
@@ -27,6 +30,27 @@ interface CharacterSheetProps {
   onConfirmar?: () => void;
   // Modo: 'wizard' = paso 4 creación | 'view' = ver personaje guardado
   modo?: 'wizard' | 'view';
+}
+
+interface PersonajeResponseDTO {
+  id: number;
+  nombre: string;
+  clase: string;
+  raza: string;
+  nivel: number;
+  fuerza: number;
+  destreza: number;
+  constitucion: number;
+  inteligencia: number;
+  sabiduria: number;
+  carisma: number;
+  puntosGolpeMax?: number;
+  claseArmadura?: number;
+  iniciativa?: number;
+  velocidad?: number;
+  bonificacionCompetencia?: number;
+  avatar?: string | null;
+  alineamiento?: string | null;
 }
 
 // ── DATOS D&D ─────────────────────────────────────────────
@@ -160,21 +184,99 @@ export function CharacterSheet({
   onConfirmar,
   modo = 'view',
 }: CharacterSheetProps) {
+  const { id } = useParams();
   const [tab, setTab] = useState<'ficha' | 'diario'>('ficha');
+  const [personaje, setPersonaje] = useState<PersonajeResponseDTO | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const trasfondoData = TRASFONDOS[trasfondo];
+  useEffect(() => {
+    if (modo !== 'view' || !id) return;
+
+    const loadPersonaje = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getPersonaje(Number(id));
+        setPersonaje(data);
+      } catch (err) {
+        console.error('Error cargando personaje:', err);
+        setError('No se pudo cargar el personaje.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPersonaje();
+  }, [id, modo]);
+
+  const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
+  const isDataUrl = (value: string) => /^data:/i.test(value);
+
+  const resolveCartaUrl = (avatarValue?: string | null) => {
+    if (!avatarValue) return null;
+    if (isAbsoluteUrl(avatarValue) || isDataUrl(avatarValue)) return avatarValue;
+    return getCartaUrl(avatarValue);
+  };
+
+  const nombreFinal = personaje?.nombre ?? nombre;
+  const razaFinal = personaje?.raza ?? raza;
+  const claseFinal = personaje?.clase ?? clase;
+  const trasfondoFinal = trasfondo;
+  const historiaFinal = historia;
+  const alineamientoFinal = personaje?.alineamiento ?? '—';
+  const imagenFinal = modo === 'view' ? resolveCartaUrl(personaje?.avatar) : imagen;
+
+  const statsFinales: Stats = personaje
+    ? {
+        fuerza: personaje.fuerza,
+        destreza: personaje.destreza,
+        constitucion: personaje.constitucion,
+        inteligencia: personaje.inteligencia,
+        sabiduria: personaje.sabiduria,
+        carisma: personaje.carisma,
+      }
+    : stats;
+
+  const trasfondoData = TRASFONDOS[trasfondoFinal];
   const competencias = trasfondoData?.competencias ?? [];
 
   const combate = [
-    { label: 'Puntos de Golpe', valor: '—' },
-    { label: 'Iniciativa',      valor: calcMod(stats.destreza) },
-    { label: 'Nivel',           valor: '1' },
-    { label: 'Velocidad',       valor: '30 pies' },
-    { label: 'Clase Armadura',  valor: '10' },
-    { label: 'Bonif. Comp.',    valor: '+2' },
+    { label: 'Puntos de Golpe', valor: personaje?.puntosGolpeMax?.toString() ?? '—' },
+    { label: 'Iniciativa',      valor: personaje?.iniciativa?.toString() ?? calcMod(statsFinales.destreza) },
+    { label: 'Nivel',           valor: personaje?.nivel?.toString() ?? '1' },
+    { label: 'Velocidad',       valor: personaje?.velocidad ? `${personaje.velocidad} pies` : '30 pies' },
+    { label: 'Clase Armadura',  valor: personaje?.claseArmadura?.toString() ?? '10' },
+    { label: 'Bonif. Comp.',    valor: personaje?.bonificacionCompetencia ? `+${personaje.bonificacionCompetencia}` : '+2' },
   ];
 
   const handlePrint = () => window.print();
+
+  if (modo === 'view' && loading) {
+    return (
+      <div className="sf-page">
+        <div className="sf-actions no-print">
+          <BackButton />
+        </div>
+        <div className="container py-5 text-center text-light">
+          Cargando personaje...
+        </div>
+      </div>
+    );
+  }
+
+  if (modo === 'view' && error) {
+    return (
+      <div className="sf-page">
+        <div className="sf-actions no-print">
+          <BackButton />
+        </div>
+        <div className="container py-5 text-center text-light">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="sf-page">
@@ -219,9 +321,9 @@ export function CharacterSheet({
             <div className="sf-cabecera-linea" />
             <div className="sf-cabecera-centro">
               <p className="sf-ficha-label">Ficha de Personaje</p>
-              <h1 className="sf-nombre">{nombre || 'Nombre del Personaje'}</h1>
+              <h1 className="sf-nombre">{nombreFinal || 'Nombre del Personaje'}</h1>
               <p className="sf-raza-clase">
-                {raza && clase ? `${raza} · ${clase}` : 'Raza · Clase'}
+                {razaFinal && claseFinal ? `${razaFinal} · ${claseFinal}` : 'Raza · Clase'}
               </p>
             </div>
             <div className="sf-cabecera-linea" />
@@ -233,7 +335,7 @@ export function CharacterSheet({
             {/* COLUMNA IZQ */}
             <div className="sf-col-izq">
               <h3 className="sf-titulo-seccion">Características</h3>
-              {Object.entries(stats).map(([stat, valor]) => (
+              {Object.entries(statsFinales).map(([stat, valor]) => (
                 <div key={stat} className="sf-stat-row">
                   <span className="sf-stat-nombre">{STAT_LABELS[stat]}</span>
                   <span className="sf-stat-valor">{valor}</span>
@@ -244,7 +346,7 @@ export function CharacterSheet({
               <h3 className="sf-titulo-seccion sf-mt">Habilidades</h3>
               {HABILIDADES.map(hab => {
                 const esPro = competencias.includes(hab.nombre);
-                const val = (stats as any)[hab.stat] ?? 10;
+                const val = (statsFinales as any)[hab.stat] ?? 10;
                 const mod = Math.floor((val - 10) / 2) + (esPro ? 2 : 0);
                 return (
                   <div key={hab.nombre} className={`sf-hab-row ${esPro ? 'pro' : ''}`}>
@@ -259,24 +361,10 @@ export function CharacterSheet({
             {/* COLUMNA CENTRO */}
             <div className="sf-col-centro">
               <div className="sf-foto-marco">
-                {imagen
-                  ? <img src={imagen} alt={nombre} className="sf-foto-img" />
+                {imagenFinal
+                  ? <img src={imagenFinal} alt={nombreFinal} className="sf-foto-img" />
                   : <div className="sf-foto-vacia">?</div>
                 }
-                <svg viewBox="0 0 220 300" className="sf-foto-svg" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="3" y="3" width="214" height="294" rx="6"
-                    fill="none" stroke="rgba(120,80,30,0.55)" strokeWidth="2"/>
-                  <rect x="8" y="8" width="204" height="284" rx="4"
-                    fill="none" stroke="rgba(120,80,30,0.25)" strokeWidth="1"/>
-                  <path d="M3 30 Q3 3 30 3" stroke="rgba(120,80,30,0.9)" strokeWidth="2.5" fill="none"/>
-                  <path d="M190 3 Q217 3 217 30" stroke="rgba(120,80,30,0.9)" strokeWidth="2.5" fill="none"/>
-                  <path d="M3 270 Q3 297 30 297" stroke="rgba(120,80,30,0.9)" strokeWidth="2.5" fill="none"/>
-                  <path d="M190 297 Q217 297 217 270" stroke="rgba(120,80,30,0.9)" strokeWidth="2.5" fill="none"/>
-                  <circle cx="110" cy="5" r="4" fill="rgba(139,0,0,0.6)" stroke="rgba(120,80,30,0.6)" strokeWidth="1"/>
-                  <circle cx="110" cy="295" r="4" fill="rgba(139,0,0,0.6)" stroke="rgba(120,80,30,0.6)" strokeWidth="1"/>
-                  <circle cx="5" cy="150" r="4" fill="rgba(139,0,0,0.6)" stroke="rgba(120,80,30,0.6)" strokeWidth="1"/>
-                  <circle cx="215" cy="150" r="4" fill="rgba(139,0,0,0.6)" stroke="rgba(120,80,30,0.6)" strokeWidth="1"/>
-                </svg>
               </div>
 
               <div className="sf-combate-grid">
@@ -293,12 +381,12 @@ export function CharacterSheet({
             <div className="sf-col-der">
               <h3 className="sf-titulo-seccion">Identidad</h3>
               {[
-                { label: 'Nombre',       valor: nombre || '—' },
-                { label: 'Raza',         valor: raza || '—' },
-                { label: 'Clase',        valor: clase || '—' },
-                { label: 'Trasfondo',    valor: trasfondo || '—' },
-                { label: 'Nivel',        valor: '1' },
-                { label: 'Alineamiento', valor: '—' },
+                { label: 'Nombre',       valor: nombreFinal || '—' },
+                { label: 'Raza',         valor: razaFinal || '—' },
+                { label: 'Clase',        valor: claseFinal || '—' },
+                { label: 'Trasfondo',    valor: trasfondoFinal || '—' },
+                { label: 'Nivel',        valor: personaje?.nivel?.toString() ?? '1' },
+                { label: 'Alineamiento', valor: alineamientoFinal },
               ].map(d => (
                 <div key={d.label} className="sf-dato-row">
                   <span className="sf-dato-label">{d.label}</span>
@@ -329,10 +417,10 @@ export function CharacterSheet({
                 ))}
               </div>
 
-              {historia && (
+              {historiaFinal && (
                 <>
                   <h3 className="sf-titulo-seccion sf-mt">Historia</h3>
-                  <p className="sf-historia">{historia}</p>
+                  <p className="sf-historia">{historiaFinal}</p>
                 </>
               )}
 
@@ -348,7 +436,7 @@ export function CharacterSheet({
       )}
 
       {/* ── DIARIO ── */}
-      {tab === 'diario' && <DiarioCampana nombre={nombre} />}
+      {tab === 'diario' && <DiarioCampana nombre={nombreFinal} />}
 
     </div>
   );

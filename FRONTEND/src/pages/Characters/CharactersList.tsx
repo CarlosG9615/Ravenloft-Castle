@@ -1,15 +1,52 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Characters.css';
 import { BackButton } from '../../components/BackButton/BackButton';
+import { getPersonajes } from '../../services/personajeService';
+import { getCartaUrl } from '../../utils/imageUtils';
 
-// Cuando conectes el backend, aquí vendrán los personajes del usuario
-const mockPersonajes = [
-  // { id: 1, nombre: 'Zara', raza: 'Tiefling', clase: 'Mago', nivel: 3, avatar: 'TieflingMago' },
-];
+interface PersonajeDTO {
+  id: number;
+  nombre: string;
+  raza: string;
+  clase: string;
+  nivel: number;
+  avatar?: string | null;
+}
+
+const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
+const isDataUrl = (value: string) => /^data:/i.test(value);
+
+const resolveAvatarUrl = (avatar?: string | null): string => {
+  if (!avatar) return '/images/avatars/default.png';
+  if (isAbsoluteUrl(avatar) || isDataUrl(avatar)) return avatar;
+  return getCartaUrl(avatar);
+};
 
 export function CharactersList() {
   const navigate = useNavigate();
+  const [personajes, setPersonajes] = useState<PersonajeDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadPersonajes = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getPersonajes();
+        setPersonajes(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Error cargando personajes:', err);
+        setError('No se pudieron cargar tus personajes. Intenta de nuevo.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPersonajes();
+  }, []);
 
   return (
     <div className="characters-page">
@@ -29,7 +66,30 @@ export function CharactersList() {
 
         <div className="row g-4">
 
-          {mockPersonajes.length === 0 ? (
+          {loading && (
+            <div className="col-12">
+              <div className="characters-empty">
+                <h3 className="characters-empty-title">Cargando personajes...</h3>
+              </div>
+            </div>
+          )}
+
+          {!loading && error && (
+            <div className="col-12">
+              <div className="characters-empty">
+                <h3 className="characters-empty-title">Error al cargar</h3>
+                <p className="characters-empty-desc">{error}</p>
+                <button
+                  className="btn characters-btn-primary px-5 mt-2"
+                  onClick={() => window.location.reload()}
+                >
+                  Reintentar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!loading && !error && personajes.length === 0 ? (
 
             /* ESTADO VACÍO */
             <div className="col-12">
@@ -48,20 +108,21 @@ export function CharactersList() {
               </div>
             </div>
 
-          ) : (
+          ) : !loading && !error ? (
 
             /* CARDS DE PERSONAJES */
             <>
-              {mockPersonajes.map((p: any) => (
+              {personajes.map((p) => (
                 <div className="col-sm-6 col-md-4 col-lg-3" key={p.id}>
                   <div
                     className="character-card"
                     onClick={() => navigate(`/characters/${p.id}`)}
                   >
                     <img
-                      src={`/images/avatars/${p.avatar}.png`}
+                      src={resolveAvatarUrl(p.avatar)}
                       alt={p.nombre}
                       className="character-card-img"
+                      loading="lazy"
                     />
                     <div className="character-card-info">
                       <h5>{p.nombre}</h5>
@@ -83,7 +144,7 @@ export function CharactersList() {
               </div>
             </>
 
-          )}
+          ) : null}
 
         </div>
       </div>
