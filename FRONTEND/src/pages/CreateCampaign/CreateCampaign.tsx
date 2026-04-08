@@ -38,73 +38,71 @@ const CATEGORIAS_MAPA = [
   { key: 'Bosque',    icon: '🌲' },
   { key: 'Ciudad',    icon: '🏙' },
   { key: 'Destruido', icon: '💀' },
-  { key: 'Intacto',   icon: '✨' },
   { key: 'Cyberpunk', icon: '⚡' },
   { key: 'Medieval',  icon: '🏰' },
+  { key: 'Clima',     icon: '🌧️' },
 ];
 
 const MAPAS_MOCK: Mapa[] = [
   // BOSQUE
-  { id: 1,  nombre: 'Camino Forestal',       imagen: '/images/mapas/bosque/caminoForestal.jpg',       categoria: ['Bosque', 'Día'],              favorito: false },
-  { id: 2,  nombre: 'Bosque Claro',          imagen: '/images/mapas/bosque/BosqueClaro.jpg',           categoria: ['Bosque', 'Día'],              favorito: false },
-  { id: 3,  nombre: 'Cruce de Caminos',      imagen: '/images/mapas/bosque/cruceDeCaminos.jpg',        categoria: ['Bosque', 'Día'],              favorito: false },
-  { id: 4,  nombre: 'Río con Puente',        imagen: '/images/mapas/bosque/rioConPuente.jpg',          categoria: ['Bosque', 'Día'],              favorito: false },
-  { id: 5,  nombre: 'Lago Pequeño',          imagen: '/images/mapas/bosque/lagopequeño.jpg',           categoria: ['Bosque', 'Día'],              favorito: false },
-  { id: 6,  nombre: 'Montaña',              imagen: '/images/mapas/bosque/montaña.jpg',               categoria: ['Bosque', 'Día'],              favorito: false },
-  { id: 7,  nombre: 'Campamento',           imagen: '/images/mapas/bosque/campamentoImprovisado.jpg', categoria: ['Bosque', 'Noche', 'Combate'], favorito: false },
+  { id: 1,  nombre: 'Camino Forestal',        imagen: '/images/mapas/bosque/caminoForestal.jpg',        categoria: ['Bosque', 'Día'],               favorito: false },
+  { id: 2,  nombre: 'Bosque Claro',           imagen: '/images/mapas/bosque/BosqueClaro.jpg',            categoria: ['Bosque', 'Día'],               favorito: false },
+  { id: 3,  nombre: 'Cruce de Caminos',       imagen: '/images/mapas/bosque/cruceDeCaminos.jpg',         categoria: ['Bosque', 'Día'],               favorito: false },
+  { id: 4,  nombre: 'Río con Puente',         imagen: '/images/mapas/bosque/rioConPuente.jpg',           categoria: ['Bosque', 'Día'],               favorito: false },
+  { id: 5,  nombre: 'Lago Pequeño',           imagen: '/images/mapas/bosque/lagopequeño.jpg',            categoria: ['Bosque', 'Día'],               favorito: false },
+  { id: 6,  nombre: 'Montaña',               imagen: '/images/mapas/bosque/montaña.jpg',                categoria: ['Bosque', 'Día'],               favorito: false },
+  { id: 7,  nombre: 'Campamento',            imagen: '/images/mapas/bosque/campamentoImprovisado.jpg',  categoria: ['Bosque', 'Noche', 'Combate'],  favorito: false },
 
   // MAZMORRAS
-  { id: 8,  nombre: 'Entrada Cueva',        imagen: '/images/mapas/mazmorras/entradaCueva.jpg',       categoria: ['Interior', 'Noche'],          favorito: false },
-  { id: 9,  nombre: 'Cueva Interior',       imagen: '/images/mapas/mazmorras/cuevaInterior.jpg',      categoria: ['Interior', 'Noche', 'Combate'],favorito: false },
-  { id: 10, nombre: 'Celdas',              imagen: '/images/mapas/mazmorras/celdas.jpg',              categoria: ['Interior', 'Noche'],          favorito: false },
-  { id: 11, nombre: 'Sala del Trono',       imagen: '/images/mapas/mazmorras/salaTrono.jpg',           categoria: ['Interior', 'Combate'],        favorito: false },
-  { id: 12, nombre: 'Sala Grande',          imagen: '/images/mapas/mazmorras/salaGrandeVacia.jpg',    categoria: ['Interior', 'Noche'],          favorito: false },
-  { id: 13, nombre: 'Emboscada',            imagen: '/images/mapas/mazmorras/emboscada.jpg',           categoria: ['Interior', 'Combate'],        favorito: false },
-
+  { id: 8,  nombre: 'Entrada Cueva',         imagen: '/images/mapas/mazmorras/entradaCueva.jpg',        categoria: ['Interior', 'Noche'],           favorito: false },
+  { id: 9,  nombre: 'Cueva Interior',        imagen: '/images/mapas/mazmorras/cuevaInterior.jpg',       categoria: ['Interior', 'Noche', 'Combate'],favorito: false },
+  { id: 10, nombre: 'Celdas',               imagen: '/images/mapas/mazmorras/celdas.jpg',               categoria: ['Interior', 'Noche'],           favorito: false },
+  { id: 11, nombre: 'Sala del Trono',        imagen: '/images/mapas/mazmorras/salaTrono.jpg',            categoria: ['Interior', 'Combate'],         favorito: false },
+  { id: 12, nombre: 'Sala Grande',           imagen: '/images/mapas/mazmorras/salaGrandeVacia.jpg',     categoria: ['Interior', 'Noche'],           favorito: false },
+  { id: 13, nombre: 'Emboscada',             imagen: '/images/mapas/mazmorras/emboscada.jpg',            categoria: ['Interior', 'Combate'],         favorito: false },
 
   // MEDIEVAL
-  { id: 14, nombre: 'Taberna Pequeña',      imagen: '/images/mapas/medieval/tabernaPequeña.jpg',      categoria: ['Medieval', 'Interior'],       favorito: false },
-  { id: 15, nombre: 'Taberna Grande',       imagen: '/images/mapas/medieval/tabernaGrande.jpg',       categoria: ['Medieval', 'Interior'],       favorito: false },
-  { id: 16, nombre: 'Callejón',            imagen: '/images/mapas/medieval/callejon.jpg',             categoria: ['Medieval', 'Noche'],          favorito: false },
-  { id: 17, nombre: 'Plaza',               imagen: '/images/mapas/medieval/plaza.jpg',                categoria: ['Medieval', 'Día'],            favorito: false },
-  { id: 18, nombre: 'Mercado',             imagen: '/images/mapas/medieval/mercado.jpg',              categoria: ['Medieval', 'Día'],            favorito: false },
-  { id: 19, nombre: 'Casa Humilde',        imagen: '/images/mapas/medieval/casaHumilde.jpg',          categoria: ['Medieval', 'Interior'],       favorito: false },
-  { id: 20, nombre: 'Casa Rica',           imagen: '/images/mapas/medieval/casaRica.jpg',             categoria: ['Medieval', 'Interior'],       favorito: false },
-  { id: 21, nombre: 'Tienda',             imagen: '/images/mapas/medieval/tienda.jpg',               categoria: ['Medieval', 'Interior'],       favorito: false },
-  { id: 22, nombre: 'Playa Medieval',      imagen: '/images/mapas/medieval/playamedieval.jpg',        categoria: ['Medieval', 'Día'],            favorito: false },
+  { id: 14, nombre: 'Taberna Pequeña',       imagen: '/images/mapas/medieval/tabernaPequeña.jpg',       categoria: ['Medieval', 'Interior'],        favorito: false },
+  { id: 15, nombre: 'Taberna Grande',        imagen: '/images/mapas/medieval/tabernaGrande.jpg',        categoria: ['Medieval', 'Interior'],        favorito: false },
+  { id: 16, nombre: 'Callejón',             imagen: '/images/mapas/medieval/callejon.jpg',              categoria: ['Medieval', 'Noche'],           favorito: false },
+  { id: 17, nombre: 'Plaza',                imagen: '/images/mapas/medieval/plaza.jpg',                 categoria: ['Medieval', 'Día'],             favorito: false },
+  { id: 18, nombre: 'Mercado',              imagen: '/images/mapas/medieval/mercado.jpg',               categoria: ['Medieval', 'Día'],             favorito: false },
+  { id: 19, nombre: 'Casa Humilde',         imagen: '/images/mapas/medieval/casaHumilde.jpg',           categoria: ['Medieval', 'Interior'],        favorito: false },
+  { id: 20, nombre: 'Casa Rica',            imagen: '/images/mapas/medieval/casaRica.jpg',              categoria: ['Medieval', 'Interior'],        favorito: false },
+  { id: 21, nombre: 'Tienda',              imagen: '/images/mapas/medieval/tienda.jpg',                categoria: ['Medieval', 'Interior'],        favorito: false },
+  { id: 22, nombre: 'Playa Medieval',       imagen: '/images/mapas/medieval/playamedieval.jpg',         categoria: ['Medieval', 'Día'],             favorito: false },
 
   // RUINAS
-  { id: 23, nombre: 'Bosque en Ruinas',     imagen: '/images/mapas/ruinas/bosqueEnRuinas.jpg',        categoria: ['Destruido', 'Bosque'],        favorito: false },
-  { id: 24, nombre: 'Playa Ciudad Incendio',imagen: '/images/mapas/ruinas/playaCiudadIncendio.jpg',   categoria: ['Destruido', 'Combate'],       favorito: false },
-  { id: 25, nombre: 'Centro Comercial',     imagen: '/images/mapas/ruinas/centroComercialRuina.jpg',  categoria: ['Destruido', 'Interior'],      favorito: false },
-  { id: 26, nombre: 'Catedral en Ruinas',   imagen: '/images/mapas/ruinas/catedral Ruinas.jpg',        categoria: ['Destruido', 'Interior'],      favorito: false },
-  { id: 27, nombre: 'Sangre',              imagen: '/images/mapas/ruinas/sangre.jpg',                 categoria: ['Destruido', 'Combate'],       favorito: false },
-  { id: 28, nombre: 'Habitación Sangre',   imagen: '/images/mapas/ruinas/habitacionSangre.png',       categoria: ['Destruido', 'Interior'],      favorito: false },
-  { id: 29, nombre: 'Plaza en Ruina',       imagen: '/images/mapas/ruinas/plazaEnRuina.jpg',           categoria: ['Destruido', 'Combate'],       favorito: false },
-  { id: 30, nombre: 'Ciudad Ruina',         imagen: '/images/mapas/ruinas/ciudadRuina.jpg',            categoria: ['Destruido'],                  favorito: false },
-
+  { id: 23, nombre: 'Bosque en Ruinas',      imagen: '/images/mapas/ruinas/bosqueEnRuinas.jpg',         categoria: ['Destruido', 'Bosque'],         favorito: false },
+  { id: 24, nombre: 'Playa Ciudad Incendio', imagen: '/images/mapas/ruinas/playaCiudadIncendio.jpg',    categoria: ['Destruido', 'Combate'],        favorito: false },
+  { id: 25, nombre: 'Centro Comercial Roto', imagen: '/images/mapas/ruinas/centroComercialRuina.jpg',  categoria: ['Destruido', 'Interior'],       favorito: false },
+  { id: 26, nombre: 'Catedral en Ruinas',    imagen: '/images/mapas/ruinas/catedralRuinas.jpg',         categoria: ['Destruido', 'Interior'],       favorito: false },
+  { id: 27, nombre: 'Sangre',               imagen: '/images/mapas/ruinas/sangre.jpg',                  categoria: ['Destruido', 'Combate'],        favorito: false },
+  { id: 28, nombre: 'Habitación Sangre',    imagen: '/images/mapas/ruinas/habitacionSangre.png',        categoria: ['Destruido', 'Interior'],       favorito: false },
+  { id: 29, nombre: 'Plaza en Ruina',        imagen: '/images/mapas/ruinas/plazaEnRuina.jpg',            categoria: ['Destruido', 'Combate'],        favorito: false },
+  { id: 30, nombre: 'Ciudad Ruina',          imagen: '/images/mapas/ruinas/ciudadRuina.jpg',             categoria: ['Destruido'],                   favorito: false },
 
   // CIBERPUNK
-  { id: 31, nombre: 'Ciudad de Noche',      imagen: '/images/mapas/ciberpunk/ciudadDenoche.jpg',      categoria: ['Cyberpunk', 'Noche', 'Ciudad'],favorito: false },
-  { id: 32, nombre: 'Fábrica Misteriosa',  imagen: '/images/mapas/ciberpunk/fabricaMisteriosa.jpg',  categoria: ['Cyberpunk', 'Interior'],      favorito: false },
-  { id: 33, nombre: 'Carretera',           imagen: '/images/mapas/ciberpunk/carretra.jpg',            categoria: ['Cyberpunk', 'Día'],           favorito: false },
-  { id: 34, nombre: 'Carretera Abandonada',imagen: '/images/mapas/ciberpunk/carretraAbandonada.jpg',  categoria: ['Cyberpunk', 'Destruido'],     favorito: false },
-  { id: 35, nombre: 'Lluvia Ciudad',       imagen: '/images/mapas/ciberpunk/lluviaCiudad.jpg',        categoria: ['Cyberpunk', 'Noche', 'Ciudad'],favorito: false },
-  { id: 36, nombre: 'Feria Ciudad',        imagen: '/images/mapas/ciberpunk/feriaCiudad.jpg',         categoria: ['Cyberpunk', 'Día'],           favorito: false },
-  { id: 37, nombre: 'Playa Cyberpunk',     imagen: '/images/mapas/ciberpunk/playa.jpg',               categoria: ['Cyberpunk', 'Día'],           favorito: false },
-  { id: 38, nombre: 'Centro Comercial',    imagen: '/images/mapas/ciberpunk/centroComercial.jpg',     categoria: ['Cyberpunk', 'Interior'],      favorito: false },
-  { id: 39, nombre: 'Casa de PJ',         imagen: '/images/mapas/ciberpunk/casadePj.jpg',            categoria: ['Cyberpunk', 'Interior'],      favorito: false },
-  { id: 40, nombre: 'Casa Ciudad PJ',     imagen: '/images/mapas/ciberpunk/casaCiudadPj.jpg',        categoria: ['Cyberpunk', 'Interior'],      favorito: false },
-  // CLIMA
-  { id: 41, nombre: 'Lluvia Lago',         imagen: '/images/mapas/clima/lluviaLago.jpg',              categoria: ['Bosque', 'Noche'],            favorito: false },
-  { id: 42, nombre: 'Lluvia Ciudad',       imagen: '/images/mapas/clima/lluviaCiudad.jpg',            categoria: ['Ciudad', 'Noche'],            favorito: false },
-  { id: 43, nombre: 'Lluvia',             imagen: '/images/mapas/clima/lluvia.jpg',                  categoria: ['Destruido', 'Noche'],         favorito: false },
-  { id: 44, nombre: 'Lluvia Noche',        imagen: '/images/mapas/clima/lluviaNoche.jpg',             categoria: ['Cyberpunk', 'Noche'],         favorito: false },
-  { id: 45, nombre: 'Nieba',              imagen: '/images/mapas/clima/nieba.jpg',                   categoria: ['Bosque', 'Noche'],            favorito: false },
-  { id: 46, nombre: 'Nevado',             imagen: '/images/mapas/clima/nevado.jpg',                  categoria: ['Destruido', 'Noche'],         favorito: false },
-  { id: 47, nombre: 'Carretera Niebla',   imagen: '/images/mapas/clima/carreteraNiebla.jpg',         categoria: ['Cyberpunk', 'Noche'],         favorito: false },
-  { id: 48, nombre: 'Niebla',             imagen: '/images/mapas/clima/niebla.jpg',                  categoria: ['Bosque', 'Noche'],            favorito: false },
+  { id: 31, nombre: 'Ciudad de Noche',       imagen: '/images/mapas/ciberpunk/ciudadDenoche.jpg',       categoria: ['Cyberpunk', 'Noche', 'Ciudad'],favorito: false },
+  { id: 32, nombre: 'Fábrica Misteriosa',   imagen: '/images/mapas/ciberpunk/fabricaMisteriosa.jpg',   categoria: ['Cyberpunk', 'Interior'],       favorito: false },
+  { id: 33, nombre: 'Carretera',            imagen: '/images/mapas/ciberpunk/carretra.jpg',             categoria: ['Cyberpunk', 'Día'],            favorito: false },
+  { id: 34, nombre: 'Carretera Abandonada', imagen: '/images/mapas/ciberpunk/carretraAbandonada.jpg',   categoria: ['Cyberpunk', 'Destruido'],      favorito: false },
+  { id: 35, nombre: 'Lluvia Ciudad Cp',     imagen: '/images/mapas/ciberpunk/lluviaCiudad.jpg',         categoria: ['Cyberpunk', 'Noche', 'Ciudad'],favorito: false },
+  { id: 36, nombre: 'Feria Ciudad',         imagen: '/images/mapas/ciberpunk/feriaCiudad.jpg',          categoria: ['Cyberpunk', 'Día'],            favorito: false },
+  { id: 37, nombre: 'Playa Cyberpunk',      imagen: '/images/mapas/ciberpunk/playa.jpg',                categoria: ['Cyberpunk', 'Día'],            favorito: false },
+  { id: 38, nombre: 'Centro Comercial Cp',  imagen: '/images/mapas/ciberpunk/centroComercial.jpg',      categoria: ['Cyberpunk', 'Interior'],       favorito: false },
+  { id: 39, nombre: 'Casa de PJ',          imagen: '/images/mapas/ciberpunk/casadePj.jpg',             categoria: ['Cyberpunk', 'Interior'],       favorito: false },
+  { id: 40, nombre: 'Casa Ciudad PJ',      imagen: '/images/mapas/ciberpunk/casaCiudadPj.jpg',         categoria: ['Cyberpunk', 'Interior'],       favorito: false },
 
+  // CLIMA
+  { id: 41, nombre: 'Lluvia Lago',          imagen: '/images/mapas/clima/lluviaLago.jpg',               categoria: ['Clima', 'Bosque', 'Noche'],    favorito: false },
+  { id: 42, nombre: 'Lluvia Ciudad',        imagen: '/images/mapas/clima/lluviaCiudad.jpg',             categoria: ['Clima', 'Ciudad', 'Noche'],    favorito: false },
+  { id: 43, nombre: 'Lluvia',              imagen: '/images/mapas/clima/lluvia.jpg',                   categoria: ['Clima', 'Noche'],              favorito: false },
+  { id: 44, nombre: 'Lluvia Noche',         imagen: '/images/mapas/clima/lluviaNoche.jpg',              categoria: ['Clima', 'Noche'],              favorito: false },
+  { id: 45, nombre: 'Niebla',              imagen: '/images/mapas/clima/nieba.jpg',                    categoria: ['Clima', 'Bosque', 'Noche'],    favorito: false },
+  { id: 46, nombre: 'Nevado',              imagen: '/images/mapas/clima/nevado.jpg',                   categoria: ['Clima', 'Noche'],              favorito: false },
+  { id: 47, nombre: 'Carretera Niebla',    imagen: '/images/mapas/clima/carreteraNiebla.jpg',          categoria: ['Clima', 'Noche'],              favorito: false },
+  { id: 48, nombre: 'Niebla Bosque',       imagen: '/images/mapas/clima/niebla.jpg',                   categoria: ['Clima', 'Bosque', 'Noche'],    favorito: false },
 ];
 
 // ── COMPONENTE PRINCIPAL ──────────────────────────────────
@@ -125,6 +123,8 @@ export function CreateCampaign() {
   const [mapasSeleccionados, setMapasSeleccionados] = useState<number[]>([]);
   const [mapaIndex, setMapaIndex] = useState(0);
   const [fadeIn, setFadeIn] = useState(true);
+
+  const [filtroAbierto, setFiltroAbierto] = useState(false);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) => {
     const file = e.target.files?.[0];
@@ -187,8 +187,7 @@ export function CreateCampaign() {
   // ── PASO 1: MIS CAMPAÑAS ──────────────────────────────
   if (paso === 1) {
     return (
-      <div className="cc-page cc-page--campanas">
-        <div className="cc-bg-master" />
+      <div className="cc-page--campanas">
         <BackButton />
         <div className="cc-campanas-contenido">
           <div className="cc-campanas-grid">
@@ -214,8 +213,7 @@ export function CreateCampaign() {
   // ── PASO 2: FORMULARIO ────────────────────────────────
   if (paso === 2) {
     return (
-      <div className="cc-page cc-page--form">
-        <div className="cc-bg-master cc-bg-master--form" />
+      <div className="cc-page--form">
         <BackButton />
         <div className="cc-form-contenido">
           <h2 className="cc-form-titulo">Añadir Campaña</h2>
@@ -273,46 +271,49 @@ export function CreateCampaign() {
 
   // ── PASO 3: MAPAS SOBRE LA MESA ───────────────────────
   return (
-    <div className="cc-page cc-page--mesa">
-
-      {/* MESA DE FONDO */}
-      <div className="cc-mesa-bg" />
-
+    <div className="cc-page--mesa">
       <BackButton />
+        <h2 className="cc-mesa-titulo">Elige tus mapas</h2>
 
-      {/* TÍTULO */}
-      <h2 className="cc-mesa-titulo">Elige tus mapas</h2>
+    {/* BOTÓN FILTRO */}
+    <button
+      className="cc-filtro-btn-icon"
+      onClick={() => setFiltroAbierto(!filtroAbierto)}
+    >
+      <i className="fi fi-rr-settings-sliders" style={{ fontSize: '24px', color: 'rgba(255,255,255,0.8)' }}></i>
+    </button>
 
-      {/* FILTROS */}
-      <div className="cc-mesa-filtros">
-        {CATEGORIAS_MAPA.map(cat => (
-          <button
-            key={cat.key}
-            className={`cc-mesa-filtro ${categoriaActiva === cat.key ? 'active' : ''}`}
-            onClick={() => cambiarCategoria(cat.key)}
-          >
-            {cat.icon} {cat.key}
-          </button>
-        ))}
-        <button
-          className="cc-mesa-filtro cc-mesa-filtro--random"
-          onClick={mapaRandom}
-          disabled={mapasSeleccionados.length >= 10}
-        >
-          🎲 Random
-        </button>
-      </div>
-
-      {/* ZONA CENTRAL — MESA CON MAPA */}
+      {/* PANEL LATERAL */}
+      <div className={`cc-filtro-panel ${filtroAbierto ? 'abierto' : ''}`}>
+        <div className="cc-filtro-panel-header">
+          <span className="cc-filtro-panel-titulo">Filtros</span>
+          <button className="cc-filtro-panel-cerrar" onClick={() => setFiltroAbierto(false)}>✕</button>
+        </div>
+        <div className="cc-filtro-panel-opciones">
+          {CATEGORIAS_MAPA.map(cat => (
+            <button
+              key={cat.key}
+              className={`cc-mesa-filtro ${categoriaActiva === cat.key ? 'active' : ''}`}
+              onClick={() => { cambiarCategoria(cat.key); setFiltroAbierto(false); }}
+            >
+              {cat.icon} {cat.key}
+            </button>
+          ))}
+    <button
+      className="cc-mesa-filtro cc-mesa-filtro--random"
+      onClick={() => { mapaRandom(); setFiltroAbierto(false); }}
+      disabled={mapasSeleccionados.length >= 10}
+    >
+      🎲 Random
+    </button>
+  </div>
+</div>
+      
+    
       <div className="cc-mesa-zona">
-
-        {/* FLECHA IZQ */}
         <button className="cc-mesa-flecha cc-mesa-flecha--izq" onClick={() => cambiarMapa(-1)}
-          disabled={mapasFiltrados.length <= 1}>
-          ◀
-        </button>
+          disabled={mapasFiltrados.length <= 1}>◀</button>
 
-        {/* MAPA SOBRE LA MESA */}
         <div className="cc-mesa-centro">
           {mapaActual ? (
             <div
@@ -328,13 +329,9 @@ export function CreateCampaign() {
                   </div>
                 )
               }
-
-              {/* CHECK si está seleccionado */}
               {mapasSeleccionados.includes(mapaActual.id) && (
                 <div className="cc-mesa-check">✓ Añadido</div>
               )}
-
-              {/* NOMBRE Y CATEGORÍAS */}
               <div className="cc-mesa-mapa-info">
                 <span className="cc-mesa-mapa-nombre">{mapaActual.nombre}</span>
                 <div className="cc-mesa-mapa-cats">
@@ -343,42 +340,26 @@ export function CreateCampaign() {
                   ))}
                 </div>
               </div>
-
-              {/* FAVORITO */}
               <button
                 className={`cc-mesa-fav ${mapaActual.favorito ? 'active' : ''}`}
                 onClick={e => { e.stopPropagation(); toggleFavorito(mapaActual.id); }}
-              >
-                ⭐
-              </button>
+              >⭐</button>
             </div>
           ) : (
-            <div className="cc-mesa-vacio">
-              <p>No hay mapas en esta categoría</p>
-            </div>
+            <div className="cc-mesa-vacio"><p>No hay mapas en esta categoría</p></div>
           )}
-
-          {/* CONTADOR */}
           {mapasFiltrados.length > 0 && (
-            <div className="cc-mesa-contador">
-              {mapaIndex + 1} / {mapasFiltrados.length}
-            </div>
+            <div className="cc-mesa-contador">{mapaIndex + 1} / {mapasFiltrados.length}</div>
           )}
         </div>
 
-        {/* FLECHA DER */}
         <button className="cc-mesa-flecha cc-mesa-flecha--der" onClick={() => cambiarMapa(1)}
-          disabled={mapasFiltrados.length <= 1}>
-          ▶
-        </button>
+          disabled={mapasFiltrados.length <= 1}>▶</button>
       </div>
 
-      {/* MAPAS SELECCIONADOS */}
       {mapasSeleccionados.length > 0 && (
         <div className="cc-mesa-seleccionados">
-          <span className="cc-mesa-sel-count">
-            {mapasSeleccionados.length}/10 mapas
-          </span>
+          <span className="cc-mesa-sel-count">{mapasSeleccionados.length}/10 mapas</span>
           <div className="cc-mesa-sel-chips">
             {mapasSeleccionados.map(id => {
               const m = mapas.find(m => m.id === id);
@@ -393,7 +374,6 @@ export function CreateCampaign() {
         </div>
       )}
 
-      {/* BOTÓN CREAR */}
       <button
         className="cc-mesa-btn-crear"
         disabled={mapasSeleccionados.length === 0}
@@ -401,7 +381,6 @@ export function CreateCampaign() {
       >
         Crear Campaña
       </button>
-
     </div>
   );
 }
