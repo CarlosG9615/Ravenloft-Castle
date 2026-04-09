@@ -22,6 +22,7 @@ export function Header() {
     { label: 'Herramientas',        route: '/tools' },
     { label: 'Unirte a una Partida',route: '/join' },
     { label: 'Crear Sala',          route: '/create' },
+    { label: 'Planes',              route: '/subscription' },
   ];
 
   // Rutas que requieren login

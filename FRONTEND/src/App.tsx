@@ -16,6 +16,7 @@ import { CharactersList } from './pages/Characters/CharactersList';
 import { ScrollToTop } from './components/ScrollToTop/ScrollToTop';
 import { JoinGame } from './pages/JoinGame/JoinGame';
 import { CreateCampaign } from './pages/CreateCampaign/CreateCampaign';
+import { Subscription } from './pages/Subscription/Subscription';
 import './App.css';
 
 function Layout() {
@@ -32,6 +33,7 @@ function Layout() {
           <Route path="/home" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/subscription" element={<Subscription />} />
 
           {/* Privadas — requieren login */}
           <Route path="/profile" element={
