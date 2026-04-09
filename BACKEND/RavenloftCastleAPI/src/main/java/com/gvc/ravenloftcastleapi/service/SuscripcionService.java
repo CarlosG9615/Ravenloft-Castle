@@ -88,15 +88,22 @@ public class SuscripcionService {
     @Transactional
     public SuscripcionDTO createSuscripcion(SuscripcionCreateDTO createDTO) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentEmail = authentication.getName();
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-        if (!isAdmin) {
-            throw new AccessDeniedException("No tienes permisos para crear suscripciones.");
-        }
-
         Usuario usuario = usuarioRepository.findById(createDTO.getUsuarioId())
                 .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado con id: " + createDTO.getUsuarioId()));
+
+        if (!isAdmin && !usuario.getEmail().equals(currentEmail)) {
+            throw new AccessDeniedException("No tienes permisos para crear suscripciones para otros usuarios.");
+        }
+
+        List<Suscripcion> suscripciones = suscripcionRepository.findByUsuarioId(usuario.getId());
+        boolean hasActive = suscripciones.stream().anyMatch(s -> "ACTIVA".equalsIgnoreCase(s.getEstado()));
+        if (hasActive) {
+            throw new IllegalArgumentException("Ya posees una suscripción activa. Debes darla de baja antes de adquirir otra.");
+        }
 
         Suscripcion suscripcion = Suscripcion.builder()
                 .usuario(usuario)
@@ -166,7 +173,7 @@ public class SuscripcionService {
         SuscripcionDTO.SuscripcionDTOBuilder builder = SuscripcionDTO.builder()
                 .id(suscripcion.getId())
                 .usuarioId(suscripcion.getUsuario().getId())
-                .nombre(suscripcion.getUsuario().getNombre())
+                .nombre(suscripcion.getNombre())
                 .tipo(suscripcion.getTipo())
                 .estado(suscripcion.getEstado())
                 .fechaAlta(suscripcion.getFechaAlta());
