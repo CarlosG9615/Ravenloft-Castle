@@ -8,6 +8,9 @@ export interface UserData {
   email: string;
   avatar?: string;
   rol?: string;
+  suscripcion?: string;
+  fechaAltaSuscripcion?: string;
+  suscripcionActiva?: boolean;
 }
 
 interface AuthContextType {

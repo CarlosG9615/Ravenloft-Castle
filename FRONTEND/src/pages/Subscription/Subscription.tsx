@@ -1,9 +1,53 @@
 import './Subscription.css';
 import { useNavigate } from 'react-router-dom';
 import { Crown, Sparkles, Sword } from 'lucide-react';
+import { useAuth } from '../../services/AuthContext';
+import { createSuscripcion, getUserSuscripciones } from '../../services/suscripcionService';
+import { useState, useEffect } from 'react';
 
 export function Subscription() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+
+  useEffect(() => {
+    if (user?.id) {
+      getUserSuscripciones(user.id)
+        .then((suscripciones) => {
+          const active = suscripciones.some(s => s.estado === 'ACTIVA');
+          setHasActiveSubscription(active);
+        })
+        .catch(err => console.error("Error al comprobar suscripciones", err));
+    }
+  }, [user?.id]);
+
+  const handleSelectPlan = async (nombrePlan: string, tipo: 'BASICA' | 'PREMIUM' | 'VIP') => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      await createSuscripcion({
+        usuarioId: user.id,
+        nombre: nombrePlan,
+        tipo
+      });
+      navigate('/profile');
+    } catch (e: any) {
+      console.error(e);
+      let errorMsg = 'Error al elegir tu suscripción. Inténtalo más tarde.';
+      try {
+        const errObj = JSON.parse(e.message);
+        if (errObj.mensaje) errorMsg = errObj.mensaje;
+      } catch {
+        if (e.message && !e.message.startsWith('Error al')) {
+           errorMsg = e.message;
+        }
+      }
+      alert(errorMsg);
+    }
+  };
 
   return (
     <div className="subscription-container">
@@ -30,7 +74,14 @@ export function Subscription() {
             <li>Ficha básica de personaje</li>
             <li>Dado virtual estándar</li>
           </ul>
-          <button className="plan-btn" onClick={() => navigate('/register')}>Comenzar</button>
+          <button
+            className="plan-btn"
+            onClick={() => handleSelectPlan('Aventurero', 'BASICA')}
+            disabled={hasActiveSubscription}
+            style={hasActiveSubscription ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+          >
+            {hasActiveSubscription ? 'Ya tienes un plan' : 'Comenzar'}
+          </button>
         </div>
 
         {/* Plan Héroe (Featured) */}
@@ -52,7 +103,14 @@ export function Subscription() {
             <li>Diario de campaña avanzado</li>
             <li>Dados virtuales personalizados</li>
           </ul>
-          <button className="plan-btn featured-btn">Elegir Héroe</button>
+          <button
+            className="plan-btn featured-btn"
+            onClick={() => handleSelectPlan('Héroe', 'PREMIUM')}
+            disabled={hasActiveSubscription}
+            style={hasActiveSubscription ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+          >
+            {hasActiveSubscription ? 'Ya tienes un plan' : 'Elegir Héroe'}
+          </button>
         </div>
 
         {/* Plan Dungeon Master */}
@@ -71,10 +129,16 @@ export function Subscription() {
             <li>Todo el contenido del plan Héroe</li>
             <li>Creación ilimitada de campañas</li>
           </ul>
-          <button className="plan-btn">Elegir DM</button>
+          <button
+            className="plan-btn"
+            onClick={() => handleSelectPlan('Dungeon Master', 'VIP')}
+            disabled={hasActiveSubscription}
+            style={hasActiveSubscription ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+          >
+            {hasActiveSubscription ? 'Ya tienes un plan' : 'Elegir DM'}
+          </button>
         </div>
       </div>
     </div>
   );
 }
-

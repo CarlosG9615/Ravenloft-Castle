@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './UserProfile.css';
 import { useAuth } from '../../services/AuthContext';
 import { updateProfile } from '../../services/authService';
 import { BackButton } from '../../components/BackButton/BackButton';
+import { getUserSuscripciones, cancelarSuscripcion } from '../../services/suscripcionService';
+import type { SuscripcionDTO } from '../../services/suscripcionService';
 
 type Tab = 'perfil' | 'editar';
 
@@ -12,6 +14,7 @@ export function UserProfile() {
   const navigate = useNavigate();
   const { user, updateUser, logout } = useAuth();
   const [tab, setTab] = useState<Tab>('perfil');
+  const [suscripcionActual, setSuscripcionActual] = useState<SuscripcionDTO | null>(null);
 
   // Formulario editar
   const [nombre, setNombre] = useState(user?.nombre ?? '');
@@ -21,6 +24,35 @@ export function UserProfile() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+
+  const cargarSuscripciones = () => {
+    if (user?.id) {
+      getUserSuscripciones(user.id)
+        .then((suscripciones) => {
+          if (suscripciones.length > 0) {
+            // Asumimos que la última de la lista o la que está ACTIVA es la actual
+            const activa = suscripciones.find(s => s.estado === 'ACTIVA') || suscripciones[suscripciones.length - 1];
+            setSuscripcionActual(activa);
+            // Opcional: Actualizar el contexto de usuario
+            if (activa) {
+              updateUser({
+                suscripcion: activa.nombre,
+                suscripcionActiva: activa.estado === 'ACTIVA',
+                fechaAltaSuscripcion: activa.fechaAlta
+              });
+            }
+          } else {
+            setSuscripcionActual(null);
+            updateUser({ suscripcion: undefined, suscripcionActiva: false, fechaAltaSuscripcion: undefined });
+          }
+        })
+        .catch(err => console.error("Error al cargar suscripciones", err));
+    }
+  };
+
+  useEffect(() => {
+    cargarSuscripciones();
+  }, [user?.id]); // Solo se ejecuta si cambia el ID de usuario
 
   if (!user) {
     navigate('/login');
@@ -67,6 +99,23 @@ export function UserProfile() {
   const handleLogout = () => {
     logout();
     navigate('/home');
+  };
+
+  const handleCancelarSuscripcion = async () => {
+    if (suscripcionActual && suscripcionActual.estado === 'ACTIVA') {
+      if (window.confirm('¿Estás seguro de que deseas dar de baja tu suscripción? Perderás los beneficios de este plan.')) {
+        try {
+          await cancelarSuscripcion(suscripcionActual.id);
+          setSuccess('Suscripción cancelada correctamente.');
+          setError('');
+          cargarSuscripciones(); // refrescamos para mostrar el nuevo estado
+          setTimeout(() => setSuccess(''), 5000);
+        } catch (e: any) {
+          setError(e.message || 'Error al cancelar la suscripción');
+          setSuccess('');
+        }
+      }
+    }
   };
 
   return (
@@ -129,6 +178,53 @@ export function UserProfile() {
                 <div className="profile-info-label">Rango en el Castillo</div>
                 <div className="profile-info-value">{user.rol ?? 'Aventurero'}</div>
               </div>
+
+              {/* TARJETA DE SUSCRIPCIÓN */}
+              <div className="profile-info-card profile-subscription-card">
+                <div className="profile-info-label">Estado de Suscripción</div>
+                <div className="profile-info-value" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 'bold', color: 'var(--orange-fire, #f97316)' }}>
+                      Plan {suscripcionActual?.nombre || user.suscripcion || 'Aventurero (Gratis)'}
+                    </span>
+                    {/* PILL DE ESTADO */}
+                    <span style={{
+                      fontSize: '0.8rem',
+                      padding: '0.2rem 0.6rem',
+                      borderRadius: '15px',
+                      backgroundColor: (suscripcionActual && suscripcionActual.estado === 'ACTIVA') ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                      color: (suscripcionActual && suscripcionActual.estado === 'ACTIVA') ? '#4ade80' : '#f87171',
+                      border: `1px solid ${(suscripcionActual && suscripcionActual.estado === 'ACTIVA') ? '#22c55e' : '#ef4444'}`
+                    }}>
+                      {(suscripcionActual && suscripcionActual.estado === 'ACTIVA') ? 'Activa' : 'Inactiva'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#aaa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{suscripcionActual ? `Miembro desde: ${suscripcionActual.fechaAlta}` : 'No tienes un plan activo'}</span>
+
+                    {suscripcionActual && suscripcionActual.estado === 'ACTIVA' && (
+                      <button
+                        onClick={handleCancelarSuscripcion}
+                        style={{
+                          background: 'transparent',
+                          color: '#ef4444',
+                          border: '1px solid #ef4444',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '5px',
+                          fontSize: '0.8rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Dar de baja
+                      </button>
+                    )}
+                  </div>
+
+                  {success && tab === 'perfil' && <div className="profile-alert profile-alert--success" style={{ marginTop: '0.5rem', padding: '0.5rem', fontSize: '0.85rem' }}>✅ {success}</div>}
+                  {error && tab === 'perfil' && <div className="profile-alert profile-alert--error" style={{ marginTop: '0.5rem', padding: '0.5rem', fontSize: '0.85rem' }}>⚠ {error}</div>}
+                </div>
+              </div>
+
               <div className="profile-info-card profile-info-card--action">
                 <button
                   className="profile-action-btn"
