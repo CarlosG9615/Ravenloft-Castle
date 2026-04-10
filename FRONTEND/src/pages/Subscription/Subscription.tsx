@@ -69,7 +69,7 @@ export function Subscription() {
             <p className="plan-desc">Lo esencial para comenzar tu viaje.</p>
           </div>
           <ul className="plan-features">
-            <li> Creación de 3 personajes</li>
+            <li>Creación de 3 personajes</li>
             <li>Acceso a campañas públicas</li>
             <li>Ficha básica de personaje</li>
             <li>Dado virtual estándar</li>
