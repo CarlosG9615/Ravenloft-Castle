@@ -1,17 +1,18 @@
 package com.gvc.ravenloftcastleapi.exception;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -60,6 +61,20 @@ public class GlobalExceptionHandler {
         } else {
             mensaje += ". Se esperaba: " + (ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "desconocido");
         }
+        return buildError(HttpStatus.BAD_REQUEST, mensaje);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleMessageNotReadable(HttpMessageNotReadableException ex) {
+        Throwable cause = ex.getMostSpecificCause();
+        String mensaje = cause != null && cause.getMessage() != null
+                ? cause.getMessage()
+                : "El cuerpo de la peticion no es valido";
+
+        if (mensaje.contains("Dificultad") || mensaje.contains("dificultad")) {
+            mensaje = "La dificultad solo puede ser FACIL, MEDIA o DIFICIL";
+        }
+
         return buildError(HttpStatus.BAD_REQUEST, mensaje);
     }
 

@@ -1,5 +1,7 @@
 package com.gvc.ravenloftcastleapi.entity;
 
+import com.gvc.ravenloftcastleapi.enums.Dificultad;
+import com.gvc.ravenloftcastleapi.enums.DificultadConverter;
 import com.gvc.ravenloftcastleapi.enums.TipoSuscripcion;
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,8 +32,9 @@ public class ModoHistoria {
     @Column(name = "fecha_creacion", nullable = false)
     private LocalDate fechaCreacion;
 
+    @Convert(converter = DificultadConverter.class)
     @Column(nullable = false, length = 50)
-    private String dificultad;
+    private Dificultad dificultad;
 
     @Column(name = "nivel_minimo", nullable = false)
     private int nivelMinimo;

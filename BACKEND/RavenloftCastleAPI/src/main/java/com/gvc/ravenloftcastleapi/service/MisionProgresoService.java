@@ -9,7 +9,7 @@ import com.gvc.ravenloftcastleapi.entity.Personaje;
 import com.gvc.ravenloftcastleapi.entity.TiradaDado;
 import com.gvc.ravenloftcastleapi.entity.Usuario;
 import com.gvc.ravenloftcastleapi.enums.TipoGuardadoProgreso;
-import com.gvc.ravenloftcastleapi.repository.CampanaPersonajeRepository;
+import com.gvc.ravenloftcastleapi.repository.ModoHistoriaPersonajeRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionEscenarioRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionParticipanteRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionProgresoRepository;
@@ -36,7 +36,7 @@ public class MisionProgresoService {
     private final MisionRepository misionRepository;
     private final MisionParticipanteRepository misionParticipanteRepository;
     private final PersonajeRepository personajeRepository;
-    private final CampanaPersonajeRepository campanaPersonajeRepository;
+    private final ModoHistoriaPersonajeRepository modoHistoriaPersonajeRepository;
     private final MisionEscenarioRepository misionEscenarioRepository;
     private final TiradaDadoRepository tiradaDadoRepository;
 
@@ -114,7 +114,7 @@ public class MisionProgresoService {
                                 TipoGuardadoProgreso.MANUAL
                         )
                         .map(this::toResponse)
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No existe progreso guardado para esta misión y personaje"))
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No existe progreso guardado para esta misiÃ³n y personaje"))
                 );
     }
 
@@ -227,7 +227,7 @@ public class MisionProgresoService {
 
     private Mision getMisionById(Long misionId) {
         return misionRepository.findById(misionId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Misión no encontrada"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "MisiÃ³n no encontrada"));
     }
 
     private Personaje getPersonajeValido(Long usuarioId, Mision mision, Long personajeId) {
@@ -240,9 +240,9 @@ public class MisionProgresoService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes guardar progreso con personajes de otro usuario");
         }
 
-        boolean unido = campanaPersonajeRepository.existsByCampanaIdAndPersonajeId(mision.getCampana().getId(), personajeId);
+        boolean unido = modoHistoriaPersonajeRepository.existsByModoHistoriaIdAndPersonajeId(mision.getModoHistoria().getId(), personajeId);
         if (!unido) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El personaje no está unido a la campaña de la misión");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El personaje no estÃ¡ unido a la campaÃ±a de la misiÃ³n");
         }
 
         return personaje;
@@ -254,13 +254,13 @@ public class MisionProgresoService {
         }
 
         return misionEscenarioRepository.findByIdAndMisionId(misionEscenarioId, misionId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "El escenario no pertenece a la misión indicada"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "El escenario no pertenece a la misiÃ³n indicada"));
     }
 
     private void validarParticipacionEnMision(Long misionId, Long usuarioId) {
         boolean participa = misionParticipanteRepository.existsByMisionIdAndUsuarioId(misionId, usuarioId);
         if (!participa) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No participas en esta misión");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No participas en esta misiÃ³n");
         }
     }
 
@@ -307,4 +307,5 @@ public class MisionProgresoService {
         );
     }
 }
+
 

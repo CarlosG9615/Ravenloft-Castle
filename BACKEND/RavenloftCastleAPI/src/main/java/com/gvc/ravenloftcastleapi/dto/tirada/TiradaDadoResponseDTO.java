@@ -2,7 +2,7 @@ package com.gvc.ravenloftcastleapi.dto.tirada;
 public record TiradaDadoResponseDTO(
         Long id,
         Long misionId,
-        Long campanaId,
+        Long modoHistoriaId,
         Long personajeId,
         String personajeNombre,
         Long misionProgresoId,

@@ -1,11 +1,12 @@
-package com.gvc.ravenloftcastleapi.dto.campana;
+package com.gvc.ravenloftcastleapi.dto.modo_historia;
 
 import com.gvc.ravenloftcastleapi.dto.enemigo.EnemigoResumenDTO;
 
-public record CampanaEnemigoResponseDTO(
+public record ModoHistoriaEnemigoResponseDTO(
         Long id,
         EnemigoResumenDTO enemigo,
         int cantidad,
         int dificultad
 ) {}
+
 

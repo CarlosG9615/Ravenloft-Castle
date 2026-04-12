@@ -5,11 +5,11 @@ import com.gvc.ravenloftcastleapi.dto.mision.MisionCreateDTO;
 import com.gvc.ravenloftcastleapi.dto.mision.MisionDetalleDTO;
 import com.gvc.ravenloftcastleapi.dto.mision.MisionEscenarioCreateDTO;
 import com.gvc.ravenloftcastleapi.dto.mision.MisionUpdateDTO;
-import com.gvc.ravenloftcastleapi.entity.Campana;
+import com.gvc.ravenloftcastleapi.entity.ModoHistoria;
 import com.gvc.ravenloftcastleapi.entity.Escenario;
 import com.gvc.ravenloftcastleapi.entity.Mision;
 import com.gvc.ravenloftcastleapi.entity.MisionEscenario;
-import com.gvc.ravenloftcastleapi.repository.CampanaRepository;
+import com.gvc.ravenloftcastleapi.repository.ModoHistoriaRepository;
 import com.gvc.ravenloftcastleapi.repository.EscenarioRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionEscenarioRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionRepository;
@@ -28,17 +28,17 @@ import java.util.stream.Collectors;
 public class MisionService {
 
     private final MisionRepository misionRepository;
-    private final CampanaRepository campanaRepository;
+    private final ModoHistoriaRepository modoHistoriaRepository;
     private final EscenarioRepository escenarioRepository;
     private final MisionEscenarioRepository misionEscenarioRepository;
 
     @Transactional
     public MisionDetalleDTO crearMision(MisionCreateDTO dto) {
-        Campana campana = campanaRepository.findById(dto.campanaId())
-                .orElseThrow(() -> new RuntimeException("Campaña no encontrada con id: " + dto.campanaId()));
+        ModoHistoria modoHistoria = modoHistoriaRepository.findById(dto.modoHistoriaId())
+                .orElseThrow(() -> new RuntimeException("CampaÃ±a no encontrada con id: " + dto.modoHistoriaId()));
 
         Mision mision = Mision.builder()
-                .campana(campana)
+                .modoHistoria(modoHistoria)
                 .nombre(dto.nombre())
                 .descripcion(dto.descripcion())
                 .orden(dto.orden())
@@ -74,7 +74,7 @@ public class MisionService {
     @Transactional
     public MisionDetalleDTO actualizarMision(Long id, MisionUpdateDTO dto) {
         Mision mision = misionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Misión no encontrada con id: " + id));
+                .orElseThrow(() -> new RuntimeException("MisiÃ³n no encontrada con id: " + id));
 
         if (dto.nombre() != null) mision.setNombre(dto.nombre());
         if (dto.descripcion() != null) mision.setDescripcion(dto.descripcion());
@@ -87,7 +87,7 @@ public class MisionService {
             // Limpiar escenarios existentes
             mision.getEscenarios().clear();
             
-            // Añadir nuevos escenarios
+            // AÃ±adir nuevos escenarios
             for (MisionEscenarioCreateDTO escenarioDTO : dto.escenarios()) {
                 Escenario escenario = escenarioRepository.findById(escenarioDTO.id())
                         .orElseThrow(() -> new RuntimeException("Escenario no encontrado con id: " + escenarioDTO.id()));
@@ -111,7 +111,7 @@ public class MisionService {
     @Transactional(readOnly = true)
     public MisionDetalleDTO obtenerMisionPorId(Long id) {
         Mision mision = misionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Misión no encontrada con id: " + id));
+                .orElseThrow(() -> new RuntimeException("MisiÃ³n no encontrada con id: " + id));
 
         return mapToMisionDetalleDTO(mision);
     }
@@ -119,7 +119,7 @@ public class MisionService {
     @Transactional
     public void marcarComoCompletada(Long id, boolean completada) {
         Mision mision = misionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Misión no encontrada con id: " + id));
+                .orElseThrow(() -> new RuntimeException("MisiÃ³n no encontrada con id: " + id));
         mision.setCompletada(completada);
         misionRepository.save(mision);
     }
@@ -157,12 +157,12 @@ public class MisionService {
     @Transactional
     public MisionDetalleDTO desvincularEscenario(Long misionId, Long escenarioId) {
         Mision mision = misionRepository.findById(misionId)
-                .orElseThrow(() -> new RuntimeException("Misión no encontrada con id: " + misionId));
+                .orElseThrow(() -> new RuntimeException("MisiÃ³n no encontrada con id: " + misionId));
 
         MisionEscenario vinculo = mision.getEscenarios().stream()
                 .filter(me -> me.getEscenario().getId().equals(escenarioId))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("El escenario no está vinculado a la misión."));
+                .orElseThrow(() -> new RuntimeException("El escenario no estÃ¡ vinculado a la misiÃ³n."));
 
         mision.getEscenarios().remove(vinculo);
         misionEscenarioRepository.delete(vinculo);
@@ -173,12 +173,12 @@ public class MisionService {
     @Transactional
     public MisionDetalleDTO actualizarDificultadEscenario(Long misionId, Long escenarioId, int dificultad) {
         Mision mision = misionRepository.findById(misionId)
-                .orElseThrow(() -> new RuntimeException("Misión no encontrada con id: " + misionId));
+                .orElseThrow(() -> new RuntimeException("MisiÃ³n no encontrada con id: " + misionId));
 
         MisionEscenario vinculo = mision.getEscenarios().stream()
                 .filter(me -> me.getEscenario().getId().equals(escenarioId))
                 .findFirst()
-                .orElseThrow(() -> new RuntimeException("El escenario no está vinculado a la misión."));
+                .orElseThrow(() -> new RuntimeException("El escenario no estÃ¡ vinculado a la misiÃ³n."));
 
         vinculo.setDificultad(dificultad);
         misionEscenarioRepository.save(vinculo);
@@ -223,3 +223,4 @@ public class MisionService {
         );
     }
 }
+
