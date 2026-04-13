@@ -9,6 +9,9 @@ import com.gvc.ravenloftcastleapi.entity.Usuario;
 import com.gvc.ravenloftcastleapi.exception.CredencialesInvalidasException;
 import com.gvc.ravenloftcastleapi.repository.RoleRepository;
 import com.gvc.ravenloftcastleapi.repository.UsuarioRepository;
+import com.gvc.ravenloftcastleapi.repository.SuscripcionRepository;
+import com.gvc.ravenloftcastleapi.entity.Suscripcion;
+import java.time.LocalDate;
 import com.gvc.ravenloftcastleapi.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +23,7 @@ public class AuthService {
 
     private final UsuarioRepository usuarioRepository;
     private final RoleRepository roleRepository;
+    private final SuscripcionRepository suscripcionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
@@ -39,6 +43,15 @@ public class AuthService {
                 .build();
 
         Usuario guardado = usuarioRepository.save(nuevo);
+
+        Suscripcion suscripcionGratis = Suscripcion.builder()
+                .usuario(guardado)
+                .nombre("Aventurero")
+                .tipo(com.gvc.ravenloftcastleapi.enums.TipoSuscripcion.BASICA)
+                .estado("ACTIVA")
+                .fechaAlta(LocalDate.now())
+                .build();
+        suscripcionRepository.save(suscripcionGratis);
 
         return new UsuarioResponseDTO(
                 guardado.getId(),
@@ -71,4 +84,3 @@ public class AuthService {
         );
     }
 }
-
