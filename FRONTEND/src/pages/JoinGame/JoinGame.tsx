@@ -5,7 +5,7 @@ import './JoinGame.css';
 import { BackButton } from '../../components/BackButton/BackButton';
 import { API_URL } from '../../services/api';
 import { getMySuscripciones, getUserSuscripciones } from '../../services/suscripcionService';
-import { getCampanaUrl } from '../../utils/imageUtils';
+import { getCampanaUrl, getJoinGameVideoUrl, getModoHistoriaImageCandidates } from '../../utils/imageUtils';
 
 // ── TIPOS ─────────────────────────────────────────────────
 interface Jugador {
@@ -199,6 +199,49 @@ const getDificultadColor = (dificultad?: string): string => {
   return 'rgba(90, 90, 90, 0.95)';
 };
 
+function ModoHistoriaCover({
+  titulo,
+  imageClassName,
+  placeholderClassName,
+}: {
+  titulo: string;
+  imageClassName: string;
+  placeholderClassName: string;
+}) {
+  const candidates = getModoHistoriaImageCandidates(titulo);
+  const [candidateIndex, setCandidateIndex] = useState(0);
+  const [sinPortada, setSinPortada] = useState(candidates.length === 0);
+
+  useEffect(() => {
+    setCandidateIndex(0);
+    setSinPortada(candidates.length === 0);
+  }, [titulo, candidates.length]);
+
+  if (sinPortada || !candidates[candidateIndex]) {
+    return (
+      <div className={placeholderClassName} aria-label="Plantilla de portada">
+        <span className="jg-card-modo-plantilla-texto">Portada próximamente</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={candidates[candidateIndex]}
+      alt={`Portada de ${titulo}`}
+      className={imageClassName}
+      onError={() => {
+        if (candidateIndex < candidates.length - 1) {
+          setCandidateIndex(prev => prev + 1);
+          return;
+        }
+        setSinPortada(true);
+      }}
+      loading="lazy"
+    />
+  );
+}
+
 // ── MODAL CAMPAÑA ─────────────────────────────────────────
 function ModalCampana({ campana, onClose }: { campana: Campana; onClose: () => void }) {
   const plazasLibres = campana.maxJugadores - campana.jugadores.length;
@@ -284,9 +327,11 @@ function ModalModoHistoria({ modoHistoria, onClose }: { modoHistoria: ModoHistor
     <div className="jg-modal-overlay" onClick={onClose}>
       <div className="jg-modal" onClick={e => e.stopPropagation()}>
         <div className="jg-modal-hero jg-modal-hero-modo">
-          <div className="jg-card-modo-plantilla" aria-label="Plantilla de portada">
-            <span className="jg-card-modo-plantilla-texto">Portada próximamente</span>
-          </div>
+          <ModoHistoriaCover
+            titulo={modoHistoria.nombre}
+            imageClassName="jg-modal-hero-modo-img"
+            placeholderClassName="jg-card-modo-plantilla"
+          />
           <div className="jg-modal-hero-overlay" />
           <button className="jg-modal-close" onClick={onClose}>✕</button>
           <div className="jg-modal-hero-info">
@@ -404,6 +449,7 @@ function ModalSuscripcionRequerida({
 // ── COMPONENTE PRINCIPAL ──────────────────────────────────
 export function JoinGame() {
   const navigate = useNavigate();
+  const videoBackground = getJoinGameVideoUrl();
   const [campanaSeleccionada, setCampanaSeleccionada] = useState<Campana | null>(null);
   const [modoHistoriaSeleccionado, setModoHistoriaSeleccionado] = useState<ModoHistoria | null>(null);
   const [modoBloqueadoSeleccionado, setModoBloqueadoSeleccionado] = useState<{ nombre: string; nivelRequerido: TipoSuscripcion } | null>(null);
@@ -551,7 +597,19 @@ export function JoinGame() {
 
   return (
     <div className="jg-page">
-      <div className="jg-bg" />
+      <div className="jg-bg" aria-hidden="true">
+        <video
+          className="jg-bg-video"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+        >
+          <source src={videoBackground} type="video/mp4" />
+        </video>
+        <div className="jg-bg-overlay" />
+      </div>
       <BackButton />
 
       <div className="jg-contenido">
@@ -679,9 +737,11 @@ export function JoinGame() {
                           <span className="jg-card-premium-chip">{modoHistoria.nivelAcceso}</span>
                         )}
                         <div className="jg-card-modo-hero">
-                          <div className="jg-card-modo-plantilla" aria-label="Plantilla de portada">
-                            <span className="jg-card-modo-plantilla-texto">Portada próximamente</span>
-                          </div>
+                          <ModoHistoriaCover
+                            titulo={modoHistoria.nombre}
+                            imageClassName="jg-card-modo-img"
+                            placeholderClassName="jg-card-modo-plantilla"
+                          />
                           <div className="jg-card-overlay" />
                           <span className="jg-card-dificultad" style={{ background: getDificultadColor(modoHistoria.dificultad) }}>
                             {modoHistoria.dificultad}
