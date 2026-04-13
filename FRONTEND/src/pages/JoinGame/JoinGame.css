@@ -10,28 +10,33 @@
   overflow-x: hidden;
 }
 
-/* ── FONDO CON IMAGEN LATERAL ── */
+/* ── FONDO CON VIDEO LATERAL ── */
 .jg-bg {
   position: fixed;
   top: 0;
   left: 0;
-  width: 45%;
+  width: 100%;
   height: 100%;
-  background: url('/images/join-friends.jpg') left center / cover no-repeat;
-  mask-image: linear-gradient(
-    to right,
-    rgba(0,0,0,0.6) 0%,
-    rgba(0,0,0,0.2) 55%,
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    rgba(0,0,0,0.6) 0%,
-    rgba(0,0,0,0.2) 55%,
-    transparent 100%
-  );
   z-index: 0;
   pointer-events: none;
+  overflow: hidden;
+}
+
+.jg-bg-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  filter: saturate(0.95) contrast(1.05);
+}
+
+.jg-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(10,2,3,0.88) 0%, rgba(10,2,3,0.62) 40%, rgba(10,2,3,0.2) 100%),
+    linear-gradient(180deg, rgba(10,2,3,0.15) 0%, rgba(10,2,3,0.35) 100%);
 }
 
 /* ── CONTENIDO ── */
@@ -41,6 +46,7 @@
   max-width: 1300px;
   margin: 0 auto;
   padding: 40px 40px 80px;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.3);
 }
 
 /* ── CABECERA ── */
@@ -435,6 +441,16 @@
   background: radial-gradient(circle at top, rgba(200,50,30,0.12), transparent 40%), linear-gradient(180deg, rgba(36,10,12,0.98), rgba(12,4,5,0.98));
 }
 
+.jg-card-modo-img,
+.jg-modal-hero-modo-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
 .jg-card-modo-plantilla {
   position: absolute;
   inset: 0;
@@ -464,7 +480,8 @@
   position: absolute;
   top: -12px;
   right: -10px;
-  transform: none;
+  transform: rotate(9deg);
+  transform-origin: center;
   z-index: 4;
   display: inline-flex;
   align-items: center;
@@ -893,7 +910,12 @@
 
 /* ── RESPONSIVE ── */
 @media (max-width: 768px) {
-  .jg-bg { width: 100%; opacity: 0.3; }
+  .jg-bg { width: 100%; }
+  .jg-bg-overlay {
+    background:
+      linear-gradient(180deg, rgba(10,2,3,0.9) 0%, rgba(10,2,3,0.75) 35%, rgba(10,2,3,0.48) 100%),
+      linear-gradient(180deg, rgba(10,2,3,0.1) 0%, rgba(10,2,3,0.2) 100%);
+  }
   .jg-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
   .jg-titulo { font-size: 32px; }
   .jg-controles { flex-direction: column; }
