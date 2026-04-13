@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -21,13 +22,14 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(Customizer.withDefaults()) // Enable CORS
@@ -35,12 +37,12 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers(HttpMethod.GET ,"/api/usuarios/**").permitAll()
-                    .requestMatchers(HttpMethod.GET ,"/api/campanas/**").permitAll()
-                    .requestMatchers(HttpMethod.PUT, "/api/campanas/*/codigo-invitacion").authenticated()
-                    .requestMatchers(HttpMethod.POST, "/api/campanas/*/codigo-invitacion/generar").authenticated()
-                    .requestMatchers(HttpMethod.POST, "/api/campanas").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.PUT, "/api/campanas/*").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.DELETE, "/api/campanas/*").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET ,"/api/modos-historia/**").permitAll()
+                    .requestMatchers(HttpMethod.PUT, "/api/modos-historia/*/codigo-invitacion").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/api/modos-historia/*/codigo-invitacion/generar").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/api/modos-historia").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/modos-historia/*").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/api/modos-historia/*").hasRole("ADMIN")
                     .requestMatchers(HttpMethod.POST, "/api/misiones").hasRole("ADMIN")
                     .requestMatchers(HttpMethod.POST, "/api/misiones/*/escenarios").hasRole("ADMIN")
                     .requestMatchers(HttpMethod.DELETE, "/api/misiones/*/escenarios/*").hasRole("ADMIN")
@@ -62,7 +64,6 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/api/inventario/items/pociones").hasRole("ADMIN")
                     .requestMatchers(HttpMethod.PUT, "/api/inventario/items/pociones/*").hasRole("ADMIN")
                     .requestMatchers(HttpMethod.DELETE, "/api/inventario/items/pociones/*").hasRole("ADMIN")
-
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

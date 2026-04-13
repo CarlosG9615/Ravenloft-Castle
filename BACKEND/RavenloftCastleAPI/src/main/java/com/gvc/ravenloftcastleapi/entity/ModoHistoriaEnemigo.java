@@ -4,13 +4,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "campana_enemigo")
+@Table(name = "modo_historia_enemigo")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CampanaEnemigo {
+public class ModoHistoriaEnemigo {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,8 +18,8 @@ public class CampanaEnemigo {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "campana_id", nullable = false)
-    private Campana campana;
+    @JoinColumn(name = "modo_historia_id", nullable = false)
+    private ModoHistoria modoHistoria;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "enemigo_id", nullable = false)
@@ -31,5 +31,6 @@ public class CampanaEnemigo {
     @Column(nullable = false)
     private int dificultad;
 }
+
 
 

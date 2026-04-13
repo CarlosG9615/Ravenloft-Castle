@@ -2,14 +2,13 @@ package com.gvc.ravenloftcastleapi.controller.join;
 
 import com.gvc.ravenloftcastleapi.dto.join.JoinRequestDTO;
 import com.gvc.ravenloftcastleapi.dto.join.JoinResponseDTO;
-import com.gvc.ravenloftcastleapi.entity.Campana;
-import com.gvc.ravenloftcastleapi.enums.TipoSuscripcion;
-import com.gvc.ravenloftcastleapi.repository.UsuarioRepository;
+import com.gvc.ravenloftcastleapi.entity.ModoHistoria;
 import com.gvc.ravenloftcastleapi.service.JoinService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,25 +19,20 @@ import org.springframework.web.bind.annotation.*;
 public class JoinController {
 
     private final JoinService joinService;
-    private final UsuarioRepository usuarioRepository;
 
     private String getCurrentUserEmail() {
-        return SecurityContextHolder.getContext().getAuthentication().getName();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new IllegalStateException("No hay usuario autenticado");
+        }
+        return authentication.getName();
     }
 
     @GetMapping
-    public ResponseEntity<Page<Campana>> findByTipo(@RequestParam String tipo,
-                                                    @RequestParam(defaultValue = "0") int page,
-                                                    @RequestParam(defaultValue = "10") int size) {
-
-        TipoSuscripcion tipooEnum;
-        try {
-            tipooEnum = TipoSuscripcion.fromString(tipo);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Tipo de suscripcion invalido: " + tipo);
-        }
-
-        Page<Campana> result = joinService.findByTipo(tipooEnum, PageRequest.of(page, size));
+    public ResponseEntity<Page<ModoHistoria>> findByTipo(@RequestParam(defaultValue = "0") int page,
+                                                          @RequestParam(defaultValue = "10") int size) {
+        String email = getCurrentUserEmail();
+        Page<ModoHistoria> result = joinService.findVisiblesByUserEmail(email, PageRequest.of(page, size));
         return ResponseEntity.ok(result);
     }
 
@@ -49,3 +43,4 @@ public class JoinController {
         return ResponseEntity.ok(resp);
     }
 }
+

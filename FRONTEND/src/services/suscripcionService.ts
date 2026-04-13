@@ -45,6 +45,20 @@ export const getUserSuscripciones = async (usuarioId: number): Promise<Suscripci
   return response.json();
 };
 
+export const getMySuscripciones = async (): Promise<SuscripcionDTO[]> => {
+  const response = await fetch(`${API_URL}/api/suscripciones`, {
+    method: 'GET',
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || 'Error al obtener tus suscripciones');
+  }
+
+  return response.json();
+};
+
 export const cancelarSuscripcion = async (id: number): Promise<void> => {
   const response = await fetch(`${API_URL}/api/suscripciones/${id}/cancelar`, {
     method: 'PUT',

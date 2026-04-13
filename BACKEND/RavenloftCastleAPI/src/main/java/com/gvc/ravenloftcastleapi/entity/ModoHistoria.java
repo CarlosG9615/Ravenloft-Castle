@@ -1,5 +1,7 @@
 package com.gvc.ravenloftcastleapi.entity;
 
+import com.gvc.ravenloftcastleapi.enums.Dificultad;
+import com.gvc.ravenloftcastleapi.enums.DificultadConverter;
 import com.gvc.ravenloftcastleapi.enums.TipoSuscripcion;
 import jakarta.persistence.*;
 import lombok.*;
@@ -8,13 +10,13 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Entity
-@Table(name = "campana")
+@Table(name = "modo_historia")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Campana {
+public class ModoHistoria {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,8 +32,9 @@ public class Campana {
     @Column(name = "fecha_creacion", nullable = false)
     private LocalDate fechaCreacion;
 
+    @Convert(converter = DificultadConverter.class)
     @Column(nullable = false, length = 50)
-    private String dificultad;
+    private Dificultad dificultad;
 
     @Column(name = "nivel_minimo", nullable = false)
     private int nivelMinimo;
@@ -51,15 +54,16 @@ public class Campana {
     @Column(name = "codigo_invitacion", unique = true, length = 100)
     private String codigoInvitacion;
 
-    @OneToMany(mappedBy = "campana", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<CampanaEnemigo> enemigos;
+    @OneToMany(mappedBy = "modoHistoria", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ModoHistoriaEnemigo> enemigos;
 
-    @OneToMany(mappedBy = "campana", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<CampanaPersonaje> personajes;
+    @OneToMany(mappedBy = "modoHistoria", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ModoHistoriaPersonaje> personajes;
 
-    @OneToMany(mappedBy = "campana", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "modoHistoria", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Mision> misiones;
 
-    @OneToMany(mappedBy = "campana", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "modoHistoria", cascade = CascadeType.ALL)
     private List<TiradaDado> tiradas;
 }
+

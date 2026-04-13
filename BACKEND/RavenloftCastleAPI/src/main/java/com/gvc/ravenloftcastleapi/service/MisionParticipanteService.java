@@ -3,14 +3,15 @@ package com.gvc.ravenloftcastleapi.service;
 import com.gvc.ravenloftcastleapi.dto.mision.MisionParticipanteCreateDTO;
 import com.gvc.ravenloftcastleapi.dto.mision.MisionParticipanteResponseDTO;
 import com.gvc.ravenloftcastleapi.dto.mision.MisionParticipanteUpdateDTO;
-import com.gvc.ravenloftcastleapi.entity.Campana;
+import com.gvc.ravenloftcastleapi.entity.ModoHistoria;
 import com.gvc.ravenloftcastleapi.entity.Mision;
 import com.gvc.ravenloftcastleapi.entity.MisionParticipante;
 import com.gvc.ravenloftcastleapi.entity.Personaje;
+import com.gvc.ravenloftcastleapi.entity.Suscripcion;
 import com.gvc.ravenloftcastleapi.entity.Usuario;
 import com.gvc.ravenloftcastleapi.enums.RolParticipante;
 import com.gvc.ravenloftcastleapi.enums.TipoSuscripcion;
-import com.gvc.ravenloftcastleapi.repository.CampanaPersonajeRepository;
+import com.gvc.ravenloftcastleapi.repository.ModoHistoriaPersonajeRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionParticipanteRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionRepository;
 import com.gvc.ravenloftcastleapi.repository.PersonajeRepository;
@@ -34,7 +35,7 @@ public class MisionParticipanteService {
     private final MisionRepository misionRepository;
     private final SuscripcionRepository suscripcionRepository;
     private final PersonajeRepository personajeRepository;
-    private final CampanaPersonajeRepository campanaPersonajeRepository;
+    private final ModoHistoriaPersonajeRepository modoHistoriaPersonajeRepository;
 
     @Transactional
     public MisionParticipanteResponseDTO crear(String email, Long misionId, MisionParticipanteCreateDTO dto) {
@@ -44,14 +45,14 @@ public class MisionParticipanteService {
         Long usuarioObjetivoId = resolveUsuarioObjetivoId(currentUser, dto.usuarioId());
         Usuario usuarioObjetivo = getUsuarioById(usuarioObjetivoId);
 
-        validarSuscripcionActiva(usuarioObjetivoId, mision.getCampana());
+        validarSuscripcionActiva(usuarioObjetivoId, mision.getModoHistoria());
         validarNoDuplicado(misionId, usuarioObjetivoId, null);
 
         Personaje personaje = resolvePersonajeParaRol(
                 dto.rol(),
                 dto.personajeId(),
                 usuarioObjetivoId,
-                mision.getCampana().getId()
+                mision.getModoHistoria().getId()
         );
 
         MisionParticipante participante = MisionParticipante.builder()
@@ -97,7 +98,7 @@ public class MisionParticipanteService {
                 dto.rol(),
                 dto.personajeId(),
                 participante.getUsuario().getId(),
-                participante.getMision().getCampana().getId()
+                participante.getMision().getModoHistoria().getId()
         );
 
         participante.setRol(dto.rol());
@@ -162,12 +163,15 @@ public class MisionParticipanteService {
         return usuarioIdRequest;
     }
 
-    private void validarSuscripcionActiva(Long usuarioId, Campana campana) {
-        TipoSuscripcion nivel = campana.getNivelAcceso();
-        boolean tieneSuscripcion = suscripcionRepository.existsByUsuarioIdAndTipoAndEstado(usuarioId, nivel, "ACTIVA");
+    private void validarSuscripcionActiva(Long usuarioId, ModoHistoria modoHistoria) {
+        TipoSuscripcion nivel = modoHistoria.getNivelAcceso();
+        boolean tieneSuscripcion = suscripcionRepository.findByUsuarioIdAndEstadoIgnoreCase(usuarioId, "ACTIVA")
+                .stream()
+                .map(Suscripcion::getTipo)
+                .anyMatch(tipo -> tipo != null && tipo.canAccess(nivel));
 
         if (!tieneSuscripcion) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Usuario sin suscripcion activa para esta campana");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Usuario sin suscripcion activa para esta modoHistoria");
         }
     }
 
@@ -181,7 +185,7 @@ public class MisionParticipanteService {
         }
     }
 
-    private Personaje resolvePersonajeParaRol(RolParticipante rol, Long personajeId, Long usuarioId, Long campanaId) {
+    private Personaje resolvePersonajeParaRol(RolParticipante rol, Long personajeId, Long usuarioId, Long modoHistoriaId) {
         if (rol == RolParticipante.MASTER) {
             if (personajeId != null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El rol MASTER no debe asociar personaje");
@@ -196,9 +200,9 @@ public class MisionParticipanteService {
         Personaje personaje = personajeRepository.findByIdAndUsuarioId(personajeId, usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Personaje no encontrado para el usuario"));
 
-        boolean unidoEnCampana = campanaPersonajeRepository.existsByCampanaIdAndPersonajeId(campanaId, personajeId);
-        if (!unidoEnCampana) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El personaje no esta unido a la campana de la mision");
+        boolean unidoEnModoHistoria = modoHistoriaPersonajeRepository.existsByModoHistoriaIdAndPersonajeId(modoHistoriaId, personajeId);
+        if (!unidoEnModoHistoria) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El personaje no esta unido a la modoHistoria de la mision");
         }
 
         return personaje;
@@ -237,3 +241,4 @@ public class MisionParticipanteService {
         );
     }
 }
+

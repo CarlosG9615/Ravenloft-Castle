@@ -14,5 +14,7 @@ public interface SuscripcionRepository extends JpaRepository<Suscripcion, Long> 
 
     List<Suscripcion> findByUsuarioId(Long usuarioId);
 
+    List<Suscripcion> findByUsuarioIdAndEstadoIgnoreCase(Long usuarioId, String estado);
+
     boolean existsByUsuarioIdAndTipoAndEstado(Long usuarioId, TipoSuscripcion tipo, String estado);
 }

@@ -10,28 +10,33 @@
   overflow-x: hidden;
 }
 
-/* ── FONDO CON IMAGEN LATERAL ── */
+/* ── FONDO CON VIDEO LATERAL ── */
 .jg-bg {
   position: fixed;
   top: 0;
   left: 0;
-  width: 45%;
+  width: 100%;
   height: 100%;
-  background: url('/images/join-friends.jpg') left center / cover no-repeat;
-  mask-image: linear-gradient(
-    to right,
-    rgba(0,0,0,0.6) 0%,
-    rgba(0,0,0,0.2) 55%,
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    rgba(0,0,0,0.6) 0%,
-    rgba(0,0,0,0.2) 55%,
-    transparent 100%
-  );
   z-index: 0;
   pointer-events: none;
+  overflow: hidden;
+}
+
+.jg-bg-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  filter: saturate(0.95) contrast(1.05);
+}
+
+.jg-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(10,2,3,0.88) 0%, rgba(10,2,3,0.62) 40%, rgba(10,2,3,0.2) 100%),
+    linear-gradient(180deg, rgba(10,2,3,0.15) 0%, rgba(10,2,3,0.35) 100%);
 }
 
 /* ── CONTENIDO ── */
@@ -41,6 +46,7 @@
   max-width: 1300px;
   margin: 0 auto;
   padding: 40px 40px 80px;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.3);
 }
 
 /* ── CABECERA ── */
@@ -51,7 +57,7 @@
 
 .jg-titulo {
   font-family: 'Metal Mania', cursive;
-  font-size: 48px;
+  font-size: clamp(44px, 4vw, 58px);
   color: white;
   letter-spacing: 4px;
   text-transform: uppercase;
@@ -62,9 +68,152 @@
 }
 
 .jg-subtitulo {
+  font-family: 'Metal Mania', cursive;
+  font-size: 18px;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.jg-descripcion {
   font-size: 16px;
   color: rgba(255,255,255,0.45);
   letter-spacing: 1px;
+}
+
+.jg-modo-historia-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 190px;
+  padding: 12px 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(139,0,0,0.35);
+  background: linear-gradient(180deg, rgba(38,10,12,0.95), rgba(18,6,8,0.95));
+  box-shadow:
+    0 10px 28px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+  color: white;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  font-family: 'Metal Mania', cursive;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.jg-modo-historia-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(200,50,30,0.65);
+  box-shadow:
+    0 14px 34px rgba(0,0,0,0.45),
+    0 0 0 1px rgba(200,50,30,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.jg-modo-historia-btn.active {
+  border-color: rgba(200,50,30,0.8);
+  background: linear-gradient(180deg, rgba(68,14,16,0.98), rgba(28,8,10,0.98));
+  box-shadow:
+    0 16px 36px rgba(0,0,0,0.48),
+    0 0 28px rgba(139,0,0,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.jg-modo-historia-btn:focus-visible {
+  outline: 2px solid rgba(200,50,30,0.8);
+  outline-offset: 3px;
+}
+
+.jg-modo-historia-texto {
+  position: relative;
+  z-index: 1;
+  font-size: 16px;
+}
+
+.jg-modo-historia-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #c41212;
+  color: #ffffff;
+  font-family: 'Metal Mania', cursive;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+}
+
+.jg-seccion-titulo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 10px;
+  margin: 8px 0 28px;
+}
+
+.jg-seccion-titulo-top {
+  position: relative;
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jg-seccion-titulo {
+  font-family: 'Metal Mania', cursive;
+  font-size: clamp(28px, 3vw, 42px);
+  line-height: 1;
+  color: white;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  text-align: center;
+  text-shadow:
+    0 0 24px rgba(139,0,0,0.35),
+    2px 2px 0 rgba(0,0,0,0.8);
+}
+
+.jg-modo-historia-btn-inline {
+  position: absolute;
+  right: 0;
+  min-width: 132px;
+  padding: 8px 16px;
+  font-size: 13px;
+  letter-spacing: 0.8px;
+  box-shadow:
+    0 8px 20px rgba(0,0,0,0.28),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.jg-modo-historia-btn-inline .jg-modo-historia-texto {
+  font-size: 13px;
+}
+
+.jg-modo-historia-btn-inline .jg-modo-historia-badge {
+  top: -8px;
+  right: -8px;
+  min-width: 42px;
+  height: 18px;
+  padding: 0 8px;
+  font-size: 9px;
+}
+
+.jg-seccion-titulo-linea {
+  width: 100%;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent 0%, rgba(200,50,30,0.95) 15%, rgba(200,50,30,0.95) 85%, transparent 100%);
+  box-shadow: 0 0 18px rgba(139,0,0,0.5);
 }
 
 /* ── CONTROLES ── */
@@ -171,7 +320,7 @@
 
 .jg-card-img-wrap {
   position: relative;
-  aspect-ratio: 16/9;
+  aspect-ratio: 16/10;
   overflow: hidden;
 }
 
@@ -272,6 +421,224 @@
 
 .jg-card-plazas.completa {
   color: rgba(255,80,80,0.7);
+}
+
+.jg-card-modo-historia {
+  position: relative;
+  background: rgba(18,6,8,0.92);
+  overflow: visible;
+}
+
+.jg-card-modo-hero {
+  position: relative;
+  aspect-ratio: 16/10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  background: radial-gradient(circle at top, rgba(200,50,30,0.12), transparent 40%), linear-gradient(180deg, rgba(36,10,12,0.98), rgba(12,4,5,0.98));
+}
+
+.jg-card-modo-img,
+.jg-modal-hero-modo-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.jg-card-modo-plantilla {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.06) 25%, transparent 25%) -12px 0/24px 24px,
+    linear-gradient(225deg, rgba(255,255,255,0.04) 25%, transparent 25%) -12px 0/24px 24px,
+    linear-gradient(315deg, rgba(255,255,255,0.04) 25%, transparent 25%) 0 0/24px 24px,
+    linear-gradient(45deg, rgba(255,255,255,0.06) 25%, transparent 25%) 0 0/24px 24px;
+}
+
+.jg-card-modo-plantilla-texto {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px dashed rgba(255,255,255,0.35);
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  color: rgba(255,255,255,0.72);
+  text-transform: uppercase;
+  background: rgba(0,0,0,0.25);
+}
+
+.jg-card-premium-chip {
+  position: absolute;
+  top: -12px;
+  right: -10px;
+  transform: rotate(9deg);
+  transform-origin: center;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 68px;
+  height: 24px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #7c3aed;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.22);
+}
+
+.jg-card-misiones {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 1;
+  background: rgba(0,0,0,0.6);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.85);
+}
+
+.jg-card-modo-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
+}
+
+.jg-card-modo-nivel,
+.jg-card-modo-personajes {
+  white-space: nowrap;
+}
+
+.jg-modal-hero-modo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top, rgba(200,50,30,0.15), transparent 35%), linear-gradient(180deg, rgba(28,8,10,0.98), rgba(12,4,5,0.98));
+}
+
+.jg-modo-personajes-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.jg-upgrade-modal {
+  max-width: 720px;
+  padding: 28px 24px 22px;
+}
+
+.jg-upgrade-header h3 {
+  margin: 0 0 8px;
+  font-family: 'Metal Mania', cursive;
+  letter-spacing: 1px;
+  color: #fff;
+}
+
+.jg-upgrade-header p {
+  margin: 0;
+  color: rgba(255,255,255,0.72);
+  font-size: 14px;
+}
+
+.jg-upgrade-planes {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.jg-upgrade-plan-card {
+  background: rgba(139,0,0,0.12);
+  border: 1px solid rgba(139,0,0,0.35);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.jg-upgrade-plan-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.jg-upgrade-plan-tipo {
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.9);
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.jg-upgrade-plan-precio {
+  font-size: 12px;
+  color: rgba(255,255,255,0.85);
+}
+
+.jg-upgrade-plan-card h4 {
+  margin: 0 0 6px;
+  color: #fff;
+  font-size: 16px;
+}
+
+.jg-upgrade-plan-card p {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.45;
+}
+
+.jg-upgrade-vacio {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255,255,255,0.72);
+}
+
+.jg-upgrade-actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.jg-upgrade-btn-sec,
+.jg-upgrade-btn-pri {
+  border: 1px solid rgba(139,0,0,0.45);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-family: 'Metal Mania', cursive;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.jg-upgrade-btn-sec {
+  background: rgba(20,6,8,0.9);
+  color: rgba(255,255,255,0.82);
+}
+
+.jg-upgrade-btn-pri {
+  background: linear-gradient(135deg, #8b0000, #c0392b);
+  color: #fff;
 }
 
 /* ── VACÍO ── */
@@ -543,182 +910,26 @@
 
 /* ── RESPONSIVE ── */
 @media (max-width: 768px) {
-  .jg-bg { width: 100%; opacity: 0.3; }
+  .jg-bg { width: 100%; }
+  .jg-bg-overlay {
+    background:
+      linear-gradient(180deg, rgba(10,2,3,0.9) 0%, rgba(10,2,3,0.75) 35%, rgba(10,2,3,0.48) 100%),
+      linear-gradient(180deg, rgba(10,2,3,0.1) 0%, rgba(10,2,3,0.2) 100%);
+  }
   .jg-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
   .jg-titulo { font-size: 32px; }
   .jg-controles { flex-direction: column; }
   .jg-busqueda-wrap { width: 100%; }
-}
-/* ── PESTAÑAS ── */
-.jg-pestanas {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid rgba(139,0,0,0.25);
-}
-
-.jg-pestana {
-  font-family: 'Metal Mania', cursive;
-  font-size: 14px;
-  letter-spacing: 1px;
-  padding: 12px 28px;
-  border-radius: 8px 8px 0 0;
-  border: 1px solid transparent;
-  border-bottom: none;
-  background: transparent;
-  color: rgba(255,255,255,0.4);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.jg-pestana:hover {
-  color: rgba(255,255,255,0.7);
-  background: rgba(139,0,0,0.08);
-}
-
-.jg-pestana.active {
-  background: rgba(139,0,0,0.2);
-  border-color: rgba(139,0,0,0.4);
-  color: white;
-}
-
-/* ── GRID MISIONES ── */
-.jg-misiones-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 20px;
-}
-
-/* ── CARD MISIÓN ── */
-.jg-mision-card {
-  background: rgba(15,5,5,0.9);
-  border: 1px solid rgba(139,0,0,0.2);
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  animation: cardFadeIn 0.5s ease both;
-}
-
-.jg-mision-card:hover {
-  border-color: rgba(200,50,30,0.6);
-  transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 12px 40px rgba(139,0,0,0.3);
-}
-
-/* IMAGEN/ICONO */
-.jg-mision-img-wrap {
-  position: relative;
-  aspect-ratio: 16/9;
-  overflow: hidden;
-  background: rgba(20,5,5,0.95);
-}
-
-.jg-mision-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.4s ease;
-}
-
-.jg-mision-card:hover .jg-mision-img {
-  transform: scale(1.05);
-}
-
-.jg-mision-icono {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 64px;
-  opacity: 0.3;
-  background: radial-gradient(ellipse at center, rgba(139,0,0,0.15) 0%, transparent 70%);
-}
-
-.jg-mision-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(15,5,5,0.95) 0%, transparent 60%);
-}
-
-.jg-mision-tipo-badge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: rgba(0,0,0,0.7);
-  border: 1px solid rgba(255,255,255,0.15);
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 10px;
-  color: rgba(255,255,255,0.7);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  backdrop-filter: blur(4px);
-}
-
-.jg-mision-dif-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  color: white;
-  text-transform: uppercase;
-}
-
-/* INFO MISIÓN */
-.jg-mision-info {
-  padding: 14px 16px;
-}
-
-.jg-mision-nombre {
-  font-family: 'Metal Mania', cursive;
-  font-size: 15px;
-  color: white;
-  letter-spacing: 1px;
-  margin-bottom: 6px;
-  text-shadow: 0 0 10px rgba(139,0,0,0.3);
-}
-
-.jg-mision-desc {
-  font-size: 12px;
-  color: rgba(255,255,255,0.45);
-  line-height: 1.5;
-  margin-bottom: 10px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.jg-mision-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-.jg-mision-recompensa {
-  font-size: 12px;
-  color: rgba(255,200,80,0.85);
-  font-weight: 600;
-}
-
-.jg-mision-nivel {
-  font-size: 11px;
-  color: rgba(255,255,255,0.4);
-  background: rgba(255,255,255,0.07);
-  padding: 2px 8px;
-  border-radius: 10px;
-}
-
-.jg-mision-meta {
-  display: flex;
-  gap: 12px;
-  font-size: 11px;
-  color: rgba(255,255,255,0.35);
+  .jg-seccion-titulo-top {
+    justify-content: flex-start;
+    gap: 10px;
+    min-height: auto;
+  }
+  .jg-seccion-titulo {
+    text-align: left;
+  }
+  .jg-modo-historia-btn-inline {
+    position: static;
+    margin-left: auto;
+  }
 }

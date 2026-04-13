@@ -5,6 +5,7 @@ import './UserProfile.css';
 import { useAuth } from '../../services/AuthContext';
 import { updateProfile } from '../../services/authService';
 import { BackButton } from '../../components/BackButton/BackButton';
+import { ModalAlert } from '../../components/ModalAlert/ModalAlert';
 import { getUserSuscripciones, cancelarSuscripcion } from '../../services/suscripcionService';
 import type { SuscripcionDTO } from '../../services/suscripcionService';
 
@@ -24,6 +25,7 @@ export function UserProfile() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const cargarSuscripciones = () => {
     if (user?.id) {
@@ -103,19 +105,26 @@ export function UserProfile() {
 
   const handleCancelarSuscripcion = async () => {
     if (suscripcionActual && suscripcionActual.estado === 'ACTIVA') {
-      if (window.confirm('¿Estás seguro de que deseas dar de baja tu suscripción? Perderás los beneficios de este plan.')) {
-        try {
-          await cancelarSuscripcion(suscripcionActual.id);
-          setSuccess('Suscripción cancelada correctamente.');
-          setError('');
-          cargarSuscripciones(); // refrescamos para mostrar el nuevo estado
-          setTimeout(() => setSuccess(''), 5000);
-        } catch (e: any) {
-          setError(e.message || 'Error al cancelar la suscripción');
-          setSuccess('');
-        }
-      }
+      setShowConfirmModal(true);
     }
+  };
+
+  const confirmCancelarSuscripcion = async () => {
+    setShowConfirmModal(false);
+    try {
+      await cancelarSuscripcion(suscripcionActual!.id);
+      setSuccess('Suscripción cancelada correctamente.');
+      setError('');
+      cargarSuscripciones(); // refrescamos para mostrar el nuevo estado
+      setTimeout(() => setSuccess(''), 5000);
+    } catch (e: any) {
+      setError(e.message || 'Error al cancelar la suscripción');
+      setSuccess('');
+    }
+  };
+
+  const cancelConfirm = () => {
+    setShowConfirmModal(false);
   };
 
   return (
@@ -319,6 +328,17 @@ export function UserProfile() {
 
         </div>
       </div>
+
+      <ModalAlert 
+        isOpen={showConfirmModal}
+        title="¿VAS A ABANDONAR LA AVENTURA?"
+        message="¿Estás seguro de que deseas dar de baja tu suscripción? Perderás los beneficios de este plan."
+        confirmText="Confirmar Cancelación"
+        cancelText="¡No, me quedo!"
+        onConfirm={confirmCancelarSuscripcion}
+        onCancel={cancelConfirm}
+      />
     </div>
   );
 }
+

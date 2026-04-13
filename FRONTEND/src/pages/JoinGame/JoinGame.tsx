@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './JoinGame.css';
 import { BackButton } from '../../components/BackButton/BackButton';
-import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../../services/api';
+import { getMySuscripciones, getUserSuscripciones } from '../../services/suscripcionService';
+import { getCampanaUrl, getJoinGameVideoUrl, getModoHistoriaImageCandidates } from '../../utils/imageUtils';
 
 // ── TIPOS ─────────────────────────────────────────────────
 interface Jugador {
@@ -27,19 +30,82 @@ interface Campana {
   nivelMinimo: number;
 }
 
-interface Mision {
+interface ModoHistoria {
   id: number;
   nombre: string;
-  imagen?: string;
   descripcion: string;
-  tipo: 'Mazmorra' | 'Escolta' | 'Exploración' | 'Caza' | 'Rescate' | 'Defensa';
   dificultad: 'Fácil' | 'Media' | 'Difícil' | 'Épica';
-  recompensa: string;
   nivelMinimo: number;
-  jugadoresMax: number;
-  duracion: string;
-  completada: boolean;
+  maxJugadores: number;
+  nivelAcceso?: 'BASICA' | 'PREMIUM' | 'VIP';
+  active: boolean;
+  master: {
+    id: number;
+    nombre: string;
+    email: string;
+    rol: string;
+  };
+  personajes: Array<{
+    id: number;
+    usuarioNombre?: string;
+    nombre?: string;
+    avatar?: string;
+  }>;
+  misiones: Array<{
+    id: number;
+    nombre: string;
+    descripcion: string;
+    orden: number;
+    dificultad: string;
+    xpRecompensa: number;
+    completada: boolean;
+  }>;
 }
+
+interface SuscripcionResumen {
+  tipo?: string | null;
+  estado?: string | null;
+}
+
+type TipoSuscripcion = 'BASICA' | 'PREMIUM' | 'VIP';
+
+const NIVEL_SUSCRIPCION: Record<TipoSuscripcion, number> = {
+  BASICA: 1,
+  PREMIUM: 2,
+  VIP: 3,
+};
+
+const PLANES_SUSCRIPCION: Array<{ tipo: TipoSuscripcion; nombre: string; precio: string; descripcion: string }> = [
+  {
+    tipo: 'BASICA',
+    nombre: 'Aventurero',
+    precio: 'Gratis',
+    descripcion: 'Ideal para empezar tu aventura.',
+  },
+  {
+    tipo: 'PREMIUM',
+    nombre: 'Heroe',
+    precio: '4.99 EUR/mes',
+    descripcion: 'Desbloquea modos e historias premium.',
+  },
+  {
+    tipo: 'VIP',
+    nombre: 'Dungeon Master',
+    precio: '9.99 EUR/mes',
+    descripcion: 'Acceso total para jugadores avanzados.',
+  },
+];
+
+const resolverTipoDesdeTexto = (valor?: string | null): TipoSuscripcion | null => {
+  if (!valor) return null;
+  const normalizado = valor.trim().toUpperCase();
+
+  if (normalizado.includes('VIP')) return 'VIP';
+  if (normalizado.includes('PREMIUM')) return 'PREMIUM';
+  if (normalizado.includes('BASICA') || normalizado.includes('BÁSICA')) return 'BASICA';
+
+  return null;
+};
 
 // ── DATOS CAMPAÑAS ────────────────────────────────────────
 const CAMPANAS_MOCK: Campana[] = [
@@ -48,7 +114,7 @@ const CAMPANAS_MOCK: Campana[] = [
     nombre: 'La Maldición del Dragón Esmeralda',
     descripcion: 'Una antigua maldición despierta en las ruinas de Khel\'thar. Buscamos valientes aventureros para detener al dragón antes de que arrase las tierras del norte.',
     historia: 'Hace mil años, el dragón Verthax fue sellado bajo las montañas de Khel\'thar por un grupo de héroes. Ahora el sello se debilita y necesitamos nuevos héroes que completen el ritual antes del solsticio de invierno.',
-    portada: undefined,
+    portada: getCampanaUrl('La Maldición del Dragón Esmeralda'),
     master: 'DungeonLord42',
     jugadores: [{ id: 1, nombre: 'Elara' }, { id: 2, nombre: 'Thorin' }],
     maxJugadores: 5, sesiones: 8, sistema: 'D&D 5e',
@@ -59,7 +125,7 @@ const CAMPANAS_MOCK: Campana[] = [
     nombre: 'Los Secretos de Mirkwood',
     descripcion: 'Un viaje a través del bosque encantado donde los árboles guardan secretos milenarios y las sombras ocultan criaturas desconocidas.',
     historia: 'El Bosque de Mirkwood ha sido corrompido por una oscuridad sin nombre. Los elfos piden ayuda a los aventureros para purificar el corazón del bosque antes de que la corrupción se extienda.',
-    portada: undefined,
+    portada: getCampanaUrl('Los Secretos de Mirkwood'),
     master: 'MasterElfo',
     jugadores: [{ id: 3, nombre: 'Zara' }],
     maxJugadores: 4, sesiones: 5, sistema: 'D&D 5e',
@@ -70,7 +136,7 @@ const CAMPANAS_MOCK: Campana[] = [
     nombre: 'El Dungeon Olvidado',
     descripcion: 'Una mazmorra sin explorar bajo la ciudad de Waterdeep esconde tesoros inimaginables... y peligros mortales.',
     historia: 'Un anciano cartógrafo encontró mapas de una mazmorra desconocida bajo la ciudad. Nadie que haya entrado ha vuelto, pero las riquezas prometidas son demasiado tentadoras para ignorarlas.',
-    portada: undefined,
+    portada: getCampanaUrl('El Dungeon Olvidado'),
     master: 'DarkMaster',
     jugadores: [{ id: 4, nombre: 'Gandor' }, { id: 5, nombre: 'Lyra' }, { id: 6, nombre: 'Thork' }],
     maxJugadores: 4, sesiones: 12, sistema: 'D&D 5e',
@@ -81,7 +147,7 @@ const CAMPANAS_MOCK: Campana[] = [
     nombre: 'Inicio del Aventurero',
     descripcion: 'Campaña perfecta para nuevos jugadores. Una historia de introducción al mundo del rol.',
     historia: 'Un pequeño pueblo necesita ayuda. Monstruos están atacando los campos y el alcalde no sabe qué hacer.',
-    portada: undefined,
+    portada: getCampanaUrl('Inicio del Aventurero'),
     master: 'GuíaRol',
     jugadores: [],
     maxJugadores: 6, sesiones: 3, sistema: 'D&D 5e',
@@ -92,7 +158,7 @@ const CAMPANAS_MOCK: Campana[] = [
     nombre: 'La Torre del Hechicero Loco',
     descripcion: 'Un hechicero excéntrico ha lanzado un hechizo que está afectando a toda la región.',
     historia: 'El hechicero Malachar lleva semanas encerrado en su torre haciendo experimentos fallidos.',
-    portada: undefined,
+    portada: getCampanaUrl('La Torre del Hechicero Loco'),
     master: 'WizardPro',
     jugadores: [{ id: 7, nombre: 'Rolo' }],
     maxJugadores: 4, sesiones: 4, sistema: 'D&D 5e',
@@ -103,171 +169,11 @@ const CAMPANAS_MOCK: Campana[] = [
     nombre: 'Piratas del Mar de las Espadas',
     descripcion: 'Aventuras en alta mar, tesoros piratas y ciudades flotantes.',
     historia: 'Una flota pirata lleva meses saqueando los puertos del Mar de las Espadas.',
-    portada: undefined,
+    portada: getCampanaUrl('Piratas del Mar de las Espadas'),
     master: 'SeaCaptain',
     jugadores: [{ id: 8, nombre: 'Marina' }, { id: 9, nombre: 'Corsario' }],
     maxJugadores: 5, sesiones: 10, sistema: 'D&D 5e',
     dificultad: 'Difícil', estado: 'Abierta', nivelMinimo: 4,
-  },
-];
-
-// ── DATOS MISIONES ────────────────────────────────────────
-const MISIONES_MOCK: Mision[] = [
-      {
-    id: 1,
-    nombre: 'El Primer Sello',
-    descripcion: 'Destruye el primer sello de la maldición.',
-    tipo: 'Mazmorra',
-    dificultad: 'Fácil',
-    recompensa: '200 XP',
-    nivelMinimo: 1,
-    jugadoresMax: 4,
-    duracion: '1-2 horas',
-    completada: false,
-  },
-  {
-    id: 2,
-    nombre: 'La Guarida del Orco',
-    descripcion: 'Elimina al jefe orco del campamento.',
-    tipo: 'Caza',
-    dificultad: 'Media',
-    recompensa: '450 XP',
-    nivelMinimo: 2,
-    jugadoresMax: 4,
-    duracion: '2-3 horas',
-    completada: false,
-  },
-  {
-    id: 3,
-    nombre: 'El Dragón Despierta',
-    descripcion: 'Confronta al dragón en su cueva.',
-    tipo: 'Caza',
-    dificultad: 'Épica',
-    recompensa: '2000 XP',
-    nivelMinimo: 6,
-    jugadoresMax: 5,
-    duracion: '5-6 horas',
-    completada: false,
-  },
-  {
-    id: 4,
-    nombre: 'Tutorial: Primer Combate',
-    descripcion: 'Aprende las mecánicas básicas.',
-    tipo: 'Exploración',
-    dificultad: 'Fácil',
-    recompensa: '100 XP',
-    nivelMinimo: 1,
-    jugadoresMax: 6,
-    duracion: '30 min',
-    completada: false,
-  },
-  {
-    id: 5,
-    nombre: 'Rastros en el Pueblo',
-    descripcion: 'Investiga las desapariciones en la aldea. Los aldeanos hablan de sombras que se mueven de noche.',
-    tipo: 'Exploración',
-    dificultad: 'Fácil',
-    recompensa: '100 XP',
-    nivelMinimo: 1,
-    jugadoresMax: 4,
-    duracion: '1-2 horas',
-    completada: false,
-  },
-  {
-    id: 6,
-    nombre: 'El Bosque Maldito',
-    descripcion: 'Cruzad el bosque que rodea Barovia. Los lobos sombríos merodean entre los árboles.',
-    tipo: 'Exploración',
-    dificultad: 'Fácil',
-    recompensa: '150 XP',
-    nivelMinimo: 1,
-    jugadoresMax: 4,
-    duracion: '1-2 horas',
-    completada: false,
-  },
-  {
-    id: 7,
-    nombre: 'Las Puertas del Castillo',
-    descripcion: 'Alcanzad las puertas del Castillo Ravenloft y enfrentad a los primeros guardias vampíricos.',
-    tipo: 'Defensa',
-    dificultad: 'Media',
-    recompensa: '200 XP',
-    nivelMinimo: 2,
-    jugadoresMax: 4,
-    duracion: '2-3 horas',
-    completada: false,
-  },
-  {
-    id: 8,
-    nombre: 'Señales en la Ciudad',
-    descripcion: 'Símbolos extraños aparecen en los muros de Vallaki. Alguien prepara un ritual en las sombras.',
-    tipo: 'Exploración',
-    dificultad: 'Fácil',
-    recompensa: '200 XP',
-    nivelMinimo: 1,
-    jugadoresMax: 4,
-    duracion: '1-2 horas',
-    completada: false,
-  },
-  {
-    id: 9,
-    nombre: 'Las Catacumbas',
-    descripcion: 'Descended a las catacumbas bajo la ciudad. El culto celebra sus rituales en la oscuridad total.',
-    tipo: 'Mazmorra',
-    dificultad: 'Media',
-    recompensa: '300 XP',
-    nivelMinimo: 2,
-    jugadoresMax: 4,
-    duracion: '2-3 horas',
-    completada: false,
-  },
-  {
-    id: 10,
-    nombre: 'El Altar de la Luna',
-    descripcion: 'Interrumpid el ritual antes de que la Luna Roja alcance su cenit y despierte al antiguo mal.',
-    tipo: 'Defensa',
-    dificultad: 'Difícil',
-    recompensa: '500 XP',
-    nivelMinimo: 3,
-    jugadoresMax: 5,
-    duracion: '3-4 horas',
-    completada: false,
-  },
-  {
-    id: 11,
-    nombre: 'El Ejército Avanza',
-    descripcion: 'El ejército de no-muertos marcha hacia las tierras de los vivos. Hay que frenarlo en campo abierto.',
-    tipo: 'Defensa',
-    dificultad: 'Difícil',
-    recompensa: '400 XP',
-    nivelMinimo: 3,
-    jugadoresMax: 6,
-    duracion: '3-4 horas',
-    completada: false,
-  },
-  {
-    id: 12,
-    nombre: 'La Fortaleza Maldita',
-    descripcion: 'Infiltraos en la fortaleza donde Azalin Rex prepara el ritual definitivo.',
-    tipo: 'Rescate',
-    dificultad: 'Difícil',
-    recompensa: '600 XP',
-    nivelMinimo: 4,
-    jugadoresMax: 5,
-    duracion: '4-5 horas',
-    completada: false,
-  },
-  {
-    id: 13,
-    nombre: 'El Trono de los Muertos',
-    descripcion: 'Enfrentad al Archlich Azalin Rex en su sala del trono antes de que complete el ritual eterno.',
-    tipo: 'Mazmorra',
-    dificultad: 'Épica',
-    recompensa: '1000 XP',
-    nivelMinimo: 5,
-    jugadoresMax: 5,
-    duracion: '5-6 horas',
-    completada: false,
   },
 ];
 
@@ -278,14 +184,63 @@ const DIFICULTAD_COLOR: Record<string, string> = {
   'Épica':   '#9b59b6',
 };
 
-const TIPO_ICONO: Record<string, string> = {
-  'Mazmorra':    '🏚',
-  'Escolta':     '🛡',
-  'Exploración': '🗺',
-  'Caza':        '🗡',
-  'Rescate':     '⚔',
-  'Defensa':     '🏰',
+const getDificultadColor = (dificultad?: string): string => {
+  const normalizada = (dificultad ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toUpperCase();
+
+  if (normalizada === 'FACIL') return DIFICULTAD_COLOR['Fácil'];
+  if (normalizada === 'MEDIA') return DIFICULTAD_COLOR.Media;
+  if (normalizada === 'DIFICIL') return DIFICULTAD_COLOR['Difícil'];
+  if (normalizada === 'EPICA') return DIFICULTAD_COLOR['Épica'];
+
+  return 'rgba(90, 90, 90, 0.95)';
 };
+
+function ModoHistoriaCover({
+  titulo,
+  imageClassName,
+  placeholderClassName,
+}: {
+  titulo: string;
+  imageClassName: string;
+  placeholderClassName: string;
+}) {
+  const candidates = getModoHistoriaImageCandidates(titulo);
+  const [candidateIndex, setCandidateIndex] = useState(0);
+  const [sinPortada, setSinPortada] = useState(candidates.length === 0);
+
+  useEffect(() => {
+    setCandidateIndex(0);
+    setSinPortada(candidates.length === 0);
+  }, [titulo, candidates.length]);
+
+  if (sinPortada || !candidates[candidateIndex]) {
+    return (
+      <div className={placeholderClassName} aria-label="Plantilla de portada">
+        <span className="jg-card-modo-plantilla-texto">Portada próximamente</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={candidates[candidateIndex]}
+      alt={`Portada de ${titulo}`}
+      className={imageClassName}
+      onError={() => {
+        if (candidateIndex < candidates.length - 1) {
+          setCandidateIndex(prev => prev + 1);
+          return;
+        }
+        setSinPortada(true);
+      }}
+      loading="lazy"
+    />
+  );
+}
 
 // ── MODAL CAMPAÑA ─────────────────────────────────────────
 function ModalCampana({ campana, onClose }: { campana: Campana; onClose: () => void }) {
@@ -303,7 +258,7 @@ function ModalCampana({ campana, onClose }: { campana: Campana; onClose: () => v
           <div className="jg-modal-hero-overlay" />
           <button className="jg-modal-close" onClick={onClose}>✕</button>
           <div className="jg-modal-hero-info">
-            <span className="jg-dificultad-badge" style={{ background: DIFICULTAD_COLOR[campana.dificultad] }}>
+            <span className="jg-dificultad-badge" style={{ background: getDificultadColor(campana.dificultad) }}>
               {campana.dificultad}
             </span>
             <h2 className="jg-modal-titulo">{campana.nombre}</h2>
@@ -373,49 +328,129 @@ function ModalCampana({ campana, onClose }: { campana: Campana; onClose: () => v
   );
 }
 
-// ── MODAL MISIÓN ──────────────────────────────────────────
-function ModalMision({ mision, onClose }: { mision: Mision; onClose: () => void }) {
+// ── MODAL MODO HISTORIA ──────────────────────────────────
+function ModalModoHistoria({ modoHistoria, onClose }: { modoHistoria: ModoHistoria; onClose: () => void }) {
+  const personajesActivos = modoHistoria.personajes.length;
+  const plazasLibres = modoHistoria.maxJugadores - personajesActivos;
+  const misionesTotales = modoHistoria.misiones.length;
+
   return (
     <div className="jg-modal-overlay" onClick={onClose}>
       <div className="jg-modal" onClick={e => e.stopPropagation()}>
-        <div className="jg-modal-hero" style={{ background: 'rgba(20,6,8,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ fontSize: '80px', opacity: 0.4 }}>{TIPO_ICONO[mision.tipo]}</div>
+        <div className="jg-modal-hero jg-modal-hero-modo">
+          <ModoHistoriaCover
+            titulo={modoHistoria.nombre}
+            imageClassName="jg-modal-hero-modo-img"
+            placeholderClassName="jg-card-modo-plantilla"
+          />
           <div className="jg-modal-hero-overlay" />
           <button className="jg-modal-close" onClick={onClose}>✕</button>
           <div className="jg-modal-hero-info">
-            <span className="jg-dificultad-badge" style={{ background: DIFICULTAD_COLOR[mision.dificultad] }}>
-              {mision.dificultad}
+            <span className="jg-dificultad-badge" style={{ background: getDificultadColor(modoHistoria.dificultad) }}>
+              {modoHistoria.dificultad}
             </span>
-            <h2 className="jg-modal-titulo">{mision.nombre}</h2>
-            <p className="jg-modal-sistema">{mision.tipo} · Nivel mín. {mision.nivelMinimo}</p>
+            <h2 className="jg-modal-titulo">{modoHistoria.nombre}</h2>
+            <p className="jg-modal-sistema">{modoHistoria.master?.nombre ?? 'Sin master'} · Nivel mín. {modoHistoria.nivelMinimo}</p>
           </div>
         </div>
         <div className="jg-modal-body">
           <div className="jg-modal-stats">
             <div className="jg-modal-stat">
-              <span className="jg-modal-stat-label">Recompensa</span>
-              <span className="jg-modal-stat-valor">💰 {mision.recompensa}</span>
+              <span className="jg-modal-stat-label">Master</span>
+              <span className="jg-modal-stat-valor">⚔ {modoHistoria.master?.nombre ?? 'Sin master'}</span>
             </div>
             <div className="jg-modal-stat">
-              <span className="jg-modal-stat-label">Duración</span>
-              <span className="jg-modal-stat-valor">⏱ {mision.duracion}</span>
+              <span className="jg-modal-stat-label">Misiones</span>
+              <span className="jg-modal-stat-valor">📜 {misionesTotales}</span>
             </div>
             <div className="jg-modal-stat">
-              <span className="jg-modal-stat-label">Jugadores</span>
-              <span className="jg-modal-stat-valor">👥 Máx. {mision.jugadoresMax}</span>
+              <span className="jg-modal-stat-label">Personajes</span>
+              <span className="jg-modal-stat-valor">👥 {personajesActivos} / {modoHistoria.maxJugadores}</span>
             </div>
             <div className="jg-modal-stat">
-              <span className="jg-modal-stat-label">Tipo</span>
-              <span className="jg-modal-stat-valor">{TIPO_ICONO[mision.tipo]} {mision.tipo}</span>
+              <span className="jg-modal-stat-label">Plazas libres</span>
+              <span className="jg-modal-stat-valor">✨ {plazasLibres}</span>
             </div>
           </div>
           <div className="jg-modal-seccion">
-            <h4 className="jg-modal-seccion-titulo">Descripción de la Misión</h4>
-            <p className="jg-modal-texto">{mision.descripcion}</p>
+            <h4 className="jg-modal-seccion-titulo">Descripción del modo</h4>
+            <p className="jg-modal-texto">{modoHistoria.descripcion}</p>
           </div>
-          <button className="jg-btn-unirse">
-            ⚔ Aceptar Misión
+          <div className="jg-modal-seccion">
+            <h4 className="jg-modal-seccion-titulo">Personajes en el modo</h4>
+            {modoHistoria.personajes.length === 0 ? (
+              <p className="jg-modal-texto" style={{ opacity: 0.5 }}>Todavía no hay personajes registrados</p>
+            ) : (
+              <div className="jg-modo-personajes-lista">
+                {modoHistoria.personajes.map(personaje => {
+                  const nombreVisible = personaje.usuarioNombre ?? personaje.nombre ?? 'Jugador';
+                  return (
+                    <div key={personaje.id} className="jg-jugador-chip">
+                      <div className="jg-jugador-avatar">{nombreVisible.charAt(0).toUpperCase()}</div>
+                      <span>{nombreVisible}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <button className="jg-btn-unirse" disabled={plazasLibres === 0}>
+            {plazasLibres > 0 ? '⚔ Entrar al Modo Historia' : 'Modo Historia Completo'}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModalSuscripcionRequerida({
+  nivelActual,
+  nivelRequerido,
+  nombreModo,
+  onClose,
+  onIrASuscripciones,
+}: {
+  nivelActual: TipoSuscripcion;
+  nivelRequerido: TipoSuscripcion;
+  nombreModo: string;
+  onClose: () => void;
+  onIrASuscripciones: () => void;
+}) {
+  const planesDisponibles = PLANES_SUSCRIPCION.filter(
+    plan => NIVEL_SUSCRIPCION[plan.tipo] > NIVEL_SUSCRIPCION[nivelActual],
+  );
+
+  return (
+    <div className="jg-modal-overlay" onClick={onClose}>
+      <div className="jg-modal jg-upgrade-modal" onClick={e => e.stopPropagation()}>
+        <button className="jg-modal-close" onClick={onClose}>✕</button>
+        <div className="jg-upgrade-header">
+          <h3>Necesitas mejorar tu suscripcion</h3>
+          <p>
+            El modo <strong>{nombreModo}</strong> requiere plan <strong>{nivelRequerido}</strong>.
+          </p>
+        </div>
+
+        <div className="jg-upgrade-planes">
+          {planesDisponibles.length === 0 ? (
+            <p className="jg-upgrade-vacio">Ya tienes el plan mas alto disponible.</p>
+          ) : (
+            planesDisponibles.map(plan => (
+              <div key={plan.tipo} className="jg-upgrade-plan-card">
+                <div className="jg-upgrade-plan-top">
+                  <span className="jg-upgrade-plan-tipo">{plan.tipo}</span>
+                  <span className="jg-upgrade-plan-precio">{plan.precio}</span>
+                </div>
+                <h4>{plan.nombre}</h4>
+                <p>{plan.descripcion}</p>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="jg-upgrade-actions">
+          <button type="button" className="jg-upgrade-btn-sec" onClick={onClose}>Ahora no</button>
+          <button type="button" className="jg-upgrade-btn-pri" onClick={onIrASuscripciones}>Ver suscripciones</button>
         </div>
       </div>
     </div>
@@ -424,11 +459,106 @@ function ModalMision({ mision, onClose }: { mision: Mision; onClose: () => void 
 
 // ── COMPONENTE PRINCIPAL ──────────────────────────────────
 export function JoinGame() {
-  const [tab, setTab] = useState<'campanas' | 'misiones'>('campanas');
+  const navigate = useNavigate();
+  const videoBackground = getJoinGameVideoUrl();
   const [campanaSeleccionada, setCampanaSeleccionada] = useState<Campana | null>(null);
-  const [misionSeleccionada, setMisionSeleccionada] = useState<Mision | null>(null);
+  const [modoHistoriaSeleccionado, setModoHistoriaSeleccionado] = useState<ModoHistoria | null>(null);
+  const [modoBloqueadoSeleccionado, setModoBloqueadoSeleccionado] = useState<{ nombre: string; nivelRequerido: TipoSuscripcion } | null>(null);
+  const [vistaActual, setVistaActual] = useState<'campanas' | 'modos-historia'>('campanas');
   const [filtro, setFiltro] = useState<string>('todas');
   const [busqueda, setBusqueda] = useState('');
+  const [modosHistoria, setModosHistoria] = useState<ModoHistoria[]>([]);
+  const [cargandoModosHistoria, setCargandoModosHistoria] = useState(false);
+  const [errorModosHistoria, setErrorModosHistoria] = useState<string | null>(null);
+  const [tipoSuscripcionUsuario, setTipoSuscripcionUsuario] = useState<TipoSuscripcion>('BASICA');
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const cargarModosHistoria = async () => {
+      setCargandoModosHistoria(true);
+      setErrorModosHistoria(null);
+
+      try {
+        const response = await fetch(`${API_URL}/api/modos-historia`, {
+          signal: controller.signal,
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!response.ok) {
+          throw new Error(`No se pudieron cargar los modos historia (${response.status})`);
+        }
+
+        const data = await response.json() as ModoHistoria[];
+        setModosHistoria(data);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setErrorModosHistoria(error instanceof Error ? error.message : 'Error cargando modos historia');
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setCargandoModosHistoria(false);
+        }
+      }
+    };
+
+    cargarModosHistoria();
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const cargarSuscripcionUsuario = async () => {
+      try {
+        const userRaw = localStorage.getItem('user') || sessionStorage.getItem('user');
+        if (!userRaw) {
+          setTipoSuscripcionUsuario('BASICA');
+          return;
+        }
+
+        const user = JSON.parse(userRaw) as { id?: number; suscripcion?: string };
+
+        const tipoDesdeStorage = resolverTipoDesdeTexto(user.suscripcion);
+        if (tipoDesdeStorage) {
+          setTipoSuscripcionUsuario(tipoDesdeStorage);
+        }
+
+        let suscripciones = await getMySuscripciones();
+
+        if (suscripciones.length === 0 && user.id) {
+          // Fallback por compatibilidad si el backend no resolviera /api/suscripciones por usuario autenticado.
+          suscripciones = await getUserSuscripciones(user.id);
+        }
+
+        const suscripcionesActivas = (suscripciones as SuscripcionResumen[]).filter(s =>
+          (s.estado ?? '').trim().toUpperCase() === 'ACTIVA',
+        );
+
+        if (suscripcionesActivas.length === 0) {
+          if (!tipoDesdeStorage) {
+            setTipoSuscripcionUsuario('BASICA');
+          }
+          return;
+        }
+
+        const tipoMasAlto = suscripcionesActivas.reduce<TipoSuscripcion>((acumulado, actual) => {
+          const tipoActual = resolverTipoDesdeTexto(actual.tipo) ?? 'BASICA';
+          return NIVEL_SUSCRIPCION[tipoActual] > NIVEL_SUSCRIPCION[acumulado] ? tipoActual : acumulado;
+        }, 'BASICA');
+
+        setTipoSuscripcionUsuario(tipoMasAlto);
+      } catch {
+        setTipoSuscripcionUsuario('BASICA');
+      }
+    };
+
+    cargarSuscripcionUsuario();
+  }, []);
+
+  const usuarioPuedeVerModo = (modo: ModoHistoria) => {
+    const nivelRequerido = (modo.nivelAcceso ?? 'BASICA') as TipoSuscripcion;
+    return NIVEL_SUSCRIPCION[tipoSuscripcionUsuario] >= NIVEL_SUSCRIPCION[nivelRequerido];
+  };
 
   const campanasFiltradas = CAMPANAS_MOCK.filter(c => {
     const coincideBusqueda = c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -437,45 +567,69 @@ export function JoinGame() {
     return coincideBusqueda && coincideFiltro;
   });
 
-  const misionesFiltradas = MISIONES_MOCK.filter(m => {
-    const coincideBusqueda = m.nombre.toLowerCase().includes(busqueda.toLowerCase());
-    const coincideFiltro = filtro === 'todas' || m.dificultad.toLowerCase() === filtro;
+  const modosHistoriaFiltrados = modosHistoria.filter(modo => {
+    const textoMaster = modo.master?.nombre ?? '';
+    const coincideBusqueda = modo.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+      textoMaster.toLowerCase().includes(busqueda.toLowerCase());
+    const coincideFiltro = filtro === 'todas' || modo.dificultad.toLowerCase() === filtro;
     return coincideBusqueda && coincideFiltro;
   });
 
+  const vistaEsCampanas = vistaActual === 'campanas';
+  const tituloSeccion = vistaEsCampanas ? 'CAMPAÑAS' : 'MODO HISTORIA';
+  const placeholderBusqueda = vistaEsCampanas ? 'Buscar campaña o master...' : 'Buscar modo historia o master...';
+
+  const handleCambiarVistaHistoria = () => {
+    setVistaActual(vistaAnterior => vistaAnterior === 'campanas' ? 'modos-historia' : 'campanas');
+    setFiltro('todas');
+    setBusqueda('');
+    setCampanaSeleccionada(null);
+    setModoHistoriaSeleccionado(null);
+  };
+
+  const handleSeleccionModoHistoria = (modoHistoria: ModoHistoria) => {
+    const nivelRequerido = (modoHistoria.nivelAcceso ?? 'BASICA') as TipoSuscripcion;
+
+    if (!usuarioPuedeVerModo(modoHistoria)) {
+      setModoBloqueadoSeleccionado({
+        nombre: modoHistoria.nombre,
+        nivelRequerido,
+      });
+      return;
+    }
+
+    setModoHistoriaSeleccionado(modoHistoria);
+  };
+
+  const handleIrASuscripciones = () => {
+    setModoBloqueadoSeleccionado(null);
+    navigate('/subscription');
+  };
+
   return (
     <div className="jg-page">
-      <div className="jg-bg" />
+      <div className="jg-bg" aria-hidden="true">
+        <video
+          className="jg-bg-video"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+        >
+          <source src={videoBackground} type="video/mp4" />
+        </video>
+        <div className="jg-bg-overlay" />
+      </div>
       <BackButton />
 
       <div className="jg-contenido">
 
         {/* CABECERA */}
         <div className="jg-header">
-          <h1 className="jg-titulo">
-            {tab === 'campanas' ? 'Únete a una Aventura' : 'Tablero de Misiones'}
-          </h1>
-          <p className="jg-subtitulo">
-            {tab === 'campanas'
-              ? 'Encuentra tu grupo y forja tu leyenda en RavenLoft Castle'
-              : 'Acepta misiones, derrota enemigos y hazte con las recompensas'}
-          </p>
-        </div>
-
-        {/* PESTAÑAS */}
-        <div className="jg-pestanas">
-          <button
-            className={`jg-pestana ${tab === 'campanas' ? 'active' : ''}`}
-            onClick={() => { setTab('campanas'); setFiltro('todas'); setBusqueda(''); }}
-          >
-            ⚔ Unirse a Partida
-          </button>
-          <button
-            className={`jg-pestana ${tab === 'misiones' ? 'active' : ''}`}
-            onClick={() => { setTab('misiones'); setFiltro('todas'); setBusqueda(''); }}
-          >
-            📜 Misiones
-          </button>
+          <h1 className="jg-titulo">Unirse a partida</h1>
+          <h2 className="jg-subtitulo">Unete a una aventura</h2>
+          <p className="jg-descripcion">Encuentra tu grupo y forja tu leyenda en RavenLoft Castle</p>
         </div>
 
         {/* CONTROLES */}
@@ -484,7 +638,7 @@ export function JoinGame() {
             <span className="jg-busqueda-icon">🔍</span>
             <input
               className="jg-busqueda"
-              placeholder={tab === 'campanas' ? 'Buscar campaña o master...' : 'Buscar misión...'}
+              placeholder={placeholderBusqueda}
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
             />
@@ -502,8 +656,24 @@ export function JoinGame() {
           </div>
         </div>
 
-        {/* ── CAMPAÑAS ── */}
-        {tab === 'campanas' && (
+        {/* TÍTULO DE SECCIÓN */}
+        <div className="jg-seccion-titulo-wrap" aria-label={tituloSeccion}>
+          <div className="jg-seccion-titulo-top">
+            <div className="jg-seccion-titulo">{tituloSeccion}</div>
+            <button
+              type="button"
+              className={`jg-modo-historia-btn jg-modo-historia-btn-inline ${vistaEsCampanas ? '' : 'active'}`}
+              onClick={handleCambiarVistaHistoria}
+              aria-pressed={!vistaEsCampanas}
+            >
+              {vistaEsCampanas && <span className="jg-modo-historia-badge">nuevo</span>}
+              <span className="jg-modo-historia-texto">{vistaEsCampanas ? 'Modo Historia' : 'CAMPAÑA'}</span>
+            </button>
+          </div>
+          <div className="jg-seccion-titulo-linea" />
+        </div>
+
+        {vistaEsCampanas ? (
           <>
             <div className="jg-grid">
               {campanasFiltradas.map((campana, i) => {
@@ -521,7 +691,7 @@ export function JoinGame() {
                         : <div className="jg-card-img-placeholder">⚔</div>
                       }
                       <div className="jg-card-overlay" />
-                      <span className="jg-card-dificultad" style={{ background: DIFICULTAD_COLOR[campana.dificultad] }}>
+                      <span className="jg-card-dificultad" style={{ background: getDificultadColor(campana.dificultad) }}>
                         {campana.dificultad}
                       </span>
                       <span className="jg-card-sesiones">📅 {campana.sesiones} sesiones</span>
@@ -547,53 +717,73 @@ export function JoinGame() {
               </div>
             )}
           </>
-        )}
-
-        {/* ── MISIONES ── */}
-        {tab === 'misiones' && (
+        ) : (
           <>
-            <div className="jg-misiones-grid">
-              {misionesFiltradas.map((mision, i) => (
-                <div
-                  key={mision.id}
-                  className="jg-mision-card"
-                  style={{ animationDelay: `${i * 0.06}s` }}
-                  onClick={() => setMisionSeleccionada(mision)}
-                >
-                  {/* IMAGEN / ICONO */}
-                  <div className="jg-mision-img-wrap">
-                    {mision.imagen
-                      ? <img src={mision.imagen} alt={mision.nombre} className="jg-mision-img" />
-                      : <div className="jg-mision-icono">{TIPO_ICONO[mision.tipo]}</div>
-                    }
-                    <div className="jg-mision-overlay" />
-                    <span className="jg-mision-tipo-badge">{mision.tipo}</span>
-                    <span className="jg-mision-dif-badge" style={{ background: DIFICULTAD_COLOR[mision.dificultad] }}>
-                      {mision.dificultad}
-                    </span>
-                  </div>
-
-                  {/* INFO */}
-                  <div className="jg-mision-info">
-                    <h3 className="jg-mision-nombre">{mision.nombre}</h3>
-                    <p className="jg-mision-desc">{mision.descripcion}</p>
-                    <div className="jg-mision-footer">
-                      <span className="jg-mision-recompensa">💰 {mision.recompensa}</span>
-                      <span className="jg-mision-nivel">Nv. {mision.nivelMinimo}+</span>
-                    </div>
-                    <div className="jg-mision-meta">
-                      <span>⏱ {mision.duracion}</span>
-                      <span>👥 Máx. {mision.jugadoresMax}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            {misionesFiltradas.length === 0 && (
+            {cargandoModosHistoria ? (
               <div className="jg-vacio">
-                <div className="jg-vacio-icon">📜</div>
-                <p>No se encontraron misiones con esos criterios</p>
+                <div className="jg-vacio-icon">📖</div>
+                <p>Cargando modos historia...</p>
               </div>
+            ) : errorModosHistoria ? (
+              <div className="jg-vacio">
+                <div className="jg-vacio-icon">⚠</div>
+                <p>{errorModosHistoria}</p>
+              </div>
+            ) : (
+              <>
+                <div className="jg-grid">
+                  {modosHistoriaFiltrados.map((modoHistoria, i) => {
+                    const personajesActivos = modoHistoria.personajes.length;
+                    const plazasLibres = modoHistoria.maxJugadores - personajesActivos;
+                    const misionesTotales = modoHistoria.misiones.length;
+
+                    return (
+                      <div
+                        key={modoHistoria.id}
+                        className="jg-card jg-card-modo-historia"
+                        style={{ animationDelay: `${i * 0.08}s` }}
+                        onClick={() => handleSeleccionModoHistoria(modoHistoria)}
+                      >
+                        {(modoHistoria.nivelAcceso ?? 'BASICA') !== 'BASICA' && (
+                          <span className="jg-card-premium-chip">{modoHistoria.nivelAcceso}</span>
+                        )}
+                        <div className="jg-card-modo-hero">
+                          <ModoHistoriaCover
+                            titulo={modoHistoria.nombre}
+                            imageClassName="jg-card-modo-img"
+                            placeholderClassName="jg-card-modo-plantilla"
+                          />
+                          <div className="jg-card-overlay" />
+                          <span className="jg-card-dificultad" style={{ background: getDificultadColor(modoHistoria.dificultad) }}>
+                            {modoHistoria.dificultad}
+                          </span>
+                          <span className="jg-card-misiones">📜 {misionesTotales} misiones</span>
+                        </div>
+                        <div className="jg-card-info">
+                          <h3 className="jg-card-nombre">{modoHistoria.nombre}</h3>
+                          <p className="jg-card-desc">{modoHistoria.descripcion}</p>
+                          <div className="jg-card-footer">
+                            <span className="jg-card-master">⚔ {modoHistoria.master?.nombre ?? 'Sin master'}</span>
+                            <span className={`jg-card-plazas ${plazasLibres === 0 ? 'completa' : ''}`}>
+                              👥 {personajesActivos > 0 ? `${personajesActivos}/${modoHistoria.maxJugadores}` : `0/${modoHistoria.maxJugadores}`}
+                            </span>
+                          </div>
+                          <div className="jg-card-modo-meta">
+                            <span className="jg-card-modo-nivel">Nv. mín. {modoHistoria.nivelMinimo}</span>
+                            <span className="jg-card-modo-personajes">✨ {plazasLibres > 0 ? `${plazasLibres} plazas libres` : 'Completo'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {modosHistoriaFiltrados.length === 0 && (
+                  <div className="jg-vacio">
+                    <div className="jg-vacio-icon">📖</div>
+                    <p>No se encontraron modos historia con esos criterios</p>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
@@ -604,10 +794,18 @@ export function JoinGame() {
       {campanaSeleccionada && (
         <ModalCampana campana={campanaSeleccionada} onClose={() => setCampanaSeleccionada(null)} />
       )}
-      {misionSeleccionada && (
-        <ModalMision mision={misionSeleccionada} onClose={() => setMisionSeleccionada(null)} />
+      {modoHistoriaSeleccionado && (
+        <ModalModoHistoria modoHistoria={modoHistoriaSeleccionado} onClose={() => setModoHistoriaSeleccionado(null)} />
       )}
-
+      {modoBloqueadoSeleccionado && (
+        <ModalSuscripcionRequerida
+          nivelActual={tipoSuscripcionUsuario}
+          nivelRequerido={modoBloqueadoSeleccionado.nivelRequerido}
+          nombreModo={modoBloqueadoSeleccionado.nombre}
+          onClose={() => setModoBloqueadoSeleccionado(null)}
+          onIrASuscripciones={handleIrASuscripciones}
+        />
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@ package com.gvc.ravenloftcastleapi.dto.mision;
 import java.util.List;
 
 public record MisionCreateDTO(
-        Long campanaId,
+        Long modoHistoriaId,
         String nombre,
         String descripcion,
         int orden,
@@ -11,4 +11,5 @@ public record MisionCreateDTO(
         int xpRecompensa,
         List<MisionEscenarioCreateDTO> escenarios
 ) {}
+
 

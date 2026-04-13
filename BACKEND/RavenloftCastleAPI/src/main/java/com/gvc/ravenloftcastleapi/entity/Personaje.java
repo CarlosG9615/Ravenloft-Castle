@@ -95,5 +95,5 @@ public class Personaje {
     private List<MisionProgreso> progresos;
 
     @OneToMany(mappedBy = "personaje", cascade = CascadeType.ALL)
-    private List<CampanaPersonaje> campanas;
+    private List<ModoHistoriaPersonaje> modosHistoria;
 }

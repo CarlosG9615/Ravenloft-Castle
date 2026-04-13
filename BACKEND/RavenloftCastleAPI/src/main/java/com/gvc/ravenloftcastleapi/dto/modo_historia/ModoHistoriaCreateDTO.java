@@ -1,5 +1,6 @@
-package com.gvc.ravenloftcastleapi.dto.campana;
+package com.gvc.ravenloftcastleapi.dto.modo_historia;
 
+import com.gvc.ravenloftcastleapi.enums.Dificultad;
 import com.gvc.ravenloftcastleapi.enums.TipoSuscripcion;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -12,27 +13,28 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CampanaCreateDTO {
+public class ModoHistoriaCreateDTO {
 
     @NotBlank(message = "El nombre es obligatorio")
     private String nombre;
-    
+
     private String descripcion;
-    
-    @NotBlank(message = "La dificultad es obligatoria")
-    private String dificultad;
-    
+
+    @NotNull(message = "La dificultad es obligatoria")
+    private Dificultad dificultad;
+
     @NotNull(message = "El nivel mínimo es obligatorio")
     private Integer nivelMinimo;
-    
+
     @NotNull(message = "El máximo de jugadores es obligatorio")
     private Integer maxJugadores;
-    
+
     @NotBlank(message = "El sistema es obligatorio")
     private String sistema;
-    
+
     @NotNull(message = "El nivel de acceso es obligatorio")
     private TipoSuscripcion nivelAcceso;
-    
+
     private boolean active;
 }
+
