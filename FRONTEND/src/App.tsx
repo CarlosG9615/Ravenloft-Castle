@@ -17,15 +17,18 @@ import { ScrollToTop } from './components/ScrollToTop/ScrollToTop';
 import { JoinGame } from './pages/JoinGame/JoinGame';
 import { CreateCampaign } from './pages/CreateCampaign/CreateCampaign';
 import { Subscription } from './pages/Subscription/Subscription';
+import { Tablero } from './pages/Tablero/Tablero';
 import './App.css';
 
 function Layout() {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isTablero = location.pathname === '/tablero';
 
   return (
     <>
-      {!isAuthPage && <Header />}
+   
+      {!isAuthPage && !isTablero && <Header />}
       <main className="main-content">
         <Routes>
           {/* Públicas */}
@@ -66,10 +69,14 @@ function Layout() {
           <Route path="/create" element={
           <PrivateRoute><CreateCampaign /></PrivateRoute>
         } />
+                <Route path="/tablero" element={
+          <PrivateRoute><Tablero /></PrivateRoute>
+        } />
 
         </Routes>
       </main>
-      {!isAuthPage && <Footer />}
+      {!isAuthPage && !isTablero && <Footer />}
+  
     </>
   );
 }

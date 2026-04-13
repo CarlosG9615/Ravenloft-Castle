@@ -1,0 +1,468 @@
+/* =========================================
+   PANEL PARTIDA — panel derecho del tablero
+   ========================================= */
+
+.pp-panel {
+  position: fixed;
+  top: 0px;
+  right: 0;
+  width: 400px;
+  height: 100vh;
+  background: rgba(8, 2, 2, 0.92);
+  border-left: 1px solid rgba(139, 0, 0, 0.3);
+  backdrop-filter: blur(12px);
+  overflow: hidden; 
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  font-family: 'Segoe UI', sans-serif;
+
+}
+
+/* ── PESTAÑAS ── */
+.pp-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(139, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.pp-tab {
+  flex: 1;
+  padding: 10px 4px;
+  background: transparent;
+  border: none;
+  color: rgba(200, 170, 120, 0.45);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+}
+
+.pp-tab:hover {
+  color: rgba(200, 170, 120, 0.8);
+  background: rgba(139, 0, 0, 0.08);
+}
+
+.pp-tab.active {
+  color: rgba(220, 190, 140, 1);
+  border-bottom-color: #8b0000;
+  background: rgba(139, 0, 0, 0.12);
+}
+
+/* ── SECCIÓN GENÉRICA ── */
+.pp-seccion {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+    min-height: 0;  
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 0, 0, 0.4) transparent;
+}
+
+.pp-seccion::-webkit-scrollbar { width: 4px; }
+.pp-seccion::-webkit-scrollbar-thumb { background: rgba(139, 0, 0, 0.4); border-radius: 2px; }
+
+/* ── CHAT ── */
+.pp-chat-wrap {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  gap: 0;
+  height: 100%;        
+  overflow: hidden;
+}
+
+.pp-chat-mensajes {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0; 
+   height: 100%; 
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 0, 0, 0.4) transparent;
+}
+
+.pp-chat-mensajes::-webkit-scrollbar { width: 4px; }
+.pp-chat-mensajes::-webkit-scrollbar-thumb { background: rgba(139, 0, 0, 0.4); border-radius: 2px; }
+
+/* Mensajes */
+.pp-msg { display: flex; flex-direction: column; gap: 2px; }
+
+.pp-msg--sistema {
+  text-align: center;
+}
+
+.pp-msg-sistema {
+  font-size: 11px;
+  color: rgba(139, 0, 0, 0.8);
+  background: rgba(139, 0, 0, 0.08);
+  border: 1px solid rgba(139, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 5px 10px;
+  display: block;
+  font-style: italic;
+}
+
+.pp-msg-cabecera {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.pp-msg-autor {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.pp-msg-hora {
+  font-size: 10px;
+  color: rgba(200, 170, 120, 0.3);
+  margin-left: auto;
+}
+
+.pp-msg-texto {
+  font-size: 13px;
+  color: rgba(220, 200, 170, 0.9);
+  margin: 0;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* Tirada */
+.pp-tirada-resultado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(139, 0, 0, 0.1);
+  border: 1px solid rgba(139, 0, 0, 0.25);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-top: 2px;
+}
+
+.pp-tirada-dado {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(200, 170, 120, 0.7);
+  background: rgba(139, 0, 0, 0.2);
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+
+.pp-tirada-desglose {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.pp-tirada-num {
+  font-size: 20px;
+  font-weight: 700;
+  color: rgba(220, 190, 140, 0.95);
+}
+
+.pp-tirada-mod {
+  font-size: 13px;
+  color: rgba(200, 170, 120, 0.6);
+}
+
+.pp-tirada-igual {
+  font-size: 13px;
+  color: rgba(200, 170, 120, 0.4);
+}
+
+.pp-tirada-total {
+  font-size: 22px;
+  font-weight: 900;
+  color: rgba(220, 190, 140, 0.95);
+  margin-left: 2px;
+}
+
+.pp-tirada-total.critico {
+  color: #f1c40f;
+  text-shadow: 0 0 10px rgba(241, 196, 15, 0.6);
+}
+
+.pp-tirada-total.pifia {
+  color: #e74c3c;
+  text-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+}
+
+/* Input chat */
+.pp-chat-input-wrap {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(139, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.pp-chat-input {
+  flex: 1;
+  background: rgba(139, 0, 0, 0.08);
+  border: 1px solid rgba(139, 0, 0, 0.25);
+  border-radius: 6px;
+  color: rgba(220, 200, 170, 0.9);
+  font-size: 13px;
+  padding: 7px 10px;
+  resize: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.pp-chat-input::placeholder { color: rgba(200, 170, 120, 0.3); }
+.pp-chat-input:focus { outline: none; border-color: rgba(139, 0, 0, 0.5); }
+
+.pp-chat-send {
+  background: #8b0000;
+  border: none;
+  border-radius: 6px;
+  color: rgba(220, 190, 140, 0.9);
+  font-size: 16px;
+  width: 38px;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.pp-chat-send:hover { background: #a00000; }
+
+/* ── JUGADORES ── */
+.pp-jugadores-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pp-jugador {
+  background: rgba(139, 0, 0, 0.07);
+  border: 1px solid rgba(139, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: border-color 0.2s;
+}
+
+.pp-jugador.desconectado {
+  opacity: 0.5;
+  border-color: rgba(100, 100, 100, 0.2);
+}
+
+.pp-jugador-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.pp-jugador-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.pp-jugador-nombre {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(220, 190, 140, 0.95);
+}
+
+.pp-jugador-clase {
+  font-size: 11px;
+  color: rgba(200, 170, 120, 0.5);
+  margin-left: auto;
+}
+
+.pp-jugador-off {
+  font-size: 10px;
+  color: #888;
+  font-style: italic;
+}
+
+.pp-jugador-hp-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pp-jugador-hp-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(200, 170, 120, 0.5);
+  letter-spacing: 0.5px;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.pp-jugador-hp-barra {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pp-jugador-hp-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+.pp-jugador-hp-num {
+  font-size: 11px;
+  color: rgba(220, 190, 140, 0.7);
+  width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── DADOS ── */
+.pp-dados-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pp-dados-hint {
+  font-size: 11px;
+  color: rgba(200, 170, 120, 0.4);
+  text-align: center;
+  margin: 0;
+  font-style: italic;
+}
+
+.pp-dados-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.pp-dado-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  background: rgba(139, 0, 0, 0.1);
+  border: 1px solid rgba(139, 0, 0, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: rgba(220, 190, 140, 0.9);
+}
+
+.pp-dado-btn:hover:not(:disabled) {
+  background: rgba(139, 0, 0, 0.25);
+  border-color: rgba(139, 0, 0, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3);
+}
+
+.pp-dado-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.pp-dado-btn.animando {
+  animation: dadoRoll 0.35s ease infinite alternate;
+  border-color: #f1c40f;
+  background: rgba(241, 196, 15, 0.08);
+}
+
+@keyframes dadoRoll {
+  from { transform: rotate(-8deg) scale(1.05); }
+  to   { transform: rotate(8deg) scale(1.1); }
+}
+
+.pp-dado-icono {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.pp-dado-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Modificador */
+.pp-modificador-wrap {
+  background: rgba(139, 0, 0, 0.07);
+  border: 1px solid rgba(139, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pp-mod-label {
+  font-size: 11px;
+  color: rgba(200, 170, 120, 0.6);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.pp-mod-controles {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pp-mod-btn {
+  width: 26px;
+  height: 26px;
+  background: rgba(139, 0, 0, 0.2);
+  border: 1px solid rgba(139, 0, 0, 0.4);
+  border-radius: 4px;
+  color: rgba(220, 190, 140, 0.9);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  line-height: 1;
+}
+
+.pp-mod-btn:hover { background: rgba(139, 0, 0, 0.4); }
+
+.pp-mod-valor {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(220, 190, 140, 0.95);
+  min-width: 32px;
+  text-align: center;
+}
+
+/* ── INDICADOR CONEXIÓN ── */
+.pp-conexion {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(139, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.pp-conexion-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pp-conexion-dot.online  { background: #2ecc71; box-shadow: 0 0 6px #2ecc71; }
+.pp-conexion-dot.offline { background: #e74c3c; box-shadow: 0 0 6px #e74c3c; }
+
+.pp-conexion-texto {
+  font-size: 10px;
+  color: rgba(200, 170, 120, 0.5);
+  letter-spacing: 0.5px;
+}
