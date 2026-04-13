@@ -1,5 +1,6 @@
-package com.gvc.ravenloftcastleapi.dto.campana;
+package com.gvc.ravenloftcastleapi.dto.modo_historia;
 
+import com.gvc.ravenloftcastleapi.enums.Dificultad;
 import com.gvc.ravenloftcastleapi.enums.TipoSuscripcion;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,11 +11,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CampanaUpdateDTO {
+public class ModoHistoriaUpdateDTO {
 
     private String nombre;
     private String descripcion;
-    private String dificultad;
+    private Dificultad dificultad;
     private Integer nivelMinimo;
     private Integer maxJugadores;
     private String sistema;

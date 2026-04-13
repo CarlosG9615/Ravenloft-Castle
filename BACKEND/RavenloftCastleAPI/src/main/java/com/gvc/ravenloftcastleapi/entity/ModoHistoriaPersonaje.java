@@ -6,13 +6,13 @@ import lombok.*;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "campana_personaje")
+@Table(name = "modo_historia_personaje")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CampanaPersonaje {
+public class ModoHistoriaPersonaje {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,8 +20,8 @@ public class CampanaPersonaje {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "campana_id", nullable = false)
-    private Campana campana;
+    @JoinColumn(name = "modo_historia_id", nullable = false)
+    private ModoHistoria modoHistoria;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "personaje_id", nullable = false)
@@ -30,5 +30,6 @@ public class CampanaPersonaje {
     @Column(name = "fecha_union", nullable = false)
     private LocalDate fechaUnion;
 }
+
 
 

@@ -9,7 +9,7 @@ import com.gvc.ravenloftcastleapi.entity.MisionProgreso;
 import com.gvc.ravenloftcastleapi.entity.Personaje;
 import com.gvc.ravenloftcastleapi.entity.TiradaDado;
 import com.gvc.ravenloftcastleapi.entity.Usuario;
-import com.gvc.ravenloftcastleapi.repository.CampanaPersonajeRepository;
+import com.gvc.ravenloftcastleapi.repository.ModoHistoriaPersonajeRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionParticipanteRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionProgresoRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionRepository;
@@ -35,7 +35,7 @@ public class TiradaService {
     private final MisionParticipanteRepository misionParticipanteRepository;
     private final MisionProgresoRepository misionProgresoRepository;
     private final PersonajeRepository personajeRepository;
-    private final CampanaPersonajeRepository campanaPersonajeRepository;
+    private final ModoHistoriaPersonajeRepository modoHistoriaPersonajeRepository;
 
     @Transactional
     public TiradaDadoResponseDTO crearEnMision(String email, Long misionId, TiradaDadoCreateDTO dto) {
@@ -47,13 +47,13 @@ public class TiradaService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Personaje no encontrado"));
 
         validarPropiedadPersonaje(usuario.getId(), personaje.getUsuario().getId());
-        validarPersonajeEnCampana(mision.getCampana().getId(), personaje.getId());
+        validarPersonajeEnModoHistoria(mision.getModoHistoria().getId(), personaje.getId());
         MisionProgreso progreso = resolveProgresoAsociado(misionId, usuario.getId(), personaje.getId(), dto.misionProgresoId());
 
         TiradaDado tirada = TiradaDado.builder()
                 .personaje(personaje)
                 .mision(mision)
-                .campana(mision.getCampana())
+                .modoHistoria(mision.getModoHistoria())
                 .misionProgreso(progreso)
                 .tipoTirada(dto.tipoTirada().trim())
                 .dado(dto.dado().trim().toUpperCase())
@@ -147,7 +147,7 @@ public class TiradaService {
         Personaje personaje = personajeRepository.findById(personajeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Personaje no encontrado"));
 
-        validarPersonajeEnCampana(mision.getCampana().getId(), personajeId);
+        validarPersonajeEnModoHistoria(mision.getModoHistoria().getId(), personajeId);
 
         List<TiradaDado> tiradas = tiradaDadoRepository
                 .findByMisionIdAndPersonajeIdOrderByFechaDesc(misionId, personajeId);
@@ -186,10 +186,10 @@ public class TiradaService {
         }
     }
 
-    private void validarPersonajeEnCampana(Long campanaId, Long personajeId) {
-        boolean unido = campanaPersonajeRepository.existsByCampanaIdAndPersonajeId(campanaId, personajeId);
+    private void validarPersonajeEnModoHistoria(Long modoHistoriaId, Long personajeId) {
+        boolean unido = modoHistoriaPersonajeRepository.existsByModoHistoriaIdAndPersonajeId(modoHistoriaId, personajeId);
         if (!unido) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El personaje no esta unido a la campana de la mision");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El personaje no esta unido a la modoHistoria de la mision");
         }
     }
 
@@ -219,7 +219,7 @@ public class TiradaService {
         return new TiradaDadoResponseDTO(
                 tirada.getId(),
                 tirada.getMision().getId(),
-                tirada.getCampana().getId(),
+                tirada.getModoHistoria().getId(),
                 tirada.getPersonaje().getId(),
                 tirada.getPersonaje().getNombre(),
                 tirada.getMisionProgreso() != null ? tirada.getMisionProgreso().getId() : null,
@@ -235,4 +235,5 @@ public class TiradaService {
         );
     }
 }
+
 

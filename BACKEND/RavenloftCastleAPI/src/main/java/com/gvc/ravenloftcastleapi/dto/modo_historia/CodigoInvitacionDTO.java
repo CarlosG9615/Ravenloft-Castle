@@ -1,4 +1,4 @@
-package com.gvc.ravenloftcastleapi.dto.campana;
+package com.gvc.ravenloftcastleapi.dto.modo_historia;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -10,7 +10,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CodigoInvitacionDTO {
 
-    @NotBlank(message = "El código es obligatorio")
+    @NotBlank(message = "El cÃ³digo es obligatorio")
     private String codigo;
 }
+
 

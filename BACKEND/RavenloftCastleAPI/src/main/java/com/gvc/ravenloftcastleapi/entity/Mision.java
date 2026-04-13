@@ -20,8 +20,8 @@ public class Mision {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "campana_id", nullable = false)
-    private Campana campana;
+    @JoinColumn(name = "modo_historia_id", nullable = false)
+    private ModoHistoria modoHistoria;
 
     @Column(nullable = false, length = 150)
     private String nombre;
