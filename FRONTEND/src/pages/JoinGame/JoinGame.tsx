@@ -199,6 +199,14 @@ const getDificultadColor = (dificultad?: string): string => {
   return 'rgba(90, 90, 90, 0.95)';
 };
 
+const normalizarDificultad = (texto: string): string => {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+};
+
 function ModoHistoriaCover({
   titulo,
   imageClassName,
@@ -552,7 +560,7 @@ export function JoinGame() {
   const campanasFiltradas = CAMPANAS_MOCK.filter(c => {
     const coincideBusqueda = c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       c.master.toLowerCase().includes(busqueda.toLowerCase());
-    const coincideFiltro = filtro === 'todas' || c.dificultad.toLowerCase() === filtro;
+    const coincideFiltro = filtro === 'todas' || normalizarDificultad(c.dificultad) === normalizarDificultad(filtro);
     return coincideBusqueda && coincideFiltro;
   });
 
@@ -560,7 +568,7 @@ export function JoinGame() {
     const textoMaster = modo.master?.nombre ?? '';
     const coincideBusqueda = modo.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       textoMaster.toLowerCase().includes(busqueda.toLowerCase());
-    const coincideFiltro = filtro === 'todas' || modo.dificultad.toLowerCase() === filtro;
+    const coincideFiltro = filtro === 'todas' || normalizarDificultad(modo.dificultad) === normalizarDificultad(filtro);
     return coincideBusqueda && coincideFiltro;
   });
 

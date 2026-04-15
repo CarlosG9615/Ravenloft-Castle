@@ -71,14 +71,19 @@
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 230px;
-  background: #1a0a0a;
-  border: 1px solid rgba(139, 0, 0, 0.4);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), 0 0 20px rgba(139, 0, 0, 0.15);
+  width: 310px;
+  background: linear-gradient(180deg, rgba(52, 9, 9, 0.98), rgba(24, 4, 4, 0.98));
+  border: 1px solid rgba(255, 107, 53, 0.18);
+  border-radius: 16px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.72), 0 0 22px rgba(139, 0, 0, 0.18);
   z-index: 1000;
   overflow: hidden;
   animation: dropdownFadeIn 0.15s ease;
+}
+
+.dropdown-content {
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes dropdownFadeIn {
@@ -86,18 +91,17 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Cabecera del dropdown */
-.dropdown-header {
+.dropdown-profile {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  background: rgba(139, 0, 0, 0.1);
+  gap: 12px;
+  padding: 20px 18px 12px;
 }
 
 .dropdown-avatar {
-  width: 38px;
-  height: 38px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
   overflow: hidden;
   background: rgba(139, 0, 0, 0.5);
@@ -105,9 +109,10 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 1px solid rgba(139, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 0 6px rgba(139, 0, 0, 0.12);
   font-family: 'Metal Mania', cursive;
-  font-size: 16px;
+  font-size: 24px;
   color: #fff;
 }
 
@@ -117,64 +122,75 @@
   object-fit: cover;
 }
 
-.dropdown-username {
+.dropdown-profile-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  width: 100%;
+}
+
+.dropdown-greeting {
   font-family: 'Metal Mania', cursive;
-  font-size: 14px;
+  font-size: 18px;
+  line-height: 1.1;
   color: #fff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .dropdown-email {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.82);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* Separador */
-.dropdown-divider {
-  height: 1px;
-  background: rgba(139, 0, 0, 0.25);
-  margin: 4px 0;
+.dropdown-actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px 14px;
 }
 
 /* Items */
-.dropdown-item {
+.user-dropdown .dropdown-actions .dropdown-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 16px;
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  text-align: left;
+  justify-content: center;
+  flex: 1;
+  height: 36px;
+  padding: 0 14px;
+  background: linear-gradient(180deg, rgba(52, 9, 9, 0.98), rgba(24, 4, 4, 0.98)) !important;
+  border: 1px solid rgba(255, 107, 53, 0.18) !important;
+  border-radius: 14px !important;
+  color: #fff !important;
+  font-size: 10px !important;
+  font-family: 'Metal Mania', cursive !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.72), 0 0 22px rgba(139, 0, 0, 0.18) !important;
+  white-space: nowrap !important;
+  outline: none !important;
+  appearance: none !important;
 }
 
-.dropdown-item:hover {
-  background: rgba(139, 0, 0, 0.2);
-  color: #fff;
+.user-dropdown .dropdown-actions .dropdown-item:hover {
+  transform: translateY(-2px) !important;
+  background: linear-gradient(180deg, rgba(72, 15, 15, 0.98), rgba(40, 8, 8, 0.98)) !important;
+  box-shadow: 0 12px 38px rgba(0, 0, 0, 0.76), 0 0 24px rgba(139, 0, 0, 0.22) !important;
 }
 
-.dropdown-item--danger {
-  color: rgba(255, 80, 80, 0.8);
+.user-dropdown .dropdown-actions .dropdown-item--danger {
+  background: linear-gradient(180deg, rgba(52, 9, 9, 0.98), rgba(24, 4, 4, 0.98)) !important;
 }
 
-.dropdown-item--danger:hover {
-  background: rgba(139, 0, 0, 0.3);
-  color: #ff5050;
-}
-
-.dropdown-icon {
-  font-size: 16px;
-  width: 20px;
-  text-align: center;
+.user-dropdown .dropdown-actions .dropdown-item--danger:hover {
+  background: linear-gradient(180deg, rgba(72, 15, 15, 0.98), rgba(40, 8, 8, 0.98)) !important;
+  color: #fff !important;
 }
 
 /* Móvil */
