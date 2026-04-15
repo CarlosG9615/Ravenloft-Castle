@@ -7,6 +7,7 @@ import com.gvc.ravenloftcastleapi.entity.Suscripcion;
 import com.gvc.ravenloftcastleapi.entity.Usuario;
 import com.gvc.ravenloftcastleapi.exception.SuscripcionNotFoundException;
 import com.gvc.ravenloftcastleapi.exception.UserNotFoundException;
+import com.gvc.ravenloftcastleapi.enums.TipoSuscripcion;
 import com.gvc.ravenloftcastleapi.repository.SuscripcionRepository;
 import com.gvc.ravenloftcastleapi.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
@@ -100,9 +101,18 @@ public class SuscripcionService {
         }
 
         List<Suscripcion> suscripciones = suscripcionRepository.findByUsuarioId(usuario.getId());
-        boolean hasActive = suscripciones.stream().anyMatch(s -> "ACTIVA".equalsIgnoreCase(s.getEstado()));
-        if (hasActive) {
-            throw new IllegalArgumentException("Ya posees una suscripción activa. Debes darla de baja antes de adquirir otra.");
+        List<Suscripcion> activas = suscripciones.stream()
+                .filter(s -> "ACTIVA".equalsIgnoreCase(s.getEstado()))
+                .collect(Collectors.toList());
+
+        for (Suscripcion activa : activas) {
+            if (activa.getTipo() == TipoSuscripcion.BASICA) {
+                activa.setEstado("CANCELADA");
+                activa.setFechaBaja(LocalDate.now());
+                suscripcionRepository.save(activa);
+            } else {
+                throw new IllegalArgumentException("Ya posees una suscripción activa de pago. Debes darla de baja antes de adquirir otra.");
+            }
         }
 
         Suscripcion suscripcion = Suscripcion.builder()

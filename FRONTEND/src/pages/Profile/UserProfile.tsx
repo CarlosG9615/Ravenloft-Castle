@@ -211,7 +211,7 @@ export function UserProfile() {
                   <div style={{ fontSize: '0.9rem', color: '#aaa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>{suscripcionActual ? `Miembro desde: ${suscripcionActual.fechaAlta}` : 'No tienes un plan activo'}</span>
 
-                    {suscripcionActual && suscripcionActual.estado === 'ACTIVA' && (
+                    {suscripcionActual && suscripcionActual.estado === 'ACTIVA' && suscripcionActual.tipo !== 'BASICA' && (
                       <button
                         onClick={handleCancelarSuscripcion}
                         style={{
@@ -341,4 +341,3 @@ export function UserProfile() {
     </div>
   );
 }
-

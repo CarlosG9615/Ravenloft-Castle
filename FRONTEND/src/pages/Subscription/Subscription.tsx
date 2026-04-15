@@ -8,14 +8,14 @@ import { useState, useEffect } from 'react';
 export function Subscription() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
+  const [activeSubscription, setActiveSubscription] = useState<any>(null);
 
   useEffect(() => {
     if (user?.id) {
       getUserSuscripciones(user.id)
         .then((suscripciones) => {
-          const active = suscripciones.some(s => s.estado === 'ACTIVA');
-          setHasActiveSubscription(active);
+          const active = suscripciones.find(s => s.estado === 'ACTIVA');
+          setActiveSubscription(active || null);
         })
         .catch(err => console.error("Error al comprobar suscripciones", err));
     }
@@ -77,10 +77,10 @@ export function Subscription() {
           <button
             className="plan-btn"
             onClick={() => handleSelectPlan('Aventurero', 'BASICA')}
-            disabled={hasActiveSubscription}
-            style={hasActiveSubscription ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+            disabled={activeSubscription?.tipo === 'BASICA'}
+            style={activeSubscription?.tipo === 'BASICA' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
           >
-            {hasActiveSubscription ? 'Ya tienes un plan' : 'Comenzar'}
+            {activeSubscription?.tipo === 'BASICA' ? 'Plan Actual' : 'Comenzar'}
           </button>
         </div>
 
@@ -106,10 +106,10 @@ export function Subscription() {
           <button
             className="plan-btn featured-btn"
             onClick={() => handleSelectPlan('Héroe', 'PREMIUM')}
-            disabled={hasActiveSubscription}
-            style={hasActiveSubscription ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+            disabled={activeSubscription?.tipo === 'PREMIUM'}
+            style={activeSubscription?.tipo === 'PREMIUM' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
           >
-            {hasActiveSubscription ? 'Ya tienes un plan' : 'Elegir Héroe'}
+            {activeSubscription?.tipo === 'PREMIUM' ? 'Plan Actual' : 'Elegir Héroe'}
           </button>
         </div>
 
@@ -132,10 +132,10 @@ export function Subscription() {
           <button
             className="plan-btn"
             onClick={() => handleSelectPlan('Dungeon Master', 'VIP')}
-            disabled={hasActiveSubscription}
-            style={hasActiveSubscription ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+            disabled={activeSubscription?.tipo === 'VIP'}
+            style={activeSubscription?.tipo === 'VIP' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
           >
-            {hasActiveSubscription ? 'Ya tienes un plan' : 'Elegir DM'}
+            {activeSubscription?.tipo === 'VIP' ? 'Plan Actual' : 'Elegir DM'}
           </button>
         </div>
       </div>
