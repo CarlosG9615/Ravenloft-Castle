@@ -36,6 +36,8 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers("/ws/**").permitAll()
+                    .requestMatchers("/ws/info/**").permitAll()
                     .requestMatchers(HttpMethod.GET ,"/api/usuarios/**").permitAll()
                     .requestMatchers(HttpMethod.GET ,"/api/modos-historia/**").permitAll()
                     .requestMatchers(HttpMethod.PUT, "/api/modos-historia/*/codigo-invitacion").authenticated()
