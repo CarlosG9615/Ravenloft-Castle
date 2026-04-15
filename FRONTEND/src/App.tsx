@@ -17,6 +17,7 @@ import { ScrollToTop } from './components/ScrollToTop/ScrollToTop';
 import { JoinGame } from './pages/JoinGame/JoinGame';
 import { CreateCampaign } from './pages/CreateCampaign/CreateCampaign';
 import { Subscription } from './pages/Subscription/Subscription';
+import { StoryMode } from './pages/StoryMode/StoryMode';
 import './App.css';
 
 function Layout() {
@@ -62,6 +63,9 @@ function Layout() {
           } />
           <Route path="/join" element={
             <PrivateRoute><JoinGame /></PrivateRoute>
+          } />
+          <Route path="/story-mode/:id" element={
+            <PrivateRoute><StoryMode /></PrivateRoute>
           } />
           <Route path="/create" element={
           <PrivateRoute><CreateCampaign /></PrivateRoute>

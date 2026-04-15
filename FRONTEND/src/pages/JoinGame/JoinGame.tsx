@@ -326,7 +326,15 @@ function ModalCampana({ campana, onClose }: { campana: Campana; onClose: () => v
 }
 
 // ── MODAL MODO HISTORIA ──────────────────────────────────
-function ModalModoHistoria({ modoHistoria, onClose }: { modoHistoria: ModoHistoria; onClose: () => void }) {
+function ModalModoHistoria({
+  modoHistoria,
+  onClose,
+  onEntrarModoHistoria,
+}: {
+  modoHistoria: ModoHistoria;
+  onClose: () => void;
+  onEntrarModoHistoria: (modoHistoria: ModoHistoria) => void;
+}) {
   const personajesActivos = modoHistoria.personajes.length;
   const plazasLibres = modoHistoria.maxJugadores - personajesActivos;
   const misionesTotales = modoHistoria.misiones.length;
@@ -391,7 +399,11 @@ function ModalModoHistoria({ modoHistoria, onClose }: { modoHistoria: ModoHistor
               </div>
             )}
           </div>
-          <button className="jg-btn-unirse" disabled={plazasLibres === 0}>
+          <button
+            className="jg-btn-unirse"
+            disabled={plazasLibres === 0}
+            onClick={() => onEntrarModoHistoria(modoHistoria)}
+          >
             {plazasLibres > 0 ? '⚔ Entrar al Modo Historia' : 'Modo Historia Completo'}
           </button>
         </div>
@@ -603,6 +615,13 @@ export function JoinGame() {
     navigate('/subscription');
   };
 
+  const handleEntrarModoHistoria = (modoHistoria: ModoHistoria) => {
+    setModoHistoriaSeleccionado(null);
+    navigate(`/story-mode/${modoHistoria.id}`, {
+      state: { modoHistoria },
+    });
+  };
+
   return (
     <div className="jg-page">
       <div className="jg-bg" aria-hidden="true">
@@ -792,7 +811,11 @@ export function JoinGame() {
         <ModalCampana campana={campanaSeleccionada} onClose={() => setCampanaSeleccionada(null)} />
       )}
       {modoHistoriaSeleccionado && (
-        <ModalModoHistoria modoHistoria={modoHistoriaSeleccionado} onClose={() => setModoHistoriaSeleccionado(null)} />
+        <ModalModoHistoria
+          modoHistoria={modoHistoriaSeleccionado}
+          onClose={() => setModoHistoriaSeleccionado(null)}
+          onEntrarModoHistoria={handleEntrarModoHistoria}
+        />
       )}
       {modoBloqueadoSeleccionado && (
         <ModalSuscripcionRequerida
