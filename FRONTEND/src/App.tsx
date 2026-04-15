@@ -18,6 +18,8 @@ import { JoinGame } from './pages/JoinGame/JoinGame';
 import { CreateCampaign } from './pages/CreateCampaign/CreateCampaign';
 import { Subscription } from './pages/Subscription/Subscription';
 import { Tablero } from './pages/Tablero/Tablero';
+import { RoleSelect } from './pages/RoleSelect/Rolselect';
+import { Community } from './pages/Community/Community';
 import './App.css';
 
 function Layout() {
@@ -71,6 +73,12 @@ function Layout() {
         } />
                 <Route path="/tablero" element={
           <PrivateRoute><Tablero /></PrivateRoute>
+        } />
+        <Route path="/role-select" element={
+          <PrivateRoute><RoleSelect /></PrivateRoute>
+        } />
+        <Route path="/community" element={
+          <PrivateRoute><Community /></PrivateRoute>
         } />
 
         </Routes>

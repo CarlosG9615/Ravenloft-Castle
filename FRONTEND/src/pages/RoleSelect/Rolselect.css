@@ -1,0 +1,389 @@
+/* ==========================================
+   ROLE SELECT — Selección de rol RavenLoft
+   ========================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+.rs-page {
+  min-height: 100vh;
+  background: #080102;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  position: relative;
+  overflow: hidden;
+  gap: 40px;
+}
+
+/* FONDO */
+.rs-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(139, 0, 0, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 50%, rgba(80, 0, 100, 0.1) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, rgba(139, 0, 0, 0.08) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.rs-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.7) 100%);
+  pointer-events: none;
+}
+
+/* CABECERA */
+.rs-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 1;
+  animation: rsFadeDown 0.8s ease both;
+}
+
+.rs-titulo {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: clamp(22px, 4vw, 38px);
+  font-weight: 700;
+  color: rgba(220, 190, 140, 0.95);
+  text-align: center;
+  margin: 0;
+  text-shadow: 0 0 40px rgba(139, 0, 0, 0.6), 0 2px 4px rgba(0,0,0,0.8);
+  letter-spacing: 2px;
+}
+
+.rs-subtitulo {
+  font-family: 'Crimson Text', serif;
+  font-size: 16px;
+  color: rgba(200, 170, 120, 0.6);
+  text-align: center;
+  margin: 0;
+  font-style: italic;
+  letter-spacing: 1px;
+}
+
+.rs-linea-decorativa {
+  width: 200px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 0, 0, 0.6), transparent);
+}
+
+/* OPCIONES */
+.rs-opciones {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  z-index: 1;
+  animation: rsFadeUp 0.8s ease 0.2s both;
+}
+
+/* CARD */
+.rs-card {
+  position: relative;
+  width: 380px;
+  background: rgba(15, 4, 4, 0.85);
+  border-radius: 16px;
+  padding: 30px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
+  border: 1px solid rgba(139, 0, 0, 0.2);
+}
+
+.rs-card:hover {
+  transform: translateY(-8px) scale(1.02);
+}
+
+.rs-card.activa {
+  box-shadow: 0 20px 60px rgba(139, 0, 0, 0.35), 0 0 30px rgba(139, 0, 0, 0.15);
+  border-color: rgba(139, 0, 0, 0.5);
+}
+
+.rs-card.inactiva {
+  opacity: 0.5;
+  transform: scale(0.97);
+}
+
+/* Brillo de fondo */
+.rs-card-brillo {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(ellipse at center, rgba(139, 0, 0, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
+
+.rs-card:hover .rs-card-brillo,
+.rs-card.activa .rs-card-brillo { opacity: 1; }
+
+.rs-card-brillo--master {
+  background: radial-gradient(ellipse at center, rgba(120, 0, 160, 0.1) 0%, transparent 70%);
+}
+
+/* Borde animado */
+.rs-card-borde {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  border: 1px solid rgba(139, 0, 0, 0);
+  transition: border-color 0.3s ease;
+  pointer-events: none;
+}
+
+.rs-card:hover .rs-card-borde,
+.rs-card.activa .rs-card-borde {
+  border-color: rgba(139, 0, 0, 0.4);
+}
+
+.rs-card-borde--master {
+  border-color: rgba(120, 0, 160, 0);
+}
+
+.rs-card--master:hover .rs-card-borde--master,
+.rs-card--master.activa .rs-card-borde--master {
+  border-color: rgba(120, 0, 160, 0.4);
+}
+
+/* TAG */
+.rs-card-tag {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: rgba(139, 0, 0, 0.7);
+  background: rgba(139, 0, 0, 0.08);
+  border: 1px solid rgba(139, 0, 0, 0.2);
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+
+.rs-card-tag--master {
+  color: rgba(150, 0, 200, 0.7);
+  background: rgba(120, 0, 160, 0.08);
+  border-color: rgba(120, 0, 160, 0.2);
+}
+
+/* MASCOTA */
+.rs-mascota-wrap {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+
+}
+
+.rs-mascota {
+  width: 240px;   
+  height: 240px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 20px rgba(0,0,0,0.6));
+  transition: transform 0.3s ease, filter 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.rs-card:hover .rs-mascota,
+.rs-card.activa .rs-mascota {
+  transform: translateY(-6px) scale(1.05);
+  filter: drop-shadow(0 12px 30px rgba(139, 0, 0, 0.4));
+}
+
+.rs-card--master:hover .rs-mascota,
+.rs-card--master.activa .rs-mascota {
+  filter: drop-shadow(0 12px 30px rgba(120, 0, 160, 0.4));
+}
+
+.rs-mascota-sombra {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 20px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 50%;
+  filter: blur(8px);
+  transition: all 0.3s ease;
+}
+
+.rs-card:hover .rs-mascota-sombra {
+  width: 80px;
+  opacity: 0.5;
+  bottom: -16px;
+}
+
+.rs-mascota-sombra--master {
+  background: rgba(120, 0, 160, 0.3);
+}
+
+/* INFO */
+.rs-card-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.rs-rol-icono {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.rs-rol-titulo {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: rgba(220, 190, 140, 0.95);
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.rs-rol-desc {
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  color: rgba(200, 170, 120, 0.6);
+  margin: 0;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* BOTONES */
+.rs-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 4px;
+}
+
+.rs-btn--jugador {
+  background: linear-gradient(135deg, #8b0000, #a00000);
+  color: rgba(220, 190, 140, 0.95);
+  box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
+}
+
+.rs-btn--jugador:hover {
+  background: linear-gradient(135deg, #a00000, #c00000);
+  box-shadow: 0 6px 20px rgba(139, 0, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+.rs-btn--master {
+  background: linear-gradient(135deg, #4a0070, #6a00a0);
+  color: rgba(220, 190, 220, 0.95);
+  box-shadow: 0 4px 15px rgba(100, 0, 150, 0.3);
+}
+
+.rs-btn--master:hover {
+  background: linear-gradient(135deg, #6a00a0, #8a00c0);
+  box-shadow: 0 6px 20px rgba(100, 0, 150, 0.5);
+  transform: translateY(-1px);
+}
+
+.rs-btn-arrow {
+  font-size: 14px;
+  transition: transform 0.2s ease;
+}
+
+.rs-btn:hover .rs-btn-arrow { transform: translateX(3px); }
+
+/* SEPARADOR */
+.rs-separador {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.rs-sep-linea {
+  width: 1px;
+  height: 60px;
+  background: linear-gradient(180deg, transparent, rgba(139, 0, 0, 0.4), transparent);
+}
+
+.rs-sep-texto {
+  font-family: 'Crimson Text', serif;
+  font-size: 16px;
+  color: rgba(200, 170, 120, 0.4);
+  font-style: italic;
+}
+
+/* FOOTER */
+.rs-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 1;
+  animation: rsFadeUp 0.8s ease 0.4s both;
+}
+
+.rs-footer-texto {
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  color: rgba(200, 170, 120, 0.3);
+  margin: 0;
+  font-style: italic;
+  letter-spacing: 2px;
+}
+
+.rs-footer-ornamento {
+  font-size: 16px;
+  color: rgba(139, 0, 0, 0.4);
+}
+
+/* ANIMACIONES */
+@keyframes rsFadeDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes rsFadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* RESPONSIVE */
+@media (max-width: 700px) {
+  .rs-card { width: 100%; max-width: 380px; }
+  .rs-opciones {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .rs-separador {
+    flex-direction: row;
+  }
+
+  .rs-sep-linea {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(139, 0, 0, 0.4), transparent);
+  }
+
+  .rs-card { width: 100%; max-width: 320px; }
+}
