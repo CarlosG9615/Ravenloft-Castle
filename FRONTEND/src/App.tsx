@@ -18,6 +18,7 @@ import { JoinGame } from './pages/JoinGame/JoinGame';
 import { CreateCampaign } from './pages/CreateCampaign/CreateCampaign';
 import { Subscription } from './pages/Subscription/Subscription';
 import { StoryMode } from './pages/StoryMode/StoryMode';
+import { Mision } from './pages/Mision/Mision';
 import './App.css';
 
 function Layout() {
@@ -66,6 +67,9 @@ function Layout() {
           } />
           <Route path="/story-mode/:id" element={
             <PrivateRoute><StoryMode /></PrivateRoute>
+          } />
+          <Route path="/story-mode/:id/:misionId" element={
+            <PrivateRoute><Mision /></PrivateRoute>
           } />
           <Route path="/create" element={
           <PrivateRoute><CreateCampaign /></PrivateRoute>

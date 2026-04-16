@@ -46,6 +46,8 @@ const DIFICULTAD_COLOR: Record<string, string> = {
 	'Épica': '#9b59b6',
 };
 
+const MISIONES_POR_PAGINA = 3;
+
 const getDificultadColor = (dificultad?: string): string => {
 	const normalizada = (dificultad ?? '')
 		.normalize('NFD')
@@ -108,6 +110,7 @@ export function StoryMode() {
 	const [error, setError] = useState<string | null>(null);
 	const [filtro, setFiltro] = useState<string>('todas');
 	const [busqueda, setBusqueda] = useState('');
+	const [paginaActual, setPaginaActual] = useState(1);
 
 	const modoId = Number(id);
 	const locationState = location.state as LocationState | null;
@@ -158,6 +161,23 @@ export function StoryMode() {
 			return coincideBusqueda && coincideFiltro;
 		});
 	}, [busqueda, filtro, misiones]);
+
+	const totalPaginas = Math.max(1, Math.ceil(misionesFiltradas.length / MISIONES_POR_PAGINA));
+
+	const misionesPaginadas = useMemo(() => {
+		const inicio = (paginaActual - 1) * MISIONES_POR_PAGINA;
+		return misionesFiltradas.slice(inicio, inicio + MISIONES_POR_PAGINA);
+	}, [misionesFiltradas, paginaActual]);
+
+	useEffect(() => {
+		setPaginaActual(1);
+	}, [busqueda, filtro]);
+
+	useEffect(() => {
+		if (paginaActual > totalPaginas) {
+			setPaginaActual(totalPaginas);
+		}
+	}, [paginaActual, totalPaginas]);
 
 	useEffect(() => {
 		if (!Number.isFinite(modoId) || modoId <= 0) {
@@ -218,6 +238,17 @@ export function StoryMode() {
 
 		return () => controller.abort();
 	}, [misionesDesdeEstado, modoId]);
+
+	const irPaginaAnterior = () => {
+		setPaginaActual(actual => Math.max(1, actual - 1));
+	};
+
+	const irPaginaSiguiente = () => {
+		setPaginaActual(actual => Math.min(totalPaginas, actual + 1));
+	};
+
+	const puedeIrAtras = paginaActual > 1;
+	const puedeIrAdelante = paginaActual < totalPaginas;
 
 	return (
 		<div className="sm-page jg-page">
@@ -287,15 +318,27 @@ export function StoryMode() {
 				) : (
 					<>
 						<div className="jg-grid">
-							{misionesFiltradas.map((mision, index) => {
+							{misionesPaginadas.map((mision, index) => {
 								const dificultad = mision.dificultad ?? 'Media';
 
 								return (
-									<article
+									<button
+										type="button"
 										key={mision.id}
 										className="jg-card jg-card-modo-historia sm-mision-card"
 										style={{ animationDelay: `${index * 0.07}s` }}
+										onClick={() => navigate(`/story-mode/${mision.modoHistoriaId ?? modoId}/${mision.id}`, {
+											state: {
+												mision,
+												modoHistoria,
+											},
+										})}
+										aria-label={`Abrir mision ${mision.nombre}`}
 									>
+										<span className="sm-mision-orden-badge" aria-label={`Orden ${mision.orden ?? '-'}`}>
+											{mision.orden ?? '-'}
+										</span>
+
 										<div className="jg-card-modo-hero sm-mision-hero">
 											{mision.portada || mision.imagen ? (
 												<img
@@ -311,29 +354,52 @@ export function StoryMode() {
 											)}
 
 											<div className="jg-card-overlay" />
-
-											<span className="jg-card-dificultad" style={{ background: getDificultadColor(dificultad) }}>
-												{dificultad}
-											</span>
-
-											<span className="jg-card-misiones">📜 Orden {mision.orden ?? '-'}</span>
 										</div>
 
 										<div className="jg-card-info">
 											<h3 className="jg-card-nombre">{mision.nombre}</h3>
 											<p className="jg-card-desc">{mision.descripcion ?? 'Sin descripcion disponible para esta mision.'}</p>
 
-											<div className="jg-card-modo-meta">
-												<span className="jg-card-modo-nivel">XP {mision.xpRecompensa ?? 0}</span>
-												<span className="jg-card-modo-personajes">
+											<div className="jg-card-modo-meta sm-mision-meta-grid">
+												<span className="jg-card-modo-personajes sm-mision-meta-dificultad" style={{ borderColor: getDificultadColor(dificultad) }}>
+													{dificultad}
+												</span>
+												<span className="jg-card-modo-nivel">⭐ XP {mision.xpRecompensa ?? 0}</span>
+												<span className={`jg-card-modo-personajes ${mision.completada ? 'sm-mision-completada' : 'sm-mision-pendiente'}`}>
 													{mision.completada ? 'Completada' : 'Pendiente'}
 												</span>
 											</div>
 										</div>
-									</article>
+									</button>
 								);
 							})}
 						</div>
+
+						{misionesFiltradas.length > 0 && (
+							<div className="sm-paginacion" aria-label="Paginacion de misiones">
+								<button
+									type="button"
+									className={`sm-paginacion-flecha ${puedeIrAtras ? 'is-active' : 'is-inactive'}`}
+									onClick={puedeIrAtras ? irPaginaAnterior : undefined}
+									aria-disabled={!puedeIrAtras}
+									aria-label="Pagina anterior"
+								>
+									{'<'}
+								</button>
+
+								<span className="sm-paginacion-numero">{paginaActual}</span>
+
+								<button
+									type="button"
+									className={`sm-paginacion-flecha ${puedeIrAdelante ? 'is-active' : 'is-inactive'}`}
+									onClick={puedeIrAdelante ? irPaginaSiguiente : undefined}
+									aria-disabled={!puedeIrAdelante}
+									aria-label="Pagina siguiente"
+								>
+									{'>'}
+								</button>
+							</div>
+						)}
 
 						{misionesFiltradas.length === 0 && (
 							<div className="jg-vacio">

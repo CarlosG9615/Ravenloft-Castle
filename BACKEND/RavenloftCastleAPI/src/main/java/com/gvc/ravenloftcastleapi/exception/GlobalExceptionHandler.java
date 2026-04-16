@@ -72,7 +72,7 @@ public class GlobalExceptionHandler {
                 : "El cuerpo de la peticion no es valido";
 
         if (mensaje.contains("Dificultad") || mensaje.contains("dificultad")) {
-            mensaje = "La dificultad solo puede ser FACIL, MEDIA o DIFICIL";
+            mensaje = "La dificultad solo puede ser FACIL, MEDIA, DIFICIL o EPICA";
         }
 
         return buildError(HttpStatus.BAD_REQUEST, mensaje);

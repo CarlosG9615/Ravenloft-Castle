@@ -8,7 +8,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum Dificultad {
     FACIL,
     MEDIA,
-    DIFICIL;
+    DIFICIL,
+    EPICA;
 
     @JsonCreator
     public static Dificultad fromString(String value) {
@@ -26,7 +27,7 @@ public enum Dificultad {
             }
         }
 
-        throw new IllegalArgumentException("La dificultad solo puede ser FACIL, MEDIA o DIFICIL");
+        throw new IllegalArgumentException("La dificultad solo puede ser FACIL, MEDIA, DIFICIL o EPICA");
     }
 
     public static Dificultad fromDatabaseValue(String value) {
@@ -38,9 +39,6 @@ public enum Dificultad {
                 .replaceAll("\\p{M}", "")
                 .toUpperCase();
 
-        if ("MEDIO".equals(normalizedValue)) {
-            return MEDIA;
-        }
 
         for (Dificultad dificultad : Dificultad.values()) {
             if (dificultad.name().equals(normalizedValue)) {
