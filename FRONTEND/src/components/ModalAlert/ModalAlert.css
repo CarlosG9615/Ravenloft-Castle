@@ -58,7 +58,7 @@
   text-transform: uppercase;
   color: #fdfdfd;
   margin: 0;
-  margin-bottom: -15px;
+  margin-bottom: 20px;
   z-index: 10;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
 }
@@ -95,7 +95,7 @@
   z-index: 10;
   width: 100%;
   align-items: center;
-  margin-top: -20px;
+  margin-top: 0;
 }
 
 .modal-alert-content p {

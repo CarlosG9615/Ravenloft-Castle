@@ -90,7 +90,7 @@ export function Home() {
             alt="Ravenloft Castle"
             className="hero-logo"
           />
-          <a href="#" className="hero-cta">Comenzar Aventura</a>
+          <a href="#" className="hero-cta" onClick={(e) => { e.preventDefault(); navigate('/join'); }}>Comenzar Aventura</a>
           <p className="about-text">
             Las puertas del castillo se abren ante ti.<br />
             Forja tu destino, lidera a tus aliados y desafía la oscuridad.<br />
