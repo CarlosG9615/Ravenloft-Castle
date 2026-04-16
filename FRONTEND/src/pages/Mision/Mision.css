@@ -1,0 +1,468 @@
+.mision-page {
+	position: relative;
+	min-height: 100vh;
+	padding: 28px clamp(14px, 3.5vw, 40px) 34px;
+	background: #0a0203;
+	overflow: hidden;
+}
+
+.mision-bg {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	background:
+		radial-gradient(circle at 8% 12%, rgba(160, 22, 26, 0.16), transparent 38%),
+		radial-gradient(circle at 88% 85%, rgba(82, 14, 18, 0.2), transparent 42%),
+		linear-gradient(180deg, rgba(12, 4, 5, 0.96), rgba(9, 2, 3, 0.98));
+}
+
+.mision-bg-overlay {
+	position: absolute;
+	inset: 0;
+	background:
+		linear-gradient(90deg, rgba(10, 2, 3, 0.85), rgba(10, 2, 3, 0.68)),
+		repeating-linear-gradient(
+			135deg,
+			rgba(255, 255, 255, 0.02) 0,
+			rgba(255, 255, 255, 0.02) 2px,
+			transparent 2px,
+			transparent 16px
+		);
+}
+
+.mision-layout {
+	position: relative;
+	z-index: 1;
+	max-width: 1280px;
+	margin: 58px auto 0;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 210px;
+	gap: 0;
+	align-items: start;
+}
+
+.mision-contenido {
+	position: relative;
+	max-width: none;
+	margin: 0;
+	padding: clamp(16px, 3vw, 28px);
+	border-radius: 0;
+	border-top: 1px solid rgba(160, 45, 28, 0.36);
+	border-bottom: 0;
+	border-left: 0;
+	border-right: 0;
+	background: linear-gradient(180deg, rgba(18, 6, 8, 0.88), rgba(10, 2, 3, 0.92));
+	box-shadow:
+		inset 18px 0 22px -24px rgba(0, 0, 0, 0.75),
+		inset -18px 0 22px -24px rgba(0, 0, 0, 0.75),
+		0 18px 38px rgba(0, 0, 0, 0.34);
+}
+
+.mision-contenido::after {
+	content: none;
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 1px;
+	height: 14px;
+	background: rgba(18, 6, 8, 0.95);
+	pointer-events: none;
+}
+
+.mision-header {
+	margin-bottom: 18px;
+	border-bottom: 0;
+	padding-bottom: 14px;
+}
+
+.mision-kicker {
+	margin: 0 0 8px;
+	font-size: 12px;
+	letter-spacing: 1.1px;
+	text-transform: uppercase;
+	color: rgba(255, 199, 169, 0.84);
+}
+
+.mision-titulo {
+	margin: 0;
+	font-family: 'Metal Mania', cursive;
+	font-size: clamp(30px, 4.4vw, 46px);
+	line-height: 1.1;
+	color: #fff;
+	letter-spacing: 1px;
+	text-shadow: 0 0 14px rgba(139, 0, 0, 0.25);
+}
+
+.mision-cuerpo-placeholder {
+	min-height: 360px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	padding: 20px;
+	border-radius: 0;
+	border: 1px dashed rgba(255, 255, 255, 0.2);
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent);
+}
+
+.mision-detalle-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+	gap: 16px;
+}
+
+.mision-relato {
+	padding: 18px;
+	border-radius: 0;
+	border: 0;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.15));
+}
+
+.mision-seccion-titulo {
+	margin: 0;
+	font-family: 'Metal Mania', cursive;
+	letter-spacing: 0.8px;
+	font-size: 26px;
+	color: rgba(255, 245, 240, 0.96);
+}
+
+.mision-sinopsis-parrafo {
+	margin: 0 0 12px;
+	line-height: 1.78;
+	font-size: 15px;
+	color: rgba(255, 240, 230, 0.9);
+}
+
+.mision-capitulos-lateral {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	padding-top: 0;
+	margin-top: 0;
+	margin-left: -1px;
+	align-self: start;
+	border-radius: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.mision-capitulo-btn {
+	width: 100%;
+	padding: 12px 12px;
+	border-radius: 0;
+	border-top: 1px solid rgba(120, 34, 21, 0.22);
+	border-bottom: 1px solid rgba(120, 34, 21, 0.22);
+	border-left: 0;
+	border-right: 0;
+	margin-bottom: -1px;
+	background: transparent;
+	color: rgba(255, 255, 255, 0.55);
+	font-size: 12px;
+	letter-spacing: 0.55px;
+	font-family: 'Metal Mania', cursive;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	text-align: left;
+	box-shadow:
+		inset 10px 0 14px -16px rgba(0, 0, 0, 0.75),
+		inset -10px 0 14px -16px rgba(0, 0, 0, 0.75);
+}
+
+.mision-capitulo-btn:first-child {
+	border-top-color: rgba(160, 45, 28, 0.4);
+}
+
+.mision-capitulo-btn:hover {
+	border-top-color: rgba(200, 50, 30, 0.5);
+	border-bottom-color: rgba(200, 50, 30, 0.5);
+	background: rgba(139, 0, 0, 0.14);
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.mision-capitulo-btn.is-active {
+	background: rgba(139, 0, 0, 0.3);
+	border-top-color: rgba(200, 50, 30, 0.7);
+	border-bottom-color: rgba(200, 50, 30, 0.7);
+	color: #fff;
+}
+
+.mision-video-wrap {
+	display: flex;
+	justify-content: center;
+	margin: 18px 0 14px;
+}
+
+.mision-video-placeholder {
+	width: min(100%, 760px);
+	min-height: 240px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	padding: 24px;
+	border-radius: 0;
+	border: 0;
+	background:
+		radial-gradient(circle at top, rgba(200, 50, 30, 0.18), transparent 46%),
+		linear-gradient(180deg, rgba(38, 12, 14, 0.94), rgba(12, 4, 5, 0.98));
+	box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+	text-align: center;
+}
+
+.mision-video-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 68px;
+	height: 68px;
+	border-radius: 0;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	background: rgba(0, 0, 0, 0.25);
+	color: rgba(255, 255, 255, 0.95);
+	font-size: 28px;
+	padding-left: 2px;
+}
+
+.mision-video-placeholder p {
+	margin: 0;
+	font-size: 14px;
+	letter-spacing: 0.3px;
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.mision-modos-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14px;
+	margin-bottom: 14px;
+}
+
+.mision-modo-card {
+	padding: 18px;
+	border-radius: 0;
+	border: 0;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(0, 0, 0, 0.16));
+	min-height: 220px;
+	box-shadow: 0 10px 22px rgba(0, 0, 0, 0.14);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+}
+
+.mision-modo-card h3 {
+	margin: 0 0 10px;
+	font-family: 'Metal Mania', cursive;
+	letter-spacing: 0.8px;
+	font-size: 22px;
+	color: rgba(255, 245, 240, 0.96);
+}
+
+.mision-modo-card p {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.72;
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.mision-modo-btn {
+	margin-top: 14px;
+	padding: 8px 16px;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	font-family: 'Metal Mania', cursive;
+	font-size: 12px;
+	letter-spacing: 0.6px;
+	background: rgba(0, 0, 0, 0.24);
+	color: rgba(255, 255, 255, 0.9);
+	cursor: pointer;
+	align-self: center;
+	transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.mision-modo-btn:hover {
+	transform: translateY(-1px);
+}
+
+.mision-modo-card-master .mision-modo-btn {
+	border-color: rgba(243, 156, 18, 0.48);
+	background: rgba(243, 156, 18, 0.13);
+	color: rgba(255, 232, 187, 0.98);
+}
+
+.mision-modo-card-master .mision-modo-btn:hover {
+	border-color: rgba(243, 156, 18, 0.72);
+	background: rgba(243, 156, 18, 0.18);
+}
+
+.mision-modo-card-personaje .mision-modo-btn {
+	border-color: rgba(200, 50, 30, 0.7);
+	background: rgba(139, 0, 0, 0.3);
+	color: #fff;
+}
+
+.mision-modo-card-personaje .mision-modo-btn:hover {
+	border-color: rgba(255, 107, 53, 0.8);
+	background: rgba(139, 0, 0, 0.42);
+}
+
+.mision-panel {
+	position: static;
+	padding-top: 0;
+	display: grid;
+	gap: 12px;
+}
+
+.mision-chip {
+	padding: 8px 12px;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.85);
+	background: rgba(0, 0, 0, 0.24);
+}
+
+.mision-chip-grid {
+	position: absolute;
+	top: 16px;
+	right: 16px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: flex-end;
+	z-index: 2;
+}
+
+.mision-chip-dificultad {
+	background: rgba(0, 0, 0, 0.24);
+}
+
+.mision-chip-estado.is-completada {
+	border-color: rgba(46, 204, 113, 0.5);
+	color: rgba(202, 255, 220, 0.98);
+	background: rgba(46, 204, 113, 0.14);
+}
+
+.mision-chip-estado.is-pendiente {
+	border-color: rgba(243, 156, 18, 0.48);
+	color: rgba(255, 232, 187, 0.98);
+	background: rgba(243, 156, 18, 0.13);
+}
+
+.mision-bloque {
+	padding: 12px;
+	border-radius: 0;
+	border: 0;
+	background: rgba(0, 0, 0, 0.2);
+}
+
+.mision-bloque h3 {
+	margin: 0 0 8px;
+	font-size: 13px;
+	text-transform: uppercase;
+	letter-spacing: 0.8px;
+	color: rgba(255, 211, 184, 0.9);
+}
+
+.mision-bloque ul {
+	margin: 0;
+	padding-left: 18px;
+	display: grid;
+	gap: 8px;
+}
+
+.mision-bloque li {
+	font-size: 13px;
+	line-height: 1.55;
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.mision-recompensa p {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.6;
+	color: rgba(255, 255, 255, 0.83);
+}
+
+.mision-estado {
+	font-size: 15px;
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.mision-estado-error {
+	color: rgba(255, 169, 160, 0.95);
+	border-color: rgba(231, 76, 60, 0.38);
+	background: linear-gradient(135deg, rgba(231, 76, 60, 0.08), rgba(0, 0, 0, 0.2));
+}
+
+@media (max-width: 768px) {
+	.mision-page {
+		padding-top: 20px;
+	}
+
+	.mision-layout {
+		grid-template-columns: 1fr;
+		gap: 10px;
+		margin-top: 46px;
+	}
+
+	.mision-contenido {
+		border-right: 0;
+	}
+
+	.mision-contenido::after {
+		content: none;
+	}
+
+	.mision-cuerpo-placeholder {
+		min-height: 280px;
+	}
+
+	.mision-detalle-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.mision-relato {
+		padding: 14px;
+	}
+
+	.mision-capitulos-lateral {
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 8px;
+		padding-top: 0;
+		margin-left: 0;
+	}
+
+	.mision-capitulo-btn {
+		width: auto;
+		margin: 0;
+		border-left: 0;
+		border-right: 0;
+	}
+
+	.mision-video-placeholder {
+		min-height: 200px;
+	}
+
+	.mision-modos-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.mision-modo-card {
+		min-height: auto;
+	}
+
+	.mision-panel {
+		padding-top: 0;
+	}
+
+	.mision-chip-grid {
+		top: 12px;
+		right: 12px;
+	}
+}
