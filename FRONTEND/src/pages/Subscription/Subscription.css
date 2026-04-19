@@ -37,9 +37,8 @@
 }
 
 .subscription-logo {
-  height: 120px;
+  height: 250px;
   margin-bottom: 1rem;
-  filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.6));
 }
 
 .subscription-title {
@@ -217,7 +216,3 @@
     transform: none;
   }
 }
-
-
-
-

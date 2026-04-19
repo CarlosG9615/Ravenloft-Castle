@@ -19,14 +19,13 @@ export function Header() {
   const navItems: NavItem[] = [
     { label: 'Inicio',              route: '/home' },
     { label: 'Personajes',          route: '/characters' },
-    { label: 'Herramientas',        route: '/tools' },
     { label: 'Unirte a una Partida',route: '/join' },
     { label: 'Crear Sala',          route: '/create' },
     { label: 'Planes',              route: '/subscription' },
   ];
 
   // Rutas que requieren login
-  const privateRoutes = ['/characters', '/join', '/create', '/tools'];
+  const privateRoutes = ['/characters', '/join', '/create'];
 
   const isActive = (route: string) => location.pathname === route;
 

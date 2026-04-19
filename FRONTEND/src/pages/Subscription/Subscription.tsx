@@ -4,11 +4,14 @@ import { Crown, Sparkles, Sword } from 'lucide-react';
 import { useAuth } from '../../services/AuthContext';
 import { createSuscripcion, getUserSuscripciones } from '../../services/suscripcionService';
 import { useState, useEffect } from 'react';
+import { ModalAlert } from '../../components/ModalAlert/ModalAlert';
 
 export function Subscription() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeSubscription, setActiveSubscription] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalConfig, setModalConfig] = useState<{ message: string; title: string; }>({ message: '', title: '' });
 
   useEffect(() => {
     if (user?.id) {
@@ -45,7 +48,8 @@ export function Subscription() {
            errorMsg = e.message;
         }
       }
-      alert(errorMsg);
+      setModalConfig({ title: '¡Atención!', message: errorMsg });
+      setIsModalOpen(true);
     }
   };
 
@@ -139,6 +143,15 @@ export function Subscription() {
           </button>
         </div>
       </div>
+
+      <ModalAlert
+        isOpen={isModalOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        confirmText="Aceptar"
+        onConfirm={() => setIsModalOpen(false)}
+        showImage={false}
+      />
     </div>
   );
 }
