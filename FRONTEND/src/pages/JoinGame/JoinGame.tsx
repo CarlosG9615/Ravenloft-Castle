@@ -199,6 +199,14 @@ const getDificultadColor = (dificultad?: string): string => {
   return 'rgba(90, 90, 90, 0.95)';
 };
 
+const normalizarDificultad = (texto: string): string => {
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+};
+
 function ModoHistoriaCover({
   titulo,
   imageClassName,
@@ -329,7 +337,15 @@ function ModalCampana({ campana, onClose }: { campana: Campana; onClose: () => v
 }
 
 // ── MODAL MODO HISTORIA ──────────────────────────────────
-function ModalModoHistoria({ modoHistoria, onClose }: { modoHistoria: ModoHistoria; onClose: () => void }) {
+function ModalModoHistoria({
+  modoHistoria,
+  onClose,
+  onEntrarModoHistoria,
+}: {
+  modoHistoria: ModoHistoria;
+  onClose: () => void;
+  onEntrarModoHistoria: (modoHistoria: ModoHistoria) => void;
+}) {
   const personajesActivos = modoHistoria.personajes.length;
   const plazasLibres = modoHistoria.maxJugadores - personajesActivos;
   const misionesTotales = modoHistoria.misiones.length;
@@ -394,7 +410,11 @@ function ModalModoHistoria({ modoHistoria, onClose }: { modoHistoria: ModoHistor
               </div>
             )}
           </div>
-          <button className="jg-btn-unirse" disabled={plazasLibres === 0}>
+          <button
+            className="jg-btn-unirse"
+            disabled={plazasLibres === 0}
+            onClick={() => onEntrarModoHistoria(modoHistoria)}
+          >
             {plazasLibres > 0 ? '⚔ Entrar al Modo Historia' : 'Modo Historia Completo'}
           </button>
         </div>
@@ -563,7 +583,7 @@ export function JoinGame() {
   const campanasFiltradas = CAMPANAS_MOCK.filter(c => {
     const coincideBusqueda = c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       c.master.toLowerCase().includes(busqueda.toLowerCase());
-    const coincideFiltro = filtro === 'todas' || c.dificultad.toLowerCase() === filtro;
+    const coincideFiltro = filtro === 'todas' || normalizarDificultad(c.dificultad) === normalizarDificultad(filtro);
     return coincideBusqueda && coincideFiltro;
   });
 
@@ -571,7 +591,7 @@ export function JoinGame() {
     const textoMaster = modo.master?.nombre ?? '';
     const coincideBusqueda = modo.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       textoMaster.toLowerCase().includes(busqueda.toLowerCase());
-    const coincideFiltro = filtro === 'todas' || modo.dificultad.toLowerCase() === filtro;
+    const coincideFiltro = filtro === 'todas' || normalizarDificultad(modo.dificultad) === normalizarDificultad(filtro);
     return coincideBusqueda && coincideFiltro;
   });
 
@@ -604,6 +624,13 @@ export function JoinGame() {
   const handleIrASuscripciones = () => {
     setModoBloqueadoSeleccionado(null);
     navigate('/subscription');
+  };
+
+  const handleEntrarModoHistoria = (modoHistoria: ModoHistoria) => {
+    setModoHistoriaSeleccionado(null);
+    navigate(`/story-mode/${modoHistoria.id}`, {
+      state: { modoHistoria },
+    });
   };
 
   return (
@@ -795,7 +822,11 @@ export function JoinGame() {
         <ModalCampana campana={campanaSeleccionada} onClose={() => setCampanaSeleccionada(null)} />
       )}
       {modoHistoriaSeleccionado && (
-        <ModalModoHistoria modoHistoria={modoHistoriaSeleccionado} onClose={() => setModoHistoriaSeleccionado(null)} />
+        <ModalModoHistoria
+          modoHistoria={modoHistoriaSeleccionado}
+          onClose={() => setModoHistoriaSeleccionado(null)}
+          onEntrarModoHistoria={handleEntrarModoHistoria}
+        />
       )}
       {modoBloqueadoSeleccionado && (
         <ModalSuscripcionRequerida

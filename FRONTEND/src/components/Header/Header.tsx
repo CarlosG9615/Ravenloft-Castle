@@ -104,38 +104,29 @@ export function Header() {
 
             {dropdownOpen && (
               <div className="user-dropdown">
-                {/* Cabecera del dropdown */}
-                <div className="dropdown-header">
-                  <div className="dropdown-avatar">
-                    {user.avatar
-                      ? <img src={user.avatar} alt={user.nombre} />
-                      : <span>{getInitials()}</span>
-                    }
+                <div className="dropdown-content">
+                  <div className="dropdown-profile">
+                    <div className="dropdown-avatar">
+                      {user.avatar
+                        ? <img src={user.avatar} alt={user.nombre} />
+                        : <span>{getInitials()}</span>
+                      }
+                    </div>
+                    <div className="dropdown-profile-text">
+                      <div className="dropdown-greeting">¡Hola, {user.nombre}!</div>
+                      <div className="dropdown-email">{user.email}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="dropdown-username">{user.nombre}</div>
-                    <div className="dropdown-email">{user.email}</div>
+
+                  <div className="dropdown-actions">
+                    <button className="dropdown-item" onClick={() => { navigate('/profile'); setDropdownOpen(false); }}>
+                      Mi Perfil
+                    </button>
+                    <button className="dropdown-item dropdown-item--danger" onClick={handleLogout}>
+                      Cerrar Sesión
+                    </button>
                   </div>
                 </div>
-
-                <div className="dropdown-divider" />
-
-                {/* Opciones */}
-                <button className="dropdown-item" onClick={() => { navigate('/profile'); setDropdownOpen(false); }}>
-                  <span className="dropdown-icon">⚔️</span>
-                  Mi Perfil
-                </button>
-                <button className="dropdown-item" onClick={() => { navigate('/profile/edit'); setDropdownOpen(false); }}>
-                  <span className="dropdown-icon">✏️</span>
-                  Editar Perfil
-                </button>
-
-                <div className="dropdown-divider" />
-
-                <button className="dropdown-item dropdown-item--danger" onClick={handleLogout}>
-                  <span className="dropdown-icon">🚪</span>
-                  Cerrar Sesión
-                </button>
               </div>
             )}
           </div>
