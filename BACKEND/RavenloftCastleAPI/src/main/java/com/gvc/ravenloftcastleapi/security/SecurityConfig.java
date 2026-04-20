@@ -35,9 +35,10 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults()) // Enable CORS
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers("/ws/**").permitAll()
                     .requestMatchers("/ws/info/**").permitAll()
+                    .requestMatchers("/ws/info").permitAll()
                     .requestMatchers(HttpMethod.GET ,"/api/usuarios/**").permitAll()
                     .requestMatchers(HttpMethod.GET ,"/api/modos-historia/**").permitAll()
                     .requestMatchers(HttpMethod.PUT, "/api/modos-historia/*/codigo-invitacion").authenticated()
