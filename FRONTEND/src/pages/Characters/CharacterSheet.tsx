@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './CharacterSheet.css';
 import { BackButton } from '../../components/BackButton/BackButton';
-import { getPersonaje } from '../../services/personajeService';
+import { getPersonaje, deletePersonaje } from '../../services/personajeService';
 import { getCartaUrl } from '../../utils/imageUtils';
 
 // ── INTERFACES ───────────────────────────────────────────
@@ -185,6 +185,7 @@ export function CharacterSheet({
   modo = 'view',
 }: CharacterSheetProps) {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<'ficha' | 'diario'>('ficha');
   const [personaje, setPersonaje] = useState<PersonajeResponseDTO | null>(null);
   const [loading, setLoading] = useState(false);
@@ -251,6 +252,18 @@ export function CharacterSheet({
   ];
 
   const handlePrint = () => window.print();
+
+  const handleDelete = async () => {
+    if (!id) return;
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este personaje? Esta acción es irreversible.')) return;
+    try {
+      await deletePersonaje(Number(id));
+      navigate('/characters/list');
+    } catch (err) {
+      console.error('Error al eliminar personaje:', err);
+      alert('Hubo un error al eliminar el personaje.');
+    }
+  };
 
   if (modo === 'view' && loading) {
     return (
@@ -375,6 +388,16 @@ export function CharacterSheet({
                   </div>
                 ))}
               </div>
+
+              {modo === 'view' && (
+                <button
+                  className="sf-btn sf-btn-delete no-print w-100"
+                  onClick={handleDelete}
+                  style={{ marginTop: 'auto', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                >
+                  <i className="bi bi-trash"></i> Eliminar Personaje
+                </button>
+              )}
             </div>
 
             {/* COLUMNA DER */}
@@ -441,3 +464,5 @@ export function CharacterSheet({
     </div>
   );
 }
+
+
