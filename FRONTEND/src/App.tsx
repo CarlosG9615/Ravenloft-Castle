@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
 import { ThemeProvider } from './services/ThemeContext';
 import { AuthProvider } from './services/AuthContext';
 import { Header } from './components/Header/Header';
@@ -24,6 +25,33 @@ import './App.css';
 function Layout() {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+
+  useEffect(() => {
+    let title = "Ravenloft Castle";
+    const path = location.pathname;
+
+    if (path === '/home' || path === '/') {
+      title = "Ravenloft Castle: Inicia tu aventura";
+    } else if (path === '/login') {
+      title = "Ravenloft Castle - Iniciar sesión";
+    } else if (path === '/register') {
+      title = "Ravenloft Castle - Registro";
+    } else if (path === '/subscription') {
+      title = "Ravenloft Castle - Suscripciones";
+    } else if (path === '/profile' || path === '/profile/edit') {
+      title = "Ravenloft Castle - Tu Perfil";
+    } else if (path.startsWith('/characters')) {
+      title = "Ravenloft Castle - Personajes";
+    } else if (path === '/join') {
+      title = "Ravenloft Castle - Unirse a Partida";
+    } else if (path === '/create') {
+      title = "Ravenloft Castle - Crear Campaña";
+    } else if (path.startsWith('/story-mode')) {
+      title = "Ravenloft Castle - Modo Historia";
+    }
+
+    document.title = title;
+  }, [location.pathname]);
 
   return (
     <>
