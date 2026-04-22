@@ -36,6 +36,13 @@ public class Usuario implements UserDetails {
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
+    @Column()
+    private boolean activado = false;
+
+    @Column(name = "token_activacion")
+    private String tokenActivacion;
+
+
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Personaje> personajes;
 
