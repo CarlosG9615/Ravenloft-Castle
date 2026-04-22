@@ -30,5 +30,14 @@ public class AuthController {
         UsuarioResponseDTO response = authService.register(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
-}
 
+    @GetMapping("/activar")
+    public ResponseEntity<String> activarCuenta(@RequestParam("token") String token) {
+        try {
+            authService.activarCuenta(token);
+            return ResponseEntity.ok("Cuenta activada correctamente");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+}

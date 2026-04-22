@@ -14,8 +14,12 @@ import com.gvc.ravenloftcastleapi.entity.Suscripcion;
 import java.time.LocalDate;
 import com.gvc.ravenloftcastleapi.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +30,7 @@ public class AuthService {
     private final SuscripcionRepository suscripcionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final JavaMailSender mailSender;
 
     public UsuarioResponseDTO register(UsuarioCreateDTO dto) {
         if (usuarioRepository.existsByEmail(dto.email())) {
@@ -35,12 +40,15 @@ public class AuthService {
         Role role = roleRepository.findByNombre("usuario")
                 .orElseThrow(() -> new RuntimeException("Rol 'usuario' no encontrado en la base de datos"));
 
-        Usuario nuevo = Usuario.builder()
-                .nombre(dto.nombre())
-                .email(dto.email())
-                .password(passwordEncoder.encode(dto.password()))
-                .role(role)
-                .build();
+        String tokenActivacion = UUID.randomUUID().toString();
+
+        Usuario nuevo = new Usuario();
+        nuevo.setNombre(dto.nombre());
+        nuevo.setEmail(dto.email());
+        nuevo.setPassword(passwordEncoder.encode(dto.password()));
+        nuevo.setRole(role);
+        nuevo.setActivado(false);
+        nuevo.setTokenActivacion(tokenActivacion);
 
         Usuario guardado = usuarioRepository.save(nuevo);
 
@@ -52,6 +60,14 @@ public class AuthService {
                 .fechaAlta(LocalDate.now())
                 .build();
         suscripcionRepository.save(suscripcionGratis);
+
+        // Envío de correo
+        String urlActivacion = "http://localhost:5173/activate?token=" + tokenActivacion;
+        SimpleMailMessage mensaje = new SimpleMailMessage();
+        mensaje.setTo(guardado.getEmail());
+        mensaje.setSubject("Activa tu cuenta de Ravenloft Castle");
+        mensaje.setText("Para activar tu cuenta, haz clic en el siguiente enlace: \n" + urlActivacion);
+        mailSender.send(mensaje);
 
         return new UsuarioResponseDTO(
                 guardado.getId(),
@@ -66,6 +82,10 @@ public class AuthService {
         // 1. Buscar usuario por email
         Usuario usuario = usuarioRepository.findByEmail(request.email())
                 .orElseThrow(CredencialesInvalidasException::new);
+
+        if (!usuario.isActivado()) {
+            throw new RuntimeException("Debe activar su cuenta revisando su correo electrónico");
+        }
 
         // 2. Comparar password con el hash almacenado
         if (!passwordEncoder.matches(request.password(), usuario.getPassword())) {
@@ -82,5 +102,14 @@ public class AuthService {
                 usuario.getRole().getNombre(),
                 token
         );
+    }
+
+    public void activarCuenta(String token) {
+        Usuario usuario = usuarioRepository.findByTokenActivacion(token)
+                .orElseThrow(() -> new RuntimeException("Token de activación inválido"));
+
+        usuario.setActivado(true);
+        usuario.setTokenActivacion(null);
+        usuarioRepository.save(usuario);
     }
 }
