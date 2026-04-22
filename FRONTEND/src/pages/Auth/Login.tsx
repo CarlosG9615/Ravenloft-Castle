@@ -7,7 +7,6 @@ import { useAuth } from '../../services/AuthContext';
 import { API_URL, publicHeaders } from '../../services/api';
 import { BackButton } from '../../components/BackButton/BackButton';
 
-
 export function Login() {
   const navigate = useNavigate();
   const { setUserData } = useAuth();
@@ -26,9 +25,7 @@ export function Login() {
   const [forgotSuccess, setForgotSuccess] = useState('');
   const [forgotError, setForgotError] = useState('');
 
- 
-
-  // Al montar, recuperar email guardado si existe
+  // Al montar, recuperar email guardado si existe, y revisar parámetros de activación
   useEffect(() => {
     const savedEmail = localStorage.getItem('rememberedEmail');
     if (savedEmail) {
@@ -92,6 +89,7 @@ export function Login() {
   return (
     <div className="auth-page d-flex align-items-center justify-content-center min-vh-100">
       <BackButton />
+
      <div className="auth-wrapper position-relative">
 
         <div className="text-center">

@@ -8,6 +8,7 @@ import { PrivateRoute } from './components/PrivateRoute/PrivateRoute';
 import { Home } from './pages/Home/Home';
 import { Login } from './pages/Auth/Login';
 import { Register } from './pages/Auth/Register';
+import { ActivateAccount } from './pages/Auth/ActivateAccount';
 import { UserProfile } from './pages/Profile/UserProfile';
 import { CharactersMenu } from './pages/Characters/CharactersMenu';
 import { Characters } from './pages/Characters/Characters';
@@ -63,6 +64,7 @@ function Layout() {
           <Route path="/home" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/activate" element={<ActivateAccount />} />
           <Route path="/subscription" element={<Subscription />} />
 
           {/* Privadas — requieren login */}
