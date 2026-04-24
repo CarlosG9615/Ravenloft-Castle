@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './CreateCampaign.css';
-import { BackButton } from '../../components/BackButton/BackButton';
 
 // ── TIPOS ─────────────────────────────────────────────────
 interface Campana {
@@ -188,7 +187,6 @@ export function CreateCampaign() {
   if (paso === 1) {
     return (
       <div className="cc-page--campanas">
-        <BackButton />
         <div className="cc-campanas-contenido">
           <div className="cc-campanas-grid">
             <div className="cc-campana-card cc-campana-card--mis">
@@ -214,7 +212,6 @@ export function CreateCampaign() {
   if (paso === 2) {
     return (
       <div className="cc-page--form">
-        <BackButton />
         <div className="cc-form-contenido">
           <h2 className="cc-form-titulo">Añadir Campaña</h2>
           <div className="cc-form">
@@ -272,7 +269,6 @@ export function CreateCampaign() {
   // ── PASO 3: MAPAS SOBRE LA MESA ───────────────────────
   return (
     <div className="cc-page--mesa">
-      <BackButton />
         <h2 className="cc-mesa-titulo">Elige tus mapas</h2>
 
     {/* BOTÓN FILTRO */}

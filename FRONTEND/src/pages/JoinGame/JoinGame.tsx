@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './JoinGame.css';
-import { BackButton } from '../../components/BackButton/BackButton';
 import { API_URL } from '../../services/api';
 import { getMySuscripciones, getUserSuscripciones } from '../../services/suscripcionService';
-import { getCampanaUrl, getJoinGameVideoUrl, getModoHistoriaImageCandidates } from '../../utils/imageUtils';
+import { getCampanaUrl, getModoHistoriaImageCandidates } from '../../utils/imageUtils';
 
 // ── TIPOS ─────────────────────────────────────────────────
 interface Jugador {
@@ -69,6 +68,36 @@ interface SuscripcionResumen {
 
 type TipoSuscripcion = 'BASICA' | 'PREMIUM' | 'VIP';
 
+const VISTA_JOIN_GAME_STORAGE_KEY = 'ravenloft.joinGame.vistaActual';
+const SUSCRIPCION_JOIN_GAME_STORAGE_KEY = 'ravenloft.joinGame.tipoSuscripcion';
+
+const resolverTipoSuscripcionPersistida = (): TipoSuscripcion => {
+  const guardada = sessionStorage.getItem(SUSCRIPCION_JOIN_GAME_STORAGE_KEY);
+  if (guardada === 'PREMIUM' || guardada === 'VIP') return guardada;
+  if (guardada === 'BASICA') return 'BASICA';
+
+  const userRaw = localStorage.getItem('user') || sessionStorage.getItem('user');
+  if (userRaw) {
+    try {
+      const user = JSON.parse(userRaw) as { suscripcion?: string; suscripcionTipo?: TipoSuscripcion };
+      if (user.suscripcionTipo === 'PREMIUM' || user.suscripcionTipo === 'VIP' || user.suscripcionTipo === 'BASICA') {
+        return user.suscripcionTipo;
+      }
+      const tipoDesdeStorage = resolverTipoDesdeTexto(user.suscripcion);
+      if (tipoDesdeStorage) return tipoDesdeStorage;
+    } catch {
+      // Si el storage está corrupto, caemos al valor por defecto.
+    }
+  }
+
+  return 'BASICA';
+};
+
+const leerVistaInicial = (): 'campanas' | 'modos-historia' => {
+  const vistaGuardada = sessionStorage.getItem(VISTA_JOIN_GAME_STORAGE_KEY);
+  return vistaGuardada === 'modos-historia' ? 'modos-historia' : 'campanas';
+};
+
 const NIVEL_SUSCRIPCION: Record<TipoSuscripcion, number> = {
   BASICA: 1,
   PREMIUM: 2,
@@ -101,8 +130,14 @@ const resolverTipoDesdeTexto = (valor?: string | null): TipoSuscripcion | null =
   const normalizado = valor.trim().toUpperCase();
 
   if (normalizado.includes('VIP')) return 'VIP';
-  if (normalizado.includes('PREMIUM')) return 'PREMIUM';
-  if (normalizado.includes('BASICA') || normalizado.includes('BÁSICA')) return 'BASICA';
+  if (normalizado.includes('PREMIUM') || normalizado.includes('HEROE') || normalizado.includes('HÉROE')) return 'PREMIUM';
+  if (
+    normalizado.includes('BASICA') ||
+    normalizado.includes('BÁSICA') ||
+    normalizado.includes('AVENTURERO') ||
+    normalizado.includes('FREE') ||
+    normalizado.includes('GRATIS')
+  ) return 'BASICA';
 
   return null;
 };
@@ -480,17 +515,20 @@ function ModalSuscripcionRequerida({
 // ── COMPONENTE PRINCIPAL ──────────────────────────────────
 export function JoinGame() {
   const navigate = useNavigate();
-  const videoBackground = getJoinGameVideoUrl();
   const [campanaSeleccionada, setCampanaSeleccionada] = useState<Campana | null>(null);
   const [modoHistoriaSeleccionado, setModoHistoriaSeleccionado] = useState<ModoHistoria | null>(null);
   const [modoBloqueadoSeleccionado, setModoBloqueadoSeleccionado] = useState<{ nombre: string; nivelRequerido: TipoSuscripcion } | null>(null);
-  const [vistaActual, setVistaActual] = useState<'campanas' | 'modos-historia'>('campanas');
+  const [vistaActual, setVistaActual] = useState<'campanas' | 'modos-historia'>(leerVistaInicial);
   const [filtro, setFiltro] = useState<string>('todas');
   const [busqueda, setBusqueda] = useState('');
   const [modosHistoria, setModosHistoria] = useState<ModoHistoria[]>([]);
   const [cargandoModosHistoria, setCargandoModosHistoria] = useState(false);
   const [errorModosHistoria, setErrorModosHistoria] = useState<string | null>(null);
-  const [tipoSuscripcionUsuario, setTipoSuscripcionUsuario] = useState<TipoSuscripcion>('BASICA');
+  const [tipoSuscripcionUsuario, setTipoSuscripcionUsuario] = useState<TipoSuscripcion>(resolverTipoSuscripcionPersistida);
+
+  useEffect(() => {
+    sessionStorage.setItem(VISTA_JOIN_GAME_STORAGE_KEY, vistaActual);
+  }, [vistaActual]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -528,6 +566,10 @@ export function JoinGame() {
   }, []);
 
   useEffect(() => {
+    sessionStorage.setItem(SUSCRIPCION_JOIN_GAME_STORAGE_KEY, tipoSuscripcionUsuario);
+  }, [tipoSuscripcionUsuario]);
+
+  useEffect(() => {
     const cargarSuscripcionUsuario = async () => {
       try {
         const userRaw = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -536,7 +578,11 @@ export function JoinGame() {
           return;
         }
 
-        const user = JSON.parse(userRaw) as { id?: number; suscripcion?: string };
+        const user = JSON.parse(userRaw) as { id?: number; suscripcion?: string; suscripcionTipo?: TipoSuscripcion };
+
+        if (user.suscripcionTipo === 'PREMIUM' || user.suscripcionTipo === 'VIP' || user.suscripcionTipo === 'BASICA') {
+          setTipoSuscripcionUsuario(user.suscripcionTipo);
+        }
 
         const tipoDesdeStorage = resolverTipoDesdeTexto(user.suscripcion);
         if (tipoDesdeStorage) {
@@ -568,7 +614,7 @@ export function JoinGame() {
 
         setTipoSuscripcionUsuario(tipoMasAlto);
       } catch {
-        setTipoSuscripcionUsuario('BASICA');
+        // Si falla la carga, conservamos la suscripción que ya teníamos para no degradar al usuario.
       }
     };
 
@@ -635,26 +681,15 @@ export function JoinGame() {
 
   return (
     <div className="jg-page">
-      <div className="jg-bg" aria-hidden="true">
-        <video
-          className="jg-bg-video"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-        >
-          <source src={videoBackground} type="video/mp4" />
-        </video>
+      <div className={`jg-bg ${vistaEsCampanas ? 'is-campanas' : 'is-modos-historia'}`} aria-hidden="true">
         <div className="jg-bg-overlay" />
       </div>
-      <BackButton />
 
       <div className="jg-contenido">
 
         {/* CABECERA */}
         <div className="jg-header">
-          <h1 className="jg-titulo">Unirse a partida</h1>
+          <h1 className="jg-titulo">Unirte a una partida</h1>
           <h2 className="jg-subtitulo">Unete a una aventura</h2>
           <p className="jg-descripcion">Encuentra tu grupo y forja tu leyenda en RavenLoft Castle</p>
         </div>
