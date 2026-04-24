@@ -23,6 +23,7 @@ import { Tablero } from './pages/Tablero/Tablero';
 import { RoleSelect } from './pages/RoleSelect/Rolselect';
 import { Community } from './pages/Community/Community';
 import { StoryMode } from './pages/StoryMode/StoryMode';
+import { Mision } from './pages/Mision/Mision';
 
 import './App.css';
 
@@ -102,6 +103,9 @@ function Layout() {
           } />
           <Route path="/story-mode/:id" element={
             <PrivateRoute><StoryMode /></PrivateRoute>
+          } />
+          <Route path="/story-mode/:id/:misionId" element={
+            <PrivateRoute><Mision /></PrivateRoute>
           } />
 
           <Route path="/create" element={
