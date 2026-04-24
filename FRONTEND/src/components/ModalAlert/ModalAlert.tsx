@@ -7,8 +7,9 @@ interface ModalAlertProps {
   message: string;
   confirmText?: string;
   cancelText?: string;
-  onConfirm: () => void;
-  onCancel: () => void;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+  showImage?: boolean;
 }
 
 export function ModalAlert({
@@ -18,7 +19,8 @@ export function ModalAlert({
   confirmText = "Aceptar",
   cancelText = "Cancelar",
   onConfirm,
-  onCancel
+  onCancel,
+  showImage = true
 }: ModalAlertProps) {
   if (!isOpen) return null;
 
@@ -26,14 +28,16 @@ export function ModalAlert({
     <div className="modal-alert-overlay">
       <div className="modal-alert-box">
         <h2 className="modal-alert-title">{title}</h2>
-        <div className="modal-alert-image">
-          <img src="/images/icons/rolo_triste.png" alt="Rolo triste" />
-        </div>
+        {showImage && (
+          <div className="modal-alert-image">
+            <img src="/images/icons/rolo_triste.png" alt="Rolo triste" />
+          </div>
+        )}
         <div className="modal-alert-content">
           <p>{message}</p>
           <div className="modal-alert-actions">
-            <button className="modal-alert-btn cancel" onClick={onConfirm}>{confirmText}</button>
-            <button className="modal-alert-btn confirm" onClick={onCancel}>{cancelText}</button>
+            {onCancel && <button className="modal-alert-btn cancel" onClick={onCancel}>{cancelText}</button>}
+            {onConfirm && <button className="modal-alert-btn confirm" onClick={onConfirm}>{confirmText}</button>}
           </div>
         </div>
       </div>

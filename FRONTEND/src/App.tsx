@@ -20,6 +20,8 @@ import { Subscription } from './pages/Subscription/Subscription';
 import { Tablero } from './pages/Tablero/Tablero';
 import { RoleSelect } from './pages/RoleSelect/Rolselect';
 import { Community } from './pages/Community/Community';
+import { StoryMode } from './pages/StoryMode/StoryMode';
+
 import './App.css';
 
 function Layout() {
@@ -68,6 +70,10 @@ function Layout() {
           <Route path="/join" element={
             <PrivateRoute><JoinGame /></PrivateRoute>
           } />
+          <Route path="/story-mode/:id" element={
+            <PrivateRoute><StoryMode /></PrivateRoute>
+          } />
+
           <Route path="/create" element={
           <PrivateRoute><CreateCampaign /></PrivateRoute>
         } />

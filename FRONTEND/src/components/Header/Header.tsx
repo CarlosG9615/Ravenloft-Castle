@@ -29,7 +29,6 @@ export function Header() {
   // Rutas que requieren login
   const privateRoutes = ['/characters', '/join', '/create', '/tools' , '/community'];
   
-
   const isActive = (route: string) => location.pathname === route;
 
   // Cerrar dropdown al hacer clic fuera

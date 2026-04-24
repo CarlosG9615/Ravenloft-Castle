@@ -7,14 +7,22 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "copy-dice-assets": "xcopy node_modules\\@3d-dice\\dice-box\\dist\\assets public\\assets /Y /E /I"
   },
   "dependencies": {
+    "@3d-dice/dice-box": "^1.1.4",
+    "@stomp/stompjs": "^7.3.0",
     "bootstrap": "^5.3.8",
+    "konva": "^10.2.5",
     "lucide-react": "^1.7.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.13.2"
+    "react-konva": "^19.2.3",
+    "react-router-dom": "^7.13.2",
+    "sockjs-client": "^1.6.1",
+    "three": "^0.184.0",
+    "use-image": "^1.1.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -22,6 +30,8 @@
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/sockjs-client": "^1.5.4",
+    "@types/three": "^0.184.0",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.27",
     "eslint": "^9.39.1",
