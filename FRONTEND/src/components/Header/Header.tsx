@@ -21,12 +21,14 @@ export function Header() {
     { label: 'Personajes',          route: '/characters' },
     { label: 'Unirte a una Partida',route: '/join' },
     { label: 'Crear Sala',          route: '/create' },
+    { label: 'Comunidad',           route: '/community' },
     { label: 'Planes',              route: '/subscription' },
+
   ];
 
   // Rutas que requieren login
-  const privateRoutes = ['/characters', '/join', '/create'];
-
+  const privateRoutes = ['/characters', '/join', '/create', '/tools' , '/community'];
+  
   const isActive = (route: string) => location.pathname === route;
 
   // Cerrar dropdown al hacer clic fuera

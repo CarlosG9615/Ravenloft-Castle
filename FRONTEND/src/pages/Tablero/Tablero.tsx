@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Stage, Layer, Image, Line, Circle, Text, Rect, Group } from 'react-konva';
+import { Stage, Layer, Image, Line, Circle, Text, Group } from 'react-konva';
 import { PanelPartida } from './PanelPartida';
 import useImage from 'use-image';
 import './Tablero.css';

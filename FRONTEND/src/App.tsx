@@ -19,13 +19,17 @@ import { ScrollToTop } from './components/ScrollToTop/ScrollToTop';
 import { JoinGame } from './pages/JoinGame/JoinGame';
 import { CreateCampaign } from './pages/CreateCampaign/CreateCampaign';
 import { Subscription } from './pages/Subscription/Subscription';
+import { Tablero } from './pages/Tablero/Tablero';
+import { RoleSelect } from './pages/RoleSelect/Rolselect';
+import { Community } from './pages/Community/Community';
 import { StoryMode } from './pages/StoryMode/StoryMode';
-import { Mision } from './pages/Mision/Mision';
+
 import './App.css';
 
 function Layout() {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isTablero = location.pathname === '/tablero';
 
   useEffect(() => {
     let title = "Ravenloft Castle";
@@ -56,7 +60,8 @@ function Layout() {
 
   return (
     <>
-      {!isAuthPage && <Header />}
+   
+      {!isAuthPage && !isTablero && <Header />}
       <main className="main-content">
         <Routes>
           {/* Públicas */}
@@ -98,16 +103,24 @@ function Layout() {
           <Route path="/story-mode/:id" element={
             <PrivateRoute><StoryMode /></PrivateRoute>
           } />
-          <Route path="/story-mode/:id/:misionId" element={
-            <PrivateRoute><Mision /></PrivateRoute>
-          } />
+
           <Route path="/create" element={
           <PrivateRoute><CreateCampaign /></PrivateRoute>
+        } />
+                <Route path="/tablero" element={
+          <PrivateRoute><Tablero /></PrivateRoute>
+        } />
+        <Route path="/role-select" element={
+          <PrivateRoute><RoleSelect /></PrivateRoute>
+        } />
+        <Route path="/community" element={
+          <PrivateRoute><Community /></PrivateRoute>
         } />
 
         </Routes>
       </main>
-      {!isAuthPage && <Footer />}
+      {!isAuthPage && !isTablero && <Footer />}
+  
     </>
   );
 }

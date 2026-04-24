@@ -253,6 +253,7 @@ function ModoHistoriaCover({
 // ── MODAL CAMPAÑA ─────────────────────────────────────────
 function ModalCampana({ campana, onClose }: { campana: Campana; onClose: () => void }) {
   const plazasLibres = campana.maxJugadores - campana.jugadores.length;
+  const navigate = useNavigate();
 
   return (
     <div className="jg-modal-overlay" onClick={onClose}>
@@ -316,9 +317,19 @@ function ModalCampana({ campana, onClose }: { campana: Campana; onClose: () => v
               </div>
             )}
           </div>
-          <button className="jg-btn-unirse" disabled={plazasLibres === 0}>
-            {plazasLibres > 0 ? '⚔ Unirme a esta Campaña' : 'Campaña Completa'}
-          </button>
+              <button 
+                className="jg-btn-unirse" 
+                disabled={plazasLibres === 0}
+                onClick={() => navigate('/tablero', { 
+                  state: { 
+                    campañaNombre: campana.nombre,
+                    mapaUrl: '/images/mapas/bosque/caminoForestal.jpg'
+                  } 
+                })}
+              >
+                {plazasLibres > 0 ? '⚔ Unirme a esta Campaña' : 'Campaña Completa'}
+              </button>
+          
         </div>
       </div>
     </div>

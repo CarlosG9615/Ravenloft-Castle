@@ -1,28 +1,159 @@
 /* ================================
-   DICE ROLLER — dado 3D real
+   DICE ROLLER — D&D Table Style
    ================================ */
 
-.dr-label-overlay {
+.dr-overlay {
   position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
+  inset: 0;
   z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.dr-overlay.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  background: linear-gradient(135deg, rgba(10, 10, 26, 0.9) 0%, rgba(30, 15, 50, 0.95) 100%);
+  backdrop-filter: blur(10px);
+  animation: drOverlayFadeIn 0.4s ease;
+}
+
+.dr-overlay.hidden {
+  display: none;
+}
+
+@keyframes drOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dr-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 60px;
+  position: relative;
+}
+
+/* ── CANVAS CONTAINER ── */
+.dr-canvas-container {
+  position: relative;
+  width: 600px;
+  height: 600px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 
+    0 0 50px rgba(212, 165, 116, 0.5),
+    0 0 100px rgba(139, 69, 19, 0.4),
+    inset 0 0 40px rgba(0, 0, 0, 0.6);
+  border: 3px solid rgba(212, 165, 116, 0.4);
+  animation: drCanvasEntry 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dr-canvas-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes drCanvasEntry {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+    box-shadow: 
+      0 0 20px rgba(212, 165, 116, 0.2),
+      inset 0 0 40px rgba(0, 0, 0, 0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 
+      0 0 50px rgba(212, 165, 116, 0.5),
+      0 0 100px rgba(139, 69, 19, 0.4),
+      inset 0 0 40px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* ── RESULTADO ── */
+.dr-resultado {
   text-align: center;
+  animation: drResultadoAppear 0.6s ease 0.5s both;
+  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3));
 }
 
-.dr-label-texto {
-  font-size: 20px;
-  font-weight: 700;
-  color: rgba(220, 190, 140, 0.95);
-  letter-spacing: 2px;
-  text-shadow: 0 0 20px rgba(139, 0, 0, 0.9), 0 2px 8px rgba(0,0,0,0.8);
-  animation: drPulse 0.6s ease infinite alternate;
+.dr-resultado-num {
+  font-size: 100px;
+  font-weight: 900;
+  color: #ffd700;
   margin: 0;
+  text-shadow: 
+    0 0 25px rgba(255, 215, 0, 0.9),
+    0 0 50px rgba(255, 215, 0, 0.5),
+    4px 4px 12px rgba(0, 0, 0, 0.95);
+  letter-spacing: 3px;
+  animation: drNumPulse 1s ease infinite;
 }
 
-@keyframes drPulse {
-  from { opacity: 0.7; }
-  to   { opacity: 1; }
+.dr-resultado-dado {
+  font-size: 22px;
+  font-weight: 700;
+  color: rgba(220, 190, 140, 1);
+  margin: 10px 0 0 0;
+  letter-spacing: 1.5px;
+  text-shadow: 0 3px 8px rgba(0, 0, 0, 0.9);
+  text-transform: uppercase;
+  font-style: italic;
+}
+
+@keyframes drResultadoAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.4) rotateX(90deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotateX(0deg);
+  }
+}
+
+@keyframes drNumPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.8));
+  }
+  50% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 30px rgba(255, 215, 0, 1));
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dr-canvas-container {
+    width: 400px;
+    height: 400px;
+    border-radius: 12px;
+  }
+
+  .dr-resultado-num {
+    font-size: 70px;
+  }
+
+  .dr-resultado-dado {
+    font-size: 16px;
+  }
+
+  .dr-content {
+    gap: 40px;
+  }
 }
