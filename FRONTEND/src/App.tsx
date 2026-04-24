@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { ThemeProvider } from './services/ThemeContext';
 import { AuthProvider } from './services/AuthContext';
 import { Header } from './components/Header/Header';
@@ -26,6 +26,8 @@ import { StoryMode } from './pages/StoryMode/StoryMode';
 import { Mision } from './pages/Mision/Mision';
 
 import './App.css';
+
+const JOIN_GAME_VISTA_KEY = 'ravenloft.joinGame.vistaActual';
 
 function Layout() {
   const location = useLocation();
@@ -57,6 +59,15 @@ function Layout() {
     }
 
     document.title = title;
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const path = location.pathname;
+    const esRutaRelacionadaConJoin = path === '/join' || path.startsWith('/story-mode');
+
+    if (!esRutaRelacionadaConJoin) {
+      sessionStorage.removeItem(JOIN_GAME_VISTA_KEY);
+    }
   }, [location.pathname]);
 
   return (
