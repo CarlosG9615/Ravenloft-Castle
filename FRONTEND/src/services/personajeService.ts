@@ -83,3 +83,13 @@ export const updatePersonaje = async (id: number, datos: any) => {
   if (!response.ok) throw new Error('Error al actualizar el personaje');
   return await response.json();
 };
+
+// ELIMINAR personaje
+export const deletePersonaje = async (id: number) => {
+  const response = await fetch(`${API_URL}/api/personajes/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+
+  if (!response.ok) throw new Error('Error al eliminar el personaje');
+};

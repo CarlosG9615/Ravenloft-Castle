@@ -74,6 +74,18 @@
 }
 .sf-btn-print:hover { background: rgba(120,80,30,0.22); color: rgba(220,180,100,1); }
 
+.sf-btn-delete {
+  background: transparent;
+  border: 1px solid #8b0000;
+  color: #8b0000;
+  transition: all 0.3s ease;
+}
+.sf-btn-delete:hover {
+  background: #8b0000;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(139,0,0,0.3);
+}
+
 .sf-btn-confirm {
   background: linear-gradient(135deg, #8b0000, #c0392b);
   border-color: rgba(200,50,30,0.6);

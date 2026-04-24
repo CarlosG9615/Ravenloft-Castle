@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
 import { ThemeProvider } from './services/ThemeContext';
 import { AuthProvider } from './services/AuthContext';
 import { Header } from './components/Header/Header';
@@ -7,6 +8,7 @@ import { PrivateRoute } from './components/PrivateRoute/PrivateRoute';
 import { Home } from './pages/Home/Home';
 import { Login } from './pages/Auth/Login';
 import { Register } from './pages/Auth/Register';
+import { ActivateAccount } from './pages/Auth/ActivateAccount';
 import { UserProfile } from './pages/Profile/UserProfile';
 import { CharactersMenu } from './pages/Characters/CharactersMenu';
 import { Characters } from './pages/Characters/Characters';
@@ -29,6 +31,33 @@ function Layout() {
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const isTablero = location.pathname === '/tablero';
 
+  useEffect(() => {
+    let title = "Ravenloft Castle";
+    const path = location.pathname;
+
+    if (path === '/home' || path === '/') {
+      title = "Ravenloft Castle: Inicia tu aventura";
+    } else if (path === '/login') {
+      title = "Ravenloft Castle - Iniciar sesión";
+    } else if (path === '/register') {
+      title = "Ravenloft Castle - Registro";
+    } else if (path === '/subscription') {
+      title = "Ravenloft Castle - Suscripciones";
+    } else if (path === '/profile' || path === '/profile/edit') {
+      title = "Ravenloft Castle - Tu Perfil";
+    } else if (path.startsWith('/characters')) {
+      title = "Ravenloft Castle - Personajes";
+    } else if (path === '/join') {
+      title = "Ravenloft Castle - Unirse a Partida";
+    } else if (path === '/create') {
+      title = "Ravenloft Castle - Crear Campaña";
+    } else if (path.startsWith('/story-mode')) {
+      title = "Ravenloft Castle - Modo Historia";
+    }
+
+    document.title = title;
+  }, [location.pathname]);
+
   return (
     <>
    
@@ -40,6 +69,7 @@ function Layout() {
           <Route path="/home" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/activate" element={<ActivateAccount />} />
           <Route path="/subscription" element={<Subscription />} />
 
           {/* Privadas — requieren login */}

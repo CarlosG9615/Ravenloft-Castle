@@ -4,6 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './Auth.css';
 import { register } from '../../services/authService';
 import { BackButton } from '../../components/BackButton/BackButton';
+import { ModalAlert } from '../../components/ModalAlert/ModalAlert';
 
 export function Register() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,8 +23,8 @@ export function Register() {
 
     try {
       await register(username, email, password);
-     
-      navigate('/login');
+      // En lugar de redirigir inmediatamente, mostramos el modal
+      setShowSuccessModal(true);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -30,9 +32,24 @@ export function Register() {
     }
   };
 
+  const handleCloseModal = () => {
+    setShowSuccessModal(false);
+    navigate('/login');
+  };
+
   return (
     <div className="auth-page d-flex align-items-center justify-content-center min-vh-100">
       <BackButton />
+
+      {/* MODAL DE ÉXITO */}
+      <ModalAlert
+        isOpen={showSuccessModal}
+        title="¡CUENTA CREADA!"
+        message="Se ha enviado un correo electrónico con las instrucciones para activar tu cuenta. Por favor, revisa tu bandeja de entrada (y la carpeta de spam) antes de iniciar sesión."
+        confirmText="Ir al inicio de sesión"
+        onConfirm={handleCloseModal}
+        showImage={false}
+      />
 
       {/* CONTENEDOR CENTRAL */}
       <div className="auth-wrapper position-relative">
