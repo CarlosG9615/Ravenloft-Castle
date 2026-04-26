@@ -20,10 +20,11 @@ import { JoinGame } from './pages/JoinGame/JoinGame';
 import { CreateCampaign } from './pages/CreateCampaign/CreateCampaign';
 import { Subscription } from './pages/Subscription/Subscription';
 import { Tablero } from './pages/Tablero/Tablero';
+import { TableroStoryMode } from './pages/TableroStoryMode/TableroStoryMode';
 import { RoleSelect } from './pages/RoleSelect/Rolselect';
 import { Community } from './pages/Community/Community';
 import { StoryMode } from './pages/StoryMode/StoryMode';
-import { Mision } from './pages/Mision/Mision';
+import Mission from './pages/Mission/Mission.jsx';
 
 import './App.css';
 
@@ -32,7 +33,7 @@ const JOIN_GAME_VISTA_KEY = 'ravenloft.joinGame.vistaActual';
 function Layout() {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  const isTablero = location.pathname === '/tablero';
+  const isTablero = location.pathname === '/tablero' || location.pathname === '/tablero-story-mode';
 
   useEffect(() => {
     let title = "Ravenloft Castle";
@@ -116,7 +117,7 @@ function Layout() {
             <PrivateRoute><StoryMode /></PrivateRoute>
           } />
           <Route path="/story-mode/:id/:misionId" element={
-            <PrivateRoute><Mision /></PrivateRoute>
+            <PrivateRoute><Mission /></PrivateRoute>
           } />
 
           <Route path="/create" element={
@@ -124,6 +125,9 @@ function Layout() {
         } />
                 <Route path="/tablero" element={
           <PrivateRoute><Tablero /></PrivateRoute>
+        } />
+        <Route path="/tablero-story-mode" element={
+          <PrivateRoute><TableroStoryMode /></PrivateRoute>
         } />
         <Route path="/role-select" element={
           <PrivateRoute><RoleSelect /></PrivateRoute>
