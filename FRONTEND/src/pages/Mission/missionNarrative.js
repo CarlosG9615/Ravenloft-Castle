@@ -52,7 +52,7 @@ const PLANTILLAS_SINOPSIS_POR_TEMA = {
 		'Lo que empieza como un recorrido controlado por calles conocidas termina revelando alianzas cambiantes y puntos de presion que pueden convertir una investigacion discreta en una carrera contra el tiempo.',
 	],
 	castillo: [
-		'Los corredores del bastion no solo guardan secretos: responden a cada avance con obstaculos que ponen a prueba la cohesion del grupo, obligando a elegir entre progresar rapido o asegurar cada paso.',
+		'Nuestros intrépidos aventureros ya están listos para su primer reto, el primer desafío en el castillo Ravenloft ya está aqui. Esperemos que sean capaces de trabajar en equipo y superar los obstáculos que el enemigo les tiene preparados....',
 		'Tras los muros antiguos, la amenaza opera con disciplina y memoria; para avanzar, la expedicion necesita leer el terreno como un sistema vivo donde una accion imprudente puede cerrar rutas clave.',
 		'Cada sala contiene rastros de una historia inconclusa y de una voluntad que sigue activa, de modo que el exito depende tanto de la fuerza como de detectar que piezas del lugar no encajan con lo esperado.',
 	],
@@ -87,7 +87,7 @@ const PLANTILLAS_SINOPSIS_POR_TEMA = {
 		'Cada hallazgo sugiere una verdad parcial; la mision progresa cuando el grupo une esas piezas y detecta que elementos estan puestos para desviar la atencion de lo realmente importante.',
 	],
 	general: [
-		'La mision desarrolla una tension progresiva donde cada decision modifica el margen de maniobra del grupo, obligando a equilibrar ambicion, riesgo y control tactico en todo momento.',
+		'Nuestros aventureros ya han salido del centro de instrucción y se lanzan a su primera misión de camino al castillo Ravenloft. Por el camino se topan con un campamento la mar de curioso que deberán investigar...',
 		'El avance no depende de un unico enfrentamiento, sino de encadenar buenas lecturas del entorno con acciones consistentes para llegar al cierre en una posicion favorable.',
 		'El tramo combina exploracion y presion narrativa en dosis crecientes, de forma que la expedicion debe construir ventaja paso a paso en lugar de confiar en una resolucion improvisada.',
 	],

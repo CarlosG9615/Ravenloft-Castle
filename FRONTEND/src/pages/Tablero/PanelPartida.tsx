@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { DiceRoller } from './DiceRoller';
@@ -57,9 +58,10 @@ function tirarDado(caras: number): number {
 interface Props {
   nombreMaster?: string;
   colorMaster?: string;
+  panelSuperior?: ReactNode;
 }
 
-export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b' }: Props) {
+export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b', panelSuperior }: Props) {
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'dados'>('chat');
   const [mensajes, setMensajes] = useState<MensajeChat[]>([
     {
@@ -213,6 +215,10 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
         <span className={`pp-conexion-dot ${conectado ? 'online' : 'offline'}`} />
         <span className="pp-conexion-texto">{conectado ? 'En línea' : 'Sin conexión'}</span>
       </div>
+
+      {panelSuperior && (
+        <div className="pp-panel-superior">{panelSuperior}</div>
+      )}
 
       {/* PESTAÑAS */}
       <div className="pp-tabs">
