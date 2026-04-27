@@ -1,5 +1,6 @@
 package com.gvc.ravenloftcastleapi.entity;
 
+
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -54,6 +55,9 @@ public class Usuario implements UserDetails {
 
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MisionProgreso> progresosMision;
+
+    @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DiceResult> diceResults;
 
     // ── UserDetails ──────────────────────────────────────────────────────────
 
