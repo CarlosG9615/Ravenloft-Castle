@@ -940,16 +940,31 @@
 }
 
 .jg-btn-unirse:hover:not(:disabled) {
+  background: #a90000;
   transform: translateY(-2px);
-  box-shadow: 0 6px 30px rgba(200,50,30,0.5);
+  box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);
 }
 
-.jg-btn-unirse:disabled {
-  background: rgba(80,80,80,0.3);
-  border-color: rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.3);
-  cursor: not-allowed;
-  box-shadow: none;
+.jg-btn-eliminar {
+  margin-top: 10px;
+  background-color: #8b0000;
+  color: white;
+  border: 1px solid #5a0000;
+  padding: 12px;
+  width: 100%;
+  border-radius: 6px;
+  font-family: 'Metal Mania', cursive;
+  font-size: 16px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jg-btn-eliminar:hover:not(:disabled) {
+  background-color: #a90000;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);
 }
 
 /* ── RESPONSIVE ── */

@@ -58,7 +58,10 @@ export function Tablero() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const mapaUrl = (location.state as any)?.mapaUrl ?? '/images/mapas/bosque/caminoForestal.jpg';
-  const campañaNombre = (location.state as any)?.campañaNombre ?? 'Campaña';
+  const campaaNombre = (location.state as any)?.campaaNombre ?? 'Campaa';
+  const campanaId = (location.state as any)?.campanaId;
+  const jugadorActual = (location.state as any)?.jugadorActual;
+  const jugadoresCampaa = (location.state as any)?.jugadores ?? [];
 
   const [dimensiones, setDimensiones] = useState({ ancho: window.innerWidth - 300, alto: window.innerHeight });
   const [scale, setScale] = useState(1);
@@ -147,7 +150,7 @@ export function Tablero() {
 
         <div className="tb-panel-contenido">
           <h3 className="tb-panel-titulo">🗡 Tablero</h3>
-          <p className="tb-campana-nombre">{campañaNombre}</p>
+          <p className="tb-campana-nombre">{campaaNombre}</p>
 
           <div className="tb-seccion">
             <span className="tb-seccion-label">Herramienta</span>
@@ -327,7 +330,17 @@ export function Tablero() {
         {herramienta === 'token' && <span>⊕ Clic en el mapa: añadir token</span>}
         {herramienta === 'borrar' && <span>🗑 Clic en token: borrar</span>}
       </div>
-        <PanelPartida nombreMaster="Tú (Master)" />
+      <div style={{ position: 'absolute', top: 15, left: 15, color: '#fff', background: 'rgba(0,0,0,0.6)', padding: '5px 15px', borderRadius: 20, zIndex: 10, fontSize: '13px', display: 'flex', gap: '15px' }}>
+        {herramienta === 'mover' && <span>Š•š„ Mover por el mapa</span>}
+        {herramienta === 'token' && <span>Š• Clic en el mapa: aadir token</span>}
+        {herramienta === 'borrar' && <span>Ÿ—‘ Clic en token: borrar</span>}
+      </div>
+      <PanelPartida 
+        nombreMaster="T (Master)" 
+        jugadores={jugadoresCampaa} 
+        campanaId={campanaId} 
+        jugadorActual={jugadorActual}
+      />
     </div>
   );
 }

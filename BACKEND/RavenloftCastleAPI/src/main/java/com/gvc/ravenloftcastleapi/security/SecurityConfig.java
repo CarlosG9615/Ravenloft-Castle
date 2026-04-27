@@ -41,6 +41,7 @@ public class SecurityConfig {
                     .requestMatchers("/ws/info").permitAll()
                     .requestMatchers(HttpMethod.GET ,"/api/usuarios/**").permitAll()
                     .requestMatchers(HttpMethod.GET ,"/api/modos-historia/**").permitAll()
+                    .requestMatchers(HttpMethod.DELETE, "/api/campanas/**").permitAll()
                     .requestMatchers(HttpMethod.PUT, "/api/modos-historia/*/codigo-invitacion").authenticated()
                     .requestMatchers(HttpMethod.POST, "/api/modos-historia/*/codigo-invitacion/generar").authenticated()
                     .requestMatchers(HttpMethod.POST, "/api/modos-historia").hasRole("ADMIN")
@@ -76,7 +77,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173")); // Allow frontend origin
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174", "http://localhost:5175")); // Allow frontend origin
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

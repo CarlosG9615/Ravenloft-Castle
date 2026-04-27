@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './CreateCampaign.css';
+import { crearCampana } from '../../services/campanaService';
 
 // ── TIPOS ─────────────────────────────────────────────────
 interface Campana {
@@ -20,13 +21,7 @@ interface Mapa {
 // ── DATOS ─────────────────────────────────────────────────
 const MIS_CAMPANAS_MOCK: Campana[] = [];
 
-const CALC_DISTANCIA = [
-  'Por defecto',
-  'Distancia real',
-  'Diagonal libre',
-  'Diagonal alterna',
-  'Sin diagonales',
-];
+
 
 const CATEGORIAS_MAPA = [
   { key: 'Todos',     icon: '🗺' },
@@ -112,7 +107,6 @@ export function CreateCampaign() {
   // Formulario
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [calcDistancia, setCalcDistancia] = useState('Por defecto');
   const [logoFile, setLogoFile] = useState<string | null>(null);
   const [imagenFile, setImagenFile] = useState<string | null>(null);
 
@@ -124,6 +118,7 @@ export function CreateCampaign() {
   const [fadeIn, setFadeIn] = useState(true);
 
   const [filtroAbierto, setFiltroAbierto] = useState(false);
+  const [guardando, setGuardando] = useState(false);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) => {
     const file = e.target.files?.[0];
@@ -183,19 +178,36 @@ export function CreateCampaign() {
 
   const mapaActual = mapasFiltrados[mapaIndex] ?? null;
 
+  const handleCrearCampana = async () => {
+    try {
+      setGuardando(true);
+      await crearCampana({
+        nombre,
+        descripcion,
+        logo: logoFile,
+        imagen: imagenFile,
+        mapasSeleccionados,
+      });
+      // Optionally, navigate to a success page or back to /join where it shows "Mis Campañas"
+      navigate('/join');
+    } catch (error) {
+      console.error('Error creando campaña', error);
+      alert('Hubo un error al crear la campaña. Intenta de nuevo.');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   // ── PASO 1: MIS CAMPAÑAS ──────────────────────────────
   if (paso === 1) {
     return (
       <div className="cc-page--campanas">
         <div className="cc-campanas-contenido">
           <div className="cc-campanas-grid">
-            <div className="cc-campana-card cc-campana-card--mis">
+            <div className="cc-campana-card cc-campana-card--mis" onClick={() => navigate('/join')}>
               <div className="cc-campana-icono">📋</div>
               <h3 className="cc-campana-label">Mis Campañas</h3>
               <p className="cc-campana-sub">Accede a tus campañas creadas y gestiona las fichas</p>
-              {MIS_CAMPANAS_MOCK.length === 0 && (
-                <p className="cc-campana-vacio">No tienes campañas aún</p>
-              )}
             </div>
             <div className="cc-campana-card cc-campana-card--add" onClick={() => setPaso(2)}>
               <div className="cc-campana-icono cc-campana-icono--add">+</div>
@@ -244,13 +256,6 @@ export function CreateCampaign() {
                   onChange={e => handleFile(e, setImagenFile)} />
                 {imagenFile && <img src={imagenFile} alt="portada" className="cc-file-preview" />}
               </div>
-            </div>
-
-            <div className="cc-field">
-              <label className="cc-label">Cálculo de distancia en Tablero Virtual</label>
-              <select className="cc-select" value={calcDistancia} onChange={e => setCalcDistancia(e.target.value)}>
-                {CALC_DISTANCIA.map(op => <option key={op} value={op}>{op}</option>)}
-              </select>
             </div>
 
             <div className="cc-field">
@@ -372,10 +377,10 @@ export function CreateCampaign() {
 
       <button
         className="cc-mesa-btn-crear"
-        disabled={mapasSeleccionados.length === 0}
-        onClick={() => navigate('/create')}
+        disabled={mapasSeleccionados.length === 0 || guardando}
+        onClick={handleCrearCampana}
       >
-        Crear Campaña
+        {guardando ? 'Creando...' : 'Crear Campaña'}
       </button>
     </div>
   );

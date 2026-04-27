@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './JoinGame.css';
 import { API_URL } from '../../services/api';
+import { obtenerCampanasActivas, eliminarCampana } from '../../services/campanaService';
 import { getMySuscripciones, getUserSuscripciones } from '../../services/suscripcionService';
 import { getCampanaUrl, getModoHistoriaImageCandidates } from '../../utils/imageUtils';
+import { useAuth } from '../../services/AuthContext';
 
 // ── TIPOS ─────────────────────────────────────────────────
 interface Jugador {
@@ -143,74 +145,7 @@ const resolverTipoDesdeTexto = (valor?: string | null): TipoSuscripcion | null =
 };
 
 // ── DATOS CAMPAÑAS ────────────────────────────────────────
-const CAMPANAS_MOCK: Campana[] = [
-  {
-    id: 1,
-    nombre: 'La Maldición del Dragón Esmeralda',
-    descripcion: 'Una antigua maldición despierta en las ruinas de Khel\'thar. Buscamos valientes aventureros para detener al dragón antes de que arrase las tierras del norte.',
-    historia: 'Hace mil años, el dragón Verthax fue sellado bajo las montañas de Khel\'thar por un grupo de héroes. Ahora el sello se debilita y necesitamos nuevos héroes que completen el ritual antes del solsticio de invierno.',
-    portada: getCampanaUrl('La Maldición del Dragón Esmeralda'),
-    master: 'DungeonLord42',
-    jugadores: [{ id: 1, nombre: 'Elara' }, { id: 2, nombre: 'Thorin' }],
-    maxJugadores: 5, sesiones: 8, sistema: 'D&D 5e',
-    dificultad: 'Difícil', estado: 'Abierta', nivelMinimo: 3,
-  },
-  {
-    id: 2,
-    nombre: 'Los Secretos de Mirkwood',
-    descripcion: 'Un viaje a través del bosque encantado donde los árboles guardan secretos milenarios y las sombras ocultan criaturas desconocidas.',
-    historia: 'El Bosque de Mirkwood ha sido corrompido por una oscuridad sin nombre. Los elfos piden ayuda a los aventureros para purificar el corazón del bosque antes de que la corrupción se extienda.',
-    portada: getCampanaUrl('Los Secretos de Mirkwood'),
-    master: 'MasterElfo',
-    jugadores: [{ id: 3, nombre: 'Zara' }],
-    maxJugadores: 4, sesiones: 5, sistema: 'D&D 5e',
-    dificultad: 'Media', estado: 'Abierta', nivelMinimo: 1,
-  },
-  {
-    id: 3,
-    nombre: 'El Dungeon Olvidado',
-    descripcion: 'Una mazmorra sin explorar bajo la ciudad de Waterdeep esconde tesoros inimaginables... y peligros mortales.',
-    historia: 'Un anciano cartógrafo encontró mapas de una mazmorra desconocida bajo la ciudad. Nadie que haya entrado ha vuelto, pero las riquezas prometidas son demasiado tentadoras para ignorarlas.',
-    portada: getCampanaUrl('El Dungeon Olvidado'),
-    master: 'DarkMaster',
-    jugadores: [{ id: 4, nombre: 'Gandor' }, { id: 5, nombre: 'Lyra' }, { id: 6, nombre: 'Thork' }],
-    maxJugadores: 4, sesiones: 12, sistema: 'D&D 5e',
-    dificultad: 'Épica', estado: 'Abierta', nivelMinimo: 5,
-  },
-  {
-    id: 4,
-    nombre: 'Inicio del Aventurero',
-    descripcion: 'Campaña perfecta para nuevos jugadores. Una historia de introducción al mundo del rol.',
-    historia: 'Un pequeño pueblo necesita ayuda. Monstruos están atacando los campos y el alcalde no sabe qué hacer.',
-    portada: getCampanaUrl('Inicio del Aventurero'),
-    master: 'GuíaRol',
-    jugadores: [],
-    maxJugadores: 6, sesiones: 3, sistema: 'D&D 5e',
-    dificultad: 'Fácil', estado: 'Abierta', nivelMinimo: 1,
-  },
-  {
-    id: 5,
-    nombre: 'La Torre del Hechicero Loco',
-    descripcion: 'Un hechicero excéntrico ha lanzado un hechizo que está afectando a toda la región.',
-    historia: 'El hechicero Malachar lleva semanas encerrado en su torre haciendo experimentos fallidos.',
-    portada: getCampanaUrl('La Torre del Hechicero Loco'),
-    master: 'WizardPro',
-    jugadores: [{ id: 7, nombre: 'Rolo' }],
-    maxJugadores: 4, sesiones: 4, sistema: 'D&D 5e',
-    dificultad: 'Media', estado: 'Abierta', nivelMinimo: 2,
-  },
-  {
-    id: 6,
-    nombre: 'Piratas del Mar de las Espadas',
-    descripcion: 'Aventuras en alta mar, tesoros piratas y ciudades flotantes.',
-    historia: 'Una flota pirata lleva meses saqueando los puertos del Mar de las Espadas.',
-    portada: getCampanaUrl('Piratas del Mar de las Espadas'),
-    master: 'SeaCaptain',
-    jugadores: [{ id: 8, nombre: 'Marina' }, { id: 9, nombre: 'Corsario' }],
-    maxJugadores: 5, sesiones: 10, sistema: 'D&D 5e',
-    dificultad: 'Difícil', estado: 'Abierta', nivelMinimo: 4,
-  },
-];
+const CAMPANAS_MOCK: Campana[] = [];
 
 const DIFICULTAD_COLOR: Record<string, string> = {
   'Fácil':   '#2ecc71',
@@ -286,9 +221,35 @@ function ModoHistoriaCover({
 }
 
 // ── MODAL CAMPAÑA ─────────────────────────────────────────
-function ModalCampana({ campana, onClose }: { campana: Campana; onClose: () => void }) {
+function ModalCampana({
+  campana,
+  onClose,
+  onDelete
+}: {
+  campana: Campana;
+  onClose: () => void;
+  onDelete?: (id: number) => void;
+}) {
   const plazasLibres = campana.maxJugadores - campana.jugadores.length;
   const navigate = useNavigate();
+
+  const { user } = useAuth();
+
+  const handleEliminar = async () => {
+    if (window.confirm(`¿Estás seguro de que quieres eliminar la campaña "${campana.nombre}"?`)) {
+      try {
+        await eliminarCampana(campana.id);
+        alert('Campaña eliminada correctamente');
+        if (onDelete) {
+          onDelete(campana.id);
+        }
+        onClose();
+      } catch (error) {
+        console.error('Error al eliminar la campaña', error);
+        alert('No se pudo eliminar la campaña. Asegúrate de que tienes permisos.');
+      }
+    }
+  };
 
   return (
     <div className="jg-modal-overlay" onClick={onClose}>
@@ -355,14 +316,35 @@ function ModalCampana({ campana, onClose }: { campana: Campana; onClose: () => v
               <button 
                 className="jg-btn-unirse" 
                 disabled={plazasLibres === 0}
-                onClick={() => navigate('/tablero', { 
-                  state: { 
-                    campañaNombre: campana.nombre,
-                    mapaUrl: '/images/mapas/bosque/caminoForestal.jpg'
-                  } 
-                })}
+                onClick={() => {
+                  const jugadorRed = {
+                    id: user?.id || Date.now(),
+                    nombre: user?.nombre || 'Tú',
+                    clase: 'Aventurero',
+                    hp: 20,
+                    hpMax: 20,
+                    conectado: true
+                  };
+                  const misJugadores = [...campana.jugadores, jugadorRed];
+                  navigate('/tablero', {
+                    state: {
+                      campanaId: campana.id,
+                      campaaNombre: campana.nombre,
+                      mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
+                      jugadores: misJugadores,
+                      jugadorActual: jugadorRed
+                    }
+                  });
+                }}
               >
                 {plazasLibres > 0 ? '⚔ Unirme a esta Campaña' : 'Campaña Completa'}
+              </button>
+              
+              <button 
+                className="jg-btn-eliminar" 
+                onClick={handleEliminar}
+              >
+                ✕ Eliminar esta Campaña
               </button>
           
         </div>
@@ -515,6 +497,7 @@ function ModalSuscripcionRequerida({
 // ── COMPONENTE PRINCIPAL ──────────────────────────────────
 export function JoinGame() {
   const navigate = useNavigate();
+  const [campanas, setCampanas] = useState<Campana[]>([]);
   const [campanaSeleccionada, setCampanaSeleccionada] = useState<Campana | null>(null);
   const [modoHistoriaSeleccionado, setModoHistoriaSeleccionado] = useState<ModoHistoria | null>(null);
   const [modoBloqueadoSeleccionado, setModoBloqueadoSeleccionado] = useState<{ nombre: string; nivelRequerido: TipoSuscripcion } | null>(null);
@@ -525,6 +508,33 @@ export function JoinGame() {
   const [cargandoModosHistoria, setCargandoModosHistoria] = useState(false);
   const [errorModosHistoria, setErrorModosHistoria] = useState<string | null>(null);
   const [tipoSuscripcionUsuario, setTipoSuscripcionUsuario] = useState<TipoSuscripcion>(resolverTipoSuscripcionPersistida);
+
+  useEffect(() => {
+    const cargarCampanas = async () => {
+      try {
+        const data = await obtenerCampanasActivas();
+        const mapped: Campana[] = data.map(c => ({
+          id: c.id,
+          nombre: c.nombre,
+          descripcion: c.descripcion || c.nombre,
+          historia: c.descripcion || c.nombre,
+          portada: c.imagen || getCampanaUrl(c.nombre),
+          master: c.masterNombre || 'Master',
+          jugadores: [], // Sin jugadores por ahora
+          maxJugadores: c.maxJugadores || 10,
+          sesiones: 0,
+          sistema: c.sistema || 'D&D 5e',
+          dificultad: c.dificultad || 'Media',
+          estado: c.active ? 'Abierta' : 'Completa',
+          nivelMinimo: c.nivelMinimo || 1
+        }));
+        setCampanas(mapped);
+      } catch (e) {
+        console.error('Error al cargar campañas', e);
+      }
+    };
+    cargarCampanas();
+  }, []);
 
   useEffect(() => {
     sessionStorage.setItem(VISTA_JOIN_GAME_STORAGE_KEY, vistaActual);
@@ -626,7 +636,7 @@ export function JoinGame() {
     return NIVEL_SUSCRIPCION[tipoSuscripcionUsuario] >= NIVEL_SUSCRIPCION[nivelRequerido];
   };
 
-  const campanasFiltradas = CAMPANAS_MOCK.filter(c => {
+  const campanasFiltradas = campanas.filter(c => {
     const coincideBusqueda = c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       c.master.toLowerCase().includes(busqueda.toLowerCase());
     const coincideFiltro = filtro === 'todas' || normalizarDificultad(c.dificultad) === normalizarDificultad(filtro);
@@ -764,8 +774,12 @@ export function JoinGame() {
                       <div className="jg-card-footer">
                         <span className="jg-card-master">⚔ {campana.master}</span>
                         <span className={`jg-card-plazas ${plazasLibres === 0 ? 'completa' : ''}`}>
-                          👥 {plazasLibres > 0 ? `${plazasLibres} plazas` : 'Completa'}
+                          👥 {campana.jugadores.length > 0 ? `${campana.jugadores.length}/${campana.maxJugadores}` : `0/${campana.maxJugadores}`}
                         </span>
+                      </div>
+                      <div className="jg-card-modo-meta">
+                        <span className="jg-card-modo-nivel">Nv. mín. {campana.nivelMinimo}</span>
+                        <span className="jg-card-modo-personajes">✨ {plazasLibres > 0 ? `${plazasLibres} plazas libres` : 'Completa'}</span>
                       </div>
                     </div>
                   </div>
@@ -854,7 +868,11 @@ export function JoinGame() {
 
       {/* MODALES */}
       {campanaSeleccionada && (
-        <ModalCampana campana={campanaSeleccionada} onClose={() => setCampanaSeleccionada(null)} />
+        <ModalCampana
+          campana={campanaSeleccionada}
+          onClose={() => setCampanaSeleccionada(null)}
+          onDelete={(id) => setCampanas(prev => prev.filter(c => c.id !== id))}
+        />
       )}
       {modoHistoriaSeleccionado && (
         <ModalModoHistoria
