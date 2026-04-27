@@ -46,6 +46,22 @@ const JUGADORES_DEMO: Jugador[] = [
   { id: '3', nombre: 'Kira',     clase: 'Pícaro',  hp: 15, hpMax: 15, color: '#f39c12', conectado: false },
 ];
 
+const COLORES_CLASES: Record<string, string> = {
+  Bárbaro: '#e74c3c',
+  Bardo: '#9b59b6',
+  Clérigo: '#f1c40f',
+  Druida: '#2ecc71',
+  Guerrero: '#c0392b',
+  Monje: '#27ae60',
+  Paladín: '#f39c12',
+  Explorador: '#16a085',
+  Pícaro: '#34495e',
+  Hechicero: '#8e44ad',
+  Brujo: '#2980b9',
+  Mago: '#3498db',
+  Desconocida: '#95a5a6'
+};
+
 function hora() {
   return new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
@@ -59,9 +75,12 @@ interface Props {
   nombreMaster?: string;
   colorMaster?: string;
   panelSuperior?: ReactNode;
+  jugadores?: any[]; // The real players mapped from backend, if present
+  campanaId?: number | string;
+  jugadorActual?: any;
 }
 
-export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b', panelSuperior }: Props) {
+export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b', panelSuperior, jugadores, campanaId, jugadorActual }: Props) {
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'dados'>('chat');
   const [mensajes, setMensajes] = useState<MensajeChat[]>([
     {
@@ -82,7 +101,9 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
   const chatRef = useRef<HTMLDivElement>(null);
   const stompRef = useRef<Client | null>(null);
 
-  // ── CONEXIÓN WEBSOCKET ────────────────────────────────
+  const [jugadoresRed, setJugadoresRed] = useState<any[]>(jugadores || []);
+
+  // ── CONEXIÓN WEBSOCKET ──────────────────────────────────
   useEffect(() => {
     const client = new Client({
       webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
@@ -99,6 +120,20 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
             timestamp: msg.timestamp || hora(),
           }]);
         });
+
+        if (campanaId) {
+          client.subscribe(`/topic/campana/${campanaId}/jugadores`, (frame) => {
+            const list = JSON.parse(frame.body);
+            setJugadoresRed(list);
+          });
+
+          if (jugadorActual) {
+            client.publish({
+              destination: `/app/campana/${campanaId}/join`,
+              body: JSON.stringify(jugadorActual),
+            });
+          }
+        }
 
         setMensajes(prev => [...prev, {
           id: 'connected-' + Date.now(),
@@ -197,8 +232,20 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
 
     setDadoActivo(null);
     setResultadoActivo(null);
-    setPestana('chat');
+    // Removemos el cambio automático de pestaña, así se queda donde el usuario estaba
   }, [dadoActivo, resultadoActivo, modificador, nombreMaster, colorMaster]);
+
+  // Si nos pasan jugadores, los mapeamos al formato visual. Si no, usamos los de DEMO.
+  const basePlayers = jugadoresRed.length > 0 ? jugadoresRed : (jugadores !== undefined ? jugadores : JUGADORES_DEMO);
+  const jugadoresAMostrar = basePlayers.map((j: any, i: number) => ({
+        id: j.id?.toString() || i.toString(),
+        nombre: j.nombre || j.usuarioNombre || 'Aventurero',
+        clase: j.clase || 'Desconocida',
+        hp: j.hp || 10,
+        hpMax: j.hpMax || 10,
+        color: j.color || COLORES_CLASES[j.clase] || '#4a90d9',
+        conectado: j.conectado !== false
+  }));
 
   return (
     <div className="pp-panel">
@@ -308,29 +355,35 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
       {pestana === 'jugadores' && (
         <div className="pp-seccion">
           <div className="pp-jugadores-lista">
-            {JUGADORES_DEMO.map(j => (
-              <div key={j.id} className={`pp-jugador ${j.conectado ? '' : 'desconectado'}`}>
-                <div className="pp-jugador-cabecera">
-                  <span className="pp-jugador-dot" style={{ background: j.conectado ? j.color : '#555' }} />
-                  <span className="pp-jugador-nombre">{j.nombre}</span>
-                  <span className="pp-jugador-clase">{j.clase}</span>
-                  {!j.conectado && <span className="pp-jugador-off">desconectado</span>}
-                </div>
-                <div className="pp-jugador-hp-wrap">
-                  <span className="pp-jugador-hp-label">HP</span>
-                  <div className="pp-jugador-hp-barra">
-                    <div
-                      className="pp-jugador-hp-fill"
-                      style={{
-                        width: `${(j.hp / j.hpMax) * 100}%`,
-                        background: j.hp / j.hpMax > 0.5 ? '#2ecc71' : j.hp / j.hpMax > 0.25 ? '#f39c12' : '#e74c3c',
-                      }}
-                    />
+            {jugadoresAMostrar.length > 0 ? (
+              jugadoresAMostrar.map(j => (
+                <div key={j.id} className={`pp-jugador ${j.conectado ? '' : 'desconectado'}`}>
+                  <div className="pp-jugador-cabecera">
+                    <span className="pp-jugador-dot" style={{ background: j.conectado ? j.color : '#555' }} />
+                    <span className="pp-jugador-nombre">{j.nombre}</span>
+                    <span className="pp-jugador-clase">{j.clase}</span>
+                    {!j.conectado && <span className="pp-jugador-off">desconectado</span>}
                   </div>
-                  <span className="pp-jugador-hp-num">{j.hp}/{j.hpMax}</span>
+                  <div className="pp-jugador-hp-wrap">
+                    <span className="pp-jugador-hp-label">HP</span>
+                    <div className="pp-jugador-hp-barra">
+                      <div
+                        className="pp-jugador-hp-fill"
+                        style={{
+                          width: `${(j.hp / j.hpMax) * 100}%`,
+                          background: j.hp / j.hpMax > 0.5 ? '#2ecc71' : j.hp / j.hpMax > 0.25 ? '#f39c12' : '#e74c3c',
+                        }}
+                      />
+                    </div>
+                    <span className="pp-jugador-hp-num">{j.hp}/{j.hpMax}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="tb-vacio" style={{ textAlign: 'center', opacity: 0.5, fontSize: '13px', paddingTop: '20px' }}>
+                Sin jugadores en la partida
+              </p>
+            )}
           </div>
         </div>
       )}
