@@ -14,5 +14,5 @@ public class CampanaRequest {
     private String calcDistancia;
     private String logo;
     private String imagen;
-    private List<Integer> mapasSeleccionados;
+    private List<String> mapas;
 }

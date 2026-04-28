@@ -224,11 +224,13 @@ function ModoHistoriaCover({
 function ModalCampana({
   campana,
   onClose,
-  onDelete
+  onDelete,
+  suscripcionUsuario,
 }: {
   campana: Campana;
   onClose: () => void;
   onDelete?: (id: number) => void;
+  suscripcionUsuario: TipoSuscripcion;
 }) {
   const plazasLibres = campana.maxJugadores - campana.jugadores.length;
   const navigate = useNavigate();
@@ -317,10 +319,11 @@ function ModalCampana({
                 className="jg-btn-unirse" 
                 disabled={plazasLibres === 0}
                 onClick={() => {
+                  const nombreClaseSuscripcion = PLANES_SUSCRIPCION.find(p => p.tipo === suscripcionUsuario)?.nombre || 'Aventurero';
                   const jugadorRed = {
                     id: user?.id || Date.now(),
                     nombre: user?.nombre || 'Tú',
-                    clase: 'Aventurero',
+                    clase: nombreClaseSuscripcion,
                     hp: 20,
                     hpMax: 20,
                     conectado: true
@@ -872,6 +875,7 @@ export function JoinGame() {
           campana={campanaSeleccionada}
           onClose={() => setCampanaSeleccionada(null)}
           onDelete={(id) => setCampanas(prev => prev.filter(c => c.id !== id))}
+          suscripcionUsuario={tipoSuscripcionUsuario}
         />
       )}
       {modoHistoriaSeleccionado && (

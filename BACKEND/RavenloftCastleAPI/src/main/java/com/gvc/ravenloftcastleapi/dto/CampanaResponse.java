@@ -17,7 +17,7 @@ public class CampanaResponse {
     private String imagen;
     private Long masterId;
     private String masterNombre;
-    private List<Integer> mapasSeleccionados;
+    private List<String> mapas;
     private String dificultad;
     private Integer maxJugadores;
     private Integer nivelMinimo;

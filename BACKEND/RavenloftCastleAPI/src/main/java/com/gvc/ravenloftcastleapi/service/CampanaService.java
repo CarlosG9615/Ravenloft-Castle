@@ -37,6 +37,7 @@ public class CampanaService {
                 .sistema("D&D 5e")
                 .logo(request.getLogo())
                 .imagen(request.getImagen())
+                .mapas(request.getMapas() != null ? request.getMapas() : new java.util.ArrayList<>())
                 .master(master)
                 .build();
 
@@ -73,11 +74,18 @@ public class CampanaService {
                 .descripcion(campana.getDescripcion())
                 .logo(campana.getLogo())
                 .imagen(campana.getImagen())
+                .mapas(campana.getMapas() != null ? new java.util.ArrayList<>(campana.getMapas()) : new java.util.ArrayList<>())
                 .masterId(campana.getMaster().getId())
                 .masterNombre(campana.getMaster().getNombre())
                 .maxJugadores(campana.getMaxJugadores())
                 .sistema(campana.getSistema())
                 .active(campana.getActive())
                 .build();
+    }
+
+    public CampanaResponse obtenerCampanaPorId(Long id) {
+        Campana campana = campanaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Campaña no encontrada"));
+        return mapToResponse(campana);
     }
 }

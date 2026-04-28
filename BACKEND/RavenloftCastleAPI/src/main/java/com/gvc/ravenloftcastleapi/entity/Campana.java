@@ -3,6 +3,7 @@ package com.gvc.ravenloftcastleapi.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -46,6 +47,11 @@ public class Campana {
 
     @Column(columnDefinition = "LONGTEXT")
     private String imagen;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "campana_mapas", joinColumns = @JoinColumn(name = "campana_id", columnDefinition = "INT UNSIGNED"))
+    @Column(name = "mapa_ruta")
+    private List<String> mapas = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "master_id", columnDefinition = "INT UNSIGNED")

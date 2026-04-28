@@ -236,8 +236,8 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
   }, [dadoActivo, resultadoActivo, modificador, nombreMaster, colorMaster]);
 
   // Si nos pasan jugadores, los mapeamos al formato visual. Si no, usamos los de DEMO.
-  const basePlayers = jugadoresRed.length > 0 ? jugadoresRed : (jugadores !== undefined ? jugadores : JUGADORES_DEMO);
-  const jugadoresAMostrar = basePlayers.map((j: any, i: number) => ({
+  const jugadoresAMostrar = (jugadoresRed.length > 0 ? jugadoresRed : (jugadores !== undefined ? jugadores : JUGADORES_DEMO))
+    .map((j: any, i: number) => ({
         id: j.id?.toString() || i.toString(),
         nombre: j.nombre || j.usuarioNombre || 'Aventurero',
         clase: j.clase || 'Desconocida',
@@ -245,7 +245,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
         hpMax: j.hpMax || 10,
         color: j.color || COLORES_CLASES[j.clase] || '#4a90d9',
         conectado: j.conectado !== false
-  }));
+      }));
 
   return (
     <div className="pp-panel">
