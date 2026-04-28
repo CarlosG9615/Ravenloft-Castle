@@ -1,7 +1,10 @@
 package com.gvc.ravenloftcastleapi.dto;
 
-import lombok.*;
-import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -12,15 +15,16 @@ public class CampanaResponse {
     private Long id;
     private String nombre;
     private String descripcion;
-    private String calcDistancia;
+    private String codigoInvitacion;
+    private String dificultad;
     private String logo;
     private String imagen;
+    private String mapasSeleccionados;
     private Long masterId;
     private String masterNombre;
-    private List<String> mapas;
-    private String dificultad;
     private Integer maxJugadores;
-    private Integer nivelMinimo;
+    private Integer numSesiones;
     private String sistema;
+    private String estado;
     private Boolean active;
 }

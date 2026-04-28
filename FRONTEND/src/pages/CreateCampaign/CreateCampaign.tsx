@@ -3,13 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import './CreateCampaign.css';
 import { crearCampana } from '../../services/campanaService';
 
-// ── TIPOS ─────────────────────────────────────────────────
-interface Campana {
-  id: number;
-  nombre: string;
-  descripcion: string;
-}
-
 interface Mapa {
   id: number;
   nombre: string;
@@ -17,11 +10,6 @@ interface Mapa {
   categoria: string[];
   favorito: boolean;
 }
-
-// ── DATOS ─────────────────────────────────────────────────
-const MIS_CAMPANAS_MOCK: Campana[] = [];
-
-
 
 const CATEGORIAS_MAPA = [
   { key: 'Todos',     icon: '🗺' },

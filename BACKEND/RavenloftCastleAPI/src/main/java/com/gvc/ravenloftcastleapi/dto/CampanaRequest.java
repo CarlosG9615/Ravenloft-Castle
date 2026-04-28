@@ -1,7 +1,6 @@
 package com.gvc.ravenloftcastleapi.dto;
 
 import lombok.*;
-import java.util.List;
 
 @Getter
 @Setter
@@ -11,8 +10,13 @@ import java.util.List;
 public class CampanaRequest {
     private String nombre;
     private String descripcion;
-    private String calcDistancia;
+    private Boolean active;
+    private String sistema;
+    private Integer maxJugadores;
+    private Integer numSesiones;
+    private String dificultad;
+    private String mapasSeleccionados;
+    private String estado;
     private String logo;
     private String imagen;
-    private List<String> mapas;
 }
