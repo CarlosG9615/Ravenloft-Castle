@@ -945,6 +945,18 @@
   box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);
 }
 
+.jg-btn-unirse.jg-btn-master {
+  background: linear-gradient(135deg, rgba(148, 107, 40, 0.98), rgba(206, 165, 70, 0.98));
+  border-color: rgba(255, 214, 102, 0.7);
+  color: #fff8db;
+  box-shadow: 0 4px 20px rgba(157, 120, 34, 0.35);
+}
+
+.jg-btn-unirse.jg-btn-master:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(170, 124, 46, 1), rgba(232, 189, 82, 1));
+  box-shadow: 0 6px 18px rgba(157, 120, 34, 0.45);
+}
+
 .jg-btn-eliminar {
   margin-top: 10px;
   background-color: #8b0000;

@@ -3,7 +3,7 @@ import { API_URL, authHeaders } from './api';
 export interface CampanaRequest {
   nombre: string;
   descripcion: string;
-  calcDistancia: string;
+  calcDistancia?: string;
   logo: string | null;
   imagen: string | null;
   mapasSeleccionados: number[];
@@ -21,6 +21,7 @@ export interface CampanaResponse {
   mapasSeleccionados: number[];
   dificultad: 'Fácil' | 'Media' | 'Difícil' | 'Épica';
   maxJugadores: number;
+  numSesiones: number;
   nivelMinimo: number;
   sistema: string;
   active: boolean;

@@ -1,19 +1,21 @@
 package com.gvc.ravenloftcastleapi.service;
 
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+
 import com.gvc.ravenloftcastleapi.dto.CampanaRequest;
 import com.gvc.ravenloftcastleapi.dto.CampanaResponse;
 import com.gvc.ravenloftcastleapi.entity.Campana;
 import com.gvc.ravenloftcastleapi.entity.Usuario;
+import com.gvc.ravenloftcastleapi.enums.EstadoCampana;
 import com.gvc.ravenloftcastleapi.repository.CampanaRepository;
 import com.gvc.ravenloftcastleapi.repository.UsuarioRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -27,14 +29,28 @@ public class CampanaService {
         Usuario master = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
+        Boolean active = request.getActive();
+        Integer maxJugadores = request.getMaxJugadores();
+        if (maxJugadores == null) {
+            maxJugadores = 5;
+        }
+
+        Integer numSesiones = request.getNumSesiones();
+        if (numSesiones == null) {
+            numSesiones = 0;
+        }
+
         Campana campana = Campana.builder()
                 .nombre(request.getNombre())
                 .descripcion(request.getDescripcion())
-                .active(true)
                 .codigoInvitacion(UUID.randomUUID().toString().substring(0, 8)) // short random code
-                .fechaCreacion(LocalDate.now())
-                .maxJugadores(10)
-                .sistema("D&D 5e")
+            .active(active == null || active)
+            .maxJugadores(maxJugadores)
+            .numSesiones(numSesiones)
+                .sistema(request.getSistema() != null ? request.getSistema() : "D&D 5e")
+                .dificultad(request.getDificultad())
+                .mapasSeleccionados(request.getMapasSeleccionados())
+                .estado(request.getEstado() != null ? EstadoCampana.fromString(request.getEstado()) : EstadoCampana.ABIERTA)
                 .logo(request.getLogo())
                 .imagen(request.getImagen())
                 .master(master)
@@ -71,12 +87,17 @@ public class CampanaService {
                 .id(campana.getId())
                 .nombre(campana.getNombre())
                 .descripcion(campana.getDescripcion())
+                .codigoInvitacion(campana.getCodigoInvitacion())
+                .dificultad(campana.getDificultad())
                 .logo(campana.getLogo())
                 .imagen(campana.getImagen())
+                .mapasSeleccionados(campana.getMapasSeleccionados())
                 .masterId(campana.getMaster().getId())
                 .masterNombre(campana.getMaster().getNombre())
                 .maxJugadores(campana.getMaxJugadores())
+                .numSesiones(campana.getNumSesiones())
                 .sistema(campana.getSistema())
+                .estado(campana.getEstado() != null ? campana.getEstado().toValue() : null)
                 .active(campana.getActive())
                 .build();
     }
