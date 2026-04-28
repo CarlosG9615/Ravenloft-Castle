@@ -194,8 +194,14 @@ export function CreateCampaign() {
         <div className="cc-campanas-contenido">
           <div className="cc-campanas-grid">
             <div className="cc-campana-card cc-campana-card--mis" onClick={() => navigate('/join')}>
-              <div className="cc-campana-icono">📋</div>
-              <h3 className="cc-campana-label">Mis Campañas</h3>
+              <div className="cc-campana-icono">
+                 <img 
+                    src="/images/espada 1.png" 
+                    alt="espada" 
+                    style={{ width: '200px', imageRendering: 'pixelated' }} 
+                  />
+              </div>
+              
               <p className="cc-campana-sub">Accede a tus campañas creadas y gestiona las fichas</p>
             </div>
             <div className="cc-campana-card cc-campana-card--add" onClick={() => setPaso(2)}>

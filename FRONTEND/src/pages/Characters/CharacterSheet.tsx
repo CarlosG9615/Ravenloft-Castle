@@ -5,6 +5,7 @@ import './CharacterSheet.css';
 import { BackButton } from '../../components/BackButton/BackButton';
 import { getPersonaje, deletePersonaje } from '../../services/personajeService';
 import { getCartaUrl } from '../../utils/imageUtils';
+import { BookOpen, Sword } from 'pixelarticons/react';
 
 // ── INTERFACES ───────────────────────────────────────────
 interface Stats {
@@ -303,10 +304,10 @@ export function CharacterSheet({
 
         <div className="sf-tabs">
           <button className={`sf-tab ${tab === 'ficha' ? 'active' : ''}`} onClick={() => setTab('ficha')}>
-            ⚔ Ficha de Personaje
+            <Sword /> Ficha de Personaje
           </button>
           <button className={`sf-tab ${tab === 'diario' ? 'active' : ''}`} onClick={() => setTab('diario')}>
-            📖 Diario de Campaña
+            <BookOpen /> Diario de Campaña
           </button>
         </div>
 
@@ -327,7 +328,7 @@ export function CharacterSheet({
 
           {/* MARCO ÉLFICO */}
 
-          
+          <div className="sf-marco-elfico" />
 
           {/* CABECERA */}
           <div className="sf-cabecera">

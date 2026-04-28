@@ -21,7 +21,8 @@
 
 .cc-campanas-grid {
   display: flex;
-  gap: 32px;
+  gap: 100px;
+  align-items: center; 
   flex-wrap: wrap;
   justify-content: center;
 }
@@ -36,6 +37,17 @@
   cursor: pointer;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
+}
+.cc-campana-card--mis {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.cc-campana-card--mis:hover {
+  border: none !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .cc-campana-card:hover {
