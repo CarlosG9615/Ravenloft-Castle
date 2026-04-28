@@ -37,4 +37,9 @@ public class CampanaController {
         campanaService.eliminarCampana(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<CampanaResponse> obtenerCampanaPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(campanaService.obtenerCampanaPorId(id));
+    }
 }

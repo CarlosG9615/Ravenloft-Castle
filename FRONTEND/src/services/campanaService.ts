@@ -6,7 +6,7 @@ export interface CampanaRequest {
   calcDistancia?: string;
   logo: string | null;
   imagen: string | null;
-  mapasSeleccionados: number[];
+  mapas: string[];
 }
 
 export interface CampanaResponse {
@@ -18,7 +18,7 @@ export interface CampanaResponse {
   imagen: string | null;
   masterId: number;
   masterNombre: string;
-  mapasSeleccionados: number[];
+  mapas: string[];
   dificultad: 'Fácil' | 'Media' | 'Difícil' | 'Épica';
   maxJugadores: number;
   numSesiones: number;
@@ -69,4 +69,15 @@ export const eliminarCampana = async (id: number): Promise<void> => {
   if (!response.ok) {
     throw new Error('Error al eliminar la campaña');
   }
+};
+
+export const obtenerCampanaPorId = async (id: number): Promise<CampanaResponse> => {
+  const response = await fetch(`${API_URL}/api/campanas/${id}`, {
+    method: 'GET',
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    throw new Error('Error al obtener la campaña');
+  }
+  return response.json();
 };

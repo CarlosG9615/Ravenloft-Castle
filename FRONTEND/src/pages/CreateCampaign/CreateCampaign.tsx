@@ -172,9 +172,10 @@ export function CreateCampaign() {
       await crearCampana({
         nombre,
         descripcion,
+        calcDistancia: 'casillas',
         logo: logoFile,
         imagen: imagenFile,
-        mapasSeleccionados,
+        mapas: mapasSeleccionados.map(id => MAPAS_MOCK.find(m => m.id === id)?.imagen).filter((img): img is string => !!img),
       });
       // Optionally, navigate to a success page or back to /join where it shows "Mis Campañas"
       navigate('/join');
