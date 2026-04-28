@@ -1,9 +1,8 @@
 package com.gvc.ravenloftcastleapi.entity;
 
+import com.gvc.ravenloftcastleapi.enums.EstadoCampana;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.util.List;
 
 @Entity
 @Table(name = "campana")
@@ -22,8 +21,11 @@ public class Campana {
     @Column(nullable = false, length = 150)
     private String nombre;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String descripcion;
+
+    @Column(name = "dificultad", length = 50)
+    private String dificultad;
 
     @Column(nullable = false)
     private Boolean active;
@@ -31,24 +33,30 @@ public class Campana {
     @Column(name = "codigo_invitacion", length = 100, unique = true)
     private String codigoInvitacion;
 
-    @Column(name = "fecha_creacion", nullable = false)
-    private java.time.LocalDate fechaCreacion;
-
     @Column(name = "max_jugadores", nullable = false)
     private Integer maxJugadores;
 
+    @Column(name = "num_sesiones", nullable = false)
+    private Integer numSesiones;
 
     @Column(nullable = false, length = 100)
     private String sistema;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false)
+    private EstadoCampana estado;
+
     @Column(columnDefinition = "LONGTEXT")
     private String logo;
 
-    @Column(columnDefinition = "LONGTEXT")
+    @Column(name = "mapas_seleccionados", columnDefinition = "LONGTEXT")
+    private String mapasSeleccionados;
+
+    @Column(length = 500)
     private String imagen;
 
     @ManyToOne
-    @JoinColumn(name = "master_id", columnDefinition = "INT UNSIGNED")
+    @JoinColumn(name = "master_id", columnDefinition = "INT UNSIGNED", nullable = false)
     private Usuario master;
 
 

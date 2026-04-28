@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './JoinGame.css';
 import { API_URL } from '../../services/api';
-import { obtenerCampanasActivas, eliminarCampana } from '../../services/campanaService';
+import { obtenerCampanasActivas } from '../../services/campanaService';
 import { getMySuscripciones, getUserSuscripciones } from '../../services/suscripcionService';
 import { getCampanaUrl, getModoHistoriaImageCandidates } from '../../utils/imageUtils';
 import { useAuth } from '../../services/AuthContext';
@@ -21,6 +21,7 @@ interface Campana {
   descripcion: string;
   historia: string;
   portada?: string;
+  masterId?: number;
   master: string;
   jugadores: Jugador[];
   maxJugadores: number;
@@ -144,9 +145,6 @@ const resolverTipoDesdeTexto = (valor?: string | null): TipoSuscripcion | null =
   return null;
 };
 
-// ── DATOS CAMPAÑAS ────────────────────────────────────────
-const CAMPANAS_MOCK: Campana[] = [];
-
 const DIFICULTAD_COLOR: Record<string, string> = {
   'Fácil':   '#2ecc71',
   'Media':   '#f39c12',
@@ -223,33 +221,16 @@ function ModoHistoriaCover({
 // ── MODAL CAMPAÑA ─────────────────────────────────────────
 function ModalCampana({
   campana,
-  onClose,
-  onDelete
+  onClose
 }: {
   campana: Campana;
   onClose: () => void;
-  onDelete?: (id: number) => void;
 }) {
   const plazasLibres = campana.maxJugadores - campana.jugadores.length;
   const navigate = useNavigate();
 
   const { user } = useAuth();
-
-  const handleEliminar = async () => {
-    if (window.confirm(`¿Estás seguro de que quieres eliminar la campaña "${campana.nombre}"?`)) {
-      try {
-        await eliminarCampana(campana.id);
-        alert('Campaña eliminada correctamente');
-        if (onDelete) {
-          onDelete(campana.id);
-        }
-        onClose();
-      } catch (error) {
-        console.error('Error al eliminar la campaña', error);
-        alert('No se pudo eliminar la campaña. Asegúrate de que tienes permisos.');
-      }
-    }
-  };
+  const soyMaster = typeof user?.id === 'number' && campana.masterId === user.id;
 
   return (
     <div className="jg-modal-overlay" onClick={onClose}>
@@ -313,10 +294,30 @@ function ModalCampana({
               </div>
             )}
           </div>
-              <button 
-                className="jg-btn-unirse" 
-                disabled={plazasLibres === 0}
+              <button
+                className={`jg-btn-unirse ${soyMaster ? 'jg-btn-master' : ''}`}
+                disabled={!soyMaster && plazasLibres === 0}
                 onClick={() => {
+                  if (soyMaster) {
+                    navigate('/tablero', {
+                      state: {
+                        campanaId: campana.id,
+                        campaaNombre: campana.nombre,
+                        mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
+                        jugadores: campana.jugadores,
+                        jugadorActual: {
+                          id: user?.id || Date.now(),
+                          nombre: user?.nombre || 'Tú',
+                          clase: 'Aventurero',
+                          hp: 20,
+                          hpMax: 20,
+                          conectado: true
+                        }
+                      }
+                    });
+                    return;
+                  }
+
                   const jugadorRed = {
                     id: user?.id || Date.now(),
                     nombre: user?.nombre || 'Tú',
@@ -337,16 +338,9 @@ function ModalCampana({
                   });
                 }}
               >
-                {plazasLibres > 0 ? '⚔ Unirme a esta Campaña' : 'Campaña Completa'}
+                {soyMaster ? '👑 Liderar la campaña' : (plazasLibres > 0 ? '⚔ Unirme a esta Campaña' : 'Campaña Completa')}
               </button>
               
-              <button 
-                className="jg-btn-eliminar" 
-                onClick={handleEliminar}
-              >
-                ✕ Eliminar esta Campaña
-              </button>
-          
         </div>
       </div>
     </div>
@@ -518,11 +512,12 @@ export function JoinGame() {
           nombre: c.nombre,
           descripcion: c.descripcion || c.nombre,
           historia: c.descripcion || c.nombre,
-          portada: c.imagen || getCampanaUrl(c.nombre),
+          portada: getCampanaUrl(c.nombre),
+          masterId: c.masterId,
           master: c.masterNombre || 'Master',
           jugadores: [], // Sin jugadores por ahora
           maxJugadores: c.maxJugadores || 10,
-          sesiones: 0,
+          sesiones: c.numSesiones || 0,
           sistema: c.sistema || 'D&D 5e',
           dificultad: c.dificultad || 'Media',
           estado: c.active ? 'Abierta' : 'Completa',
@@ -778,7 +773,6 @@ export function JoinGame() {
                         </span>
                       </div>
                       <div className="jg-card-modo-meta">
-                        <span className="jg-card-modo-nivel">Nv. mín. {campana.nivelMinimo}</span>
                         <span className="jg-card-modo-personajes">✨ {plazasLibres > 0 ? `${plazasLibres} plazas libres` : 'Completa'}</span>
                       </div>
                     </div>
@@ -871,7 +865,6 @@ export function JoinGame() {
         <ModalCampana
           campana={campanaSeleccionada}
           onClose={() => setCampanaSeleccionada(null)}
-          onDelete={(id) => setCampanas(prev => prev.filter(c => c.id !== id))}
         />
       )}
       {modoHistoriaSeleccionado && (
