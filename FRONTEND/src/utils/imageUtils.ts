@@ -1,5 +1,4 @@
 const BASE_URL = import.meta.env.VITE_CLOUDINARY_URL as string
-const VIDEO_BASE_URL = (import.meta.env.VITE_CLOUDINARY_VIDEO_URL as string) ?? BASE_URL.replace('/image/upload', '/video/upload')
 const MODO_HISTORIA_VERSION = (import.meta.env.VITE_CLOUDINARY_MODO_HISTORIA_VERSION as string) ?? 'v1776078423'
 
 const AVATAR_PREFIX = 'avatar_'
@@ -68,9 +67,6 @@ export const getCampanaUrl = (titulo: string): string => {
   const slug = CAMPANA_OVERRIDES[titulo] ?? limpiarTituloCampana(titulo)
   return `${BASE_URL}/${CAMPANA_PREFIX}${slug}.png`
 }
-
-export const getJoinGameVideoUrl = (): string =>
-  `${VIDEO_BASE_URL}/v1776077025/UnirseAPartida.mp4`
 
 export const getModoHistoriaImageCandidates = (titulo: string): string[] => {
   const candidatos = new Set<string>()

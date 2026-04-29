@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { ThemeProvider } from './services/ThemeContext';
 import { AuthProvider } from './services/AuthContext';
 import { Header } from './components/Header/Header';
@@ -20,16 +20,20 @@ import { JoinGame } from './pages/JoinGame/JoinGame';
 import { CreateCampaign } from './pages/CreateCampaign/CreateCampaign';
 import { Subscription } from './pages/Subscription/Subscription';
 import { Tablero } from './pages/Tablero/Tablero';
+import { TableroStoryMode } from './pages/TableroStoryMode/TableroStoryMode';
 import { RoleSelect } from './pages/RoleSelect/Rolselect';
 import { Community } from './pages/Community/Community';
 import { StoryMode } from './pages/StoryMode/StoryMode';
+import Mission from './pages/Mission/Mission.jsx';
 
 import './App.css';
+
+const JOIN_GAME_VISTA_KEY = 'ravenloft.joinGame.vistaActual';
 
 function Layout() {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  const isTablero = location.pathname === '/tablero';
+  const isTablero = location.pathname === '/tablero' || location.pathname === '/tablero-story-mode';
 
   useEffect(() => {
     let title = "Ravenloft Castle";
@@ -56,6 +60,15 @@ function Layout() {
     }
 
     document.title = title;
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const path = location.pathname;
+    const esRutaRelacionadaConJoin = path === '/join' || path.startsWith('/story-mode');
+
+    if (!esRutaRelacionadaConJoin) {
+      sessionStorage.removeItem(JOIN_GAME_VISTA_KEY);
+    }
   }, [location.pathname]);
 
   return (
@@ -103,12 +116,18 @@ function Layout() {
           <Route path="/story-mode/:id" element={
             <PrivateRoute><StoryMode /></PrivateRoute>
           } />
+          <Route path="/story-mode/:id/:misionId" element={
+            <PrivateRoute><Mission /></PrivateRoute>
+          } />
 
           <Route path="/create" element={
           <PrivateRoute><CreateCampaign /></PrivateRoute>
         } />
                 <Route path="/tablero" element={
           <PrivateRoute><Tablero /></PrivateRoute>
+        } />
+        <Route path="/tablero-story-mode" element={
+          <PrivateRoute><TableroStoryMode /></PrivateRoute>
         } />
         <Route path="/role-select" element={
           <PrivateRoute><RoleSelect /></PrivateRoute>

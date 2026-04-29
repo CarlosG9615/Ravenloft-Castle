@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Characters.css';
-import { BackButton } from '../../components/BackButton/BackButton';
 import { getPersonajes } from '../../services/personajeService';
 import { getCartaUrl } from '../../utils/imageUtils';
+import { FileText, Sword } from 'pixelarticons/react';
 
 interface PersonajeDTO {
   id: number;
@@ -50,12 +50,13 @@ export function CharactersList() {
 
   return (
     <div className="characters-page">
-      <BackButton />
       <div className="container-xl py-5">
 
         {/* CABECERA */}
         <div className="d-flex align-items-center justify-content-between mb-5">
-          <h1 className="characters-title mb-0">📜 Mis Personajes</h1>
+          <h1 className="characters-title mb-0">
+            <FileText width={32} height={32} style={{ color: '#e2b96f' }} /> Mis Personajes
+          </h1>
           <button
             className="btn characters-btn-primary px-4"
             onClick={() => navigate('/characters/new')}
@@ -94,7 +95,9 @@ export function CharactersList() {
             /* ESTADO VACÍO */
             <div className="col-12">
               <div className="characters-empty">
-                <div className="characters-empty-icon">⚔</div>
+                <div className="characters-empty-icon">
+                  <Sword width={48} height={48} style={{ color: 'red'}} />
+                </div>
                 <h3 className="characters-empty-title">No tienes personajes aún</h3>
                 <p className="characters-empty-desc">
                   Crea tu primer aventurero y comienza tu leyenda.

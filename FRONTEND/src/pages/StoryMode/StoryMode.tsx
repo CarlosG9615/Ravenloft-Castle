@@ -264,7 +264,7 @@ export function StoryMode() {
 				<div className="sm-bg-overlay" />
 			</div>
 
-			<BackButton />
+			<BackButton to="/join" />
 
 			<div className="sm-contenido jg-contenido">
 				<div className="jg-header sm-header">
