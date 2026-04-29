@@ -23,6 +23,7 @@ public class TableroWebSocketController {
         this.messagingTemplate = messagingTemplate;
     }
 
+
     @MessageMapping("/campana/{campanaId}/join")
     public void joinCampana(@DestinationVariable String campanaId, @Payload JugadorWsDTO jugador) {
         sessionesCampana.putIfAbsent(campanaId, new ConcurrentHashMap<>());
@@ -99,6 +100,10 @@ public class TableroWebSocketController {
         public void setHpMax(Integer hpMax) { this.hpMax = hpMax; }
         public Boolean getConectado() { return conectado; }
         public void setConectado(Boolean conectado) { this.conectado = conectado; }
+    }
+    @MessageMapping("/campana/{campanaId}/voice")
+    public void señalizarVoz(@DestinationVariable String campanaId, @Payload Map<String, Object> señal) {
+        messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/voice", (Object) señal);
     }
 }
 
