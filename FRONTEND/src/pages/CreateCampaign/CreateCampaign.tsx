@@ -1,14 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './CreateCampaign.css';
-import { BackButton } from '../../components/BackButton/BackButton';
-
-// ── TIPOS ─────────────────────────────────────────────────
-interface Campana {
-  id: number;
-  nombre: string;
-  descripcion: string;
-}
+import { crearCampana } from '../../services/campanaService';
 
 interface Mapa {
   id: number;
@@ -17,17 +10,6 @@ interface Mapa {
   categoria: string[];
   favorito: boolean;
 }
-
-// ── DATOS ─────────────────────────────────────────────────
-const MIS_CAMPANAS_MOCK: Campana[] = [];
-
-const CALC_DISTANCIA = [
-  'Por defecto',
-  'Distancia real',
-  'Diagonal libre',
-  'Diagonal alterna',
-  'Sin diagonales',
-];
 
 const CATEGORIAS_MAPA = [
   { key: 'Todos',     icon: '🗺' },
@@ -113,9 +95,12 @@ export function CreateCampaign() {
   // Formulario
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [calcDistancia, setCalcDistancia] = useState('Por defecto');
   const [logoFile, setLogoFile] = useState<string | null>(null);
   const [imagenFile, setImagenFile] = useState<string | null>(null);
+  const [maxJugadores, setMaxJugadores] = useState(5);
+  const [numSesiones, setNumSesiones] = useState(0);
+  const [dificultad, setDificultad] = useState('Media');
+  const [codigoInvitacion, setCodigoInvitacion] = useState('');
 
   // Mapas
   const [mapas, setMapas] = useState<Mapa[]>(MAPAS_MOCK);
@@ -125,6 +110,7 @@ export function CreateCampaign() {
   const [fadeIn, setFadeIn] = useState(true);
 
   const [filtroAbierto, setFiltroAbierto] = useState(false);
+  const [guardando, setGuardando] = useState(false);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) => {
     const file = e.target.files?.[0];
@@ -184,20 +170,47 @@ export function CreateCampaign() {
 
   const mapaActual = mapasFiltrados[mapaIndex] ?? null;
 
+  const handleCrearCampana = async () => {
+    try {
+      setGuardando(true);
+      await crearCampana({
+        nombre,
+        descripcion,
+        calcDistancia: 'casillas',
+        logo: logoFile,
+        imagen: imagenFile,
+        mapas: mapasSeleccionados.map(id => MAPAS_MOCK.find(m => m.id === id)?.imagen).filter((img): img is string => !!img),
+        maxJugadores,
+        numSesiones,
+        dificultad,
+        codigoInvitacion
+      });
+      // Optionally, navigate to a success page or back to /join where it shows "Mis Campañas"
+      navigate('/join');
+    } catch (error) {
+      console.error('Error creando campaña', error);
+      alert('Hubo un error al crear la campaña. Intenta de nuevo.');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   // ── PASO 1: MIS CAMPAÑAS ──────────────────────────────
   if (paso === 1) {
     return (
       <div className="cc-page--campanas">
-        <BackButton />
         <div className="cc-campanas-contenido">
           <div className="cc-campanas-grid">
-            <div className="cc-campana-card cc-campana-card--mis">
-              <div className="cc-campana-icono">📋</div>
-              <h3 className="cc-campana-label">Mis Campañas</h3>
+            <div className="cc-campana-card cc-campana-card--mis" onClick={() => navigate('/join')}>
+              <div className="cc-campana-icono">
+                 <img 
+                    src="/images/espada 1.png" 
+                    alt="espada" 
+                    style={{ width: '200px', imageRendering: 'pixelated' }} 
+                  />
+              </div>
+              
               <p className="cc-campana-sub">Accede a tus campañas creadas y gestiona las fichas</p>
-              {MIS_CAMPANAS_MOCK.length === 0 && (
-                <p className="cc-campana-vacio">No tienes campañas aún</p>
-              )}
             </div>
             <div className="cc-campana-card cc-campana-card--add" onClick={() => setPaso(2)}>
               <div className="cc-campana-icono cc-campana-icono--add">+</div>
@@ -214,7 +227,6 @@ export function CreateCampaign() {
   if (paso === 2) {
     return (
       <div className="cc-page--form">
-        <BackButton />
         <div className="cc-form-contenido">
           <h2 className="cc-form-titulo">Añadir Campaña</h2>
           <div className="cc-form">
@@ -250,16 +262,37 @@ export function CreateCampaign() {
             </div>
 
             <div className="cc-field">
-              <label className="cc-label">Cálculo de distancia en Tablero Virtual</label>
-              <select className="cc-select" value={calcDistancia} onChange={e => setCalcDistancia(e.target.value)}>
-                {CALC_DISTANCIA.map(op => <option key={op} value={op}>{op}</option>)}
+              <label className="cc-label">Descripción</label>
+              <textarea className="cc-input cc-textarea" placeholder="Describe tu campaña..."
+                value={descripcion} onChange={e => setDescripcion(e.target.value)} rows={4} />
+            </div>
+
+            <div className="cc-field">
+              <label className="cc-label">Máximo de Jugadores</label>
+              <input className="cc-input" type="number" min="1" max="20"
+                value={maxJugadores} onChange={e => setMaxJugadores(parseInt(e.target.value))} />
+            </div>
+
+            <div className="cc-field">
+              <label className="cc-label">Número de Sesiones Estimadas (0 = indefinido)</label>
+              <input className="cc-input" type="number" min="0"
+                value={numSesiones} onChange={e => setNumSesiones(parseInt(e.target.value))} />
+            </div>
+
+            <div className="cc-field">
+              <label className="cc-label">Dificultad</label>
+              <select className="cc-input" style={{ backgroundColor: '#111', color: 'white', border: '1px solid #333' }} value={dificultad} onChange={e => setDificultad(e.target.value)}>
+                <option value="Fácil">Fácil</option>
+                <option value="Media">Media</option>
+                <option value="Difícil">Difícil</option>
+                <option value="Épica">Épica</option>
               </select>
             </div>
 
             <div className="cc-field">
-              <label className="cc-label">Descripción</label>
-              <textarea className="cc-input cc-textarea" placeholder="Describe tu campaña..."
-                value={descripcion} onChange={e => setDescripcion(e.target.value)} rows={4} />
+              <label className="cc-label">Código de Invitación (Opcional)</label>
+              <input className="cc-input" placeholder="Déjalo vacío para autogenerar..."
+                value={codigoInvitacion} onChange={e => setCodigoInvitacion(e.target.value)} />
             </div>
 
             <button className="cc-btn-next" disabled={!nombre.trim()} onClick={() => setPaso(3)}>→</button>
@@ -272,7 +305,6 @@ export function CreateCampaign() {
   // ── PASO 3: MAPAS SOBRE LA MESA ───────────────────────
   return (
     <div className="cc-page--mesa">
-      <BackButton />
         <h2 className="cc-mesa-titulo">Elige tus mapas</h2>
 
     {/* BOTÓN FILTRO */}
@@ -376,10 +408,10 @@ export function CreateCampaign() {
 
       <button
         className="cc-mesa-btn-crear"
-        disabled={mapasSeleccionados.length === 0}
-        onClick={() => navigate('/create')}
+        disabled={mapasSeleccionados.length === 0 || guardando}
+        onClick={handleCrearCampana}
       >
-        Crear Campaña
+        {guardando ? 'Creando...' : 'Crear Campaña'}
       </button>
     </div>
   );

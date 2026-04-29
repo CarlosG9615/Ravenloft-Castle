@@ -6,6 +6,9 @@ import { BackButton } from '../../components/BackButton/BackButton';
 import { CharacterSheet } from './CharacterSheet';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import { createPersonaje, type PersonajeCreatePayload } from '../../services/personajeService';
+import { FileText, Clipboard, ColorsSwatch, Folder  } from 'pixelarticons/react';
+import { Dices } from 'lucide-react';
+
 
 // ── DATOS D&D 5e ──────────────────────────────────────────
 const RAZAS = [
@@ -339,7 +342,8 @@ export function CharacterCreate() {
         {/* ══ PASO 1: IDENTIDAD ══ */}
         {paso === 1 && (
           <div className="create-card">
-            <h4 className="create-section-title mb-4">📜 Identidad del Personaje</h4>
+            <h4 className="create-section-title mb-4">
+              <FileText width={24} height={24} style={{ color: '#e2b96f' }} /> Identidad del Personaje</h4>
             <div className="row g-4">
 
               <div className="col-12">
@@ -423,10 +427,10 @@ export function CharacterCreate() {
               <label className="create-label mb-2">Método de asignación</label>
               <div className="d-flex gap-3">
                 <button className={`btn create-method-btn ${metodo === 'puntos' ? 'active' : ''}`} onClick={() => cambiarMetodo('puntos')}>
-                  📊 Asignación Estándar
+                  <Clipboard width={20} height={20} style={{ color: 'currentColor' }} /> Asignación Estándar
                 </button>
                 <button className={`btn create-method-btn ${metodo === 'dados' ? 'active' : ''}`} onClick={() => cambiarMetodo('dados')}>
-                  🎲 Tirada de Dados
+                  <Dices width={20} height={20} style={{ color: 'currentColor' }} /> Tirada de Dados
                 </button>
               </div>
               <p className="create-method-desc mt-2">
@@ -480,7 +484,8 @@ export function CharacterCreate() {
               <>
                 <div className="d-flex align-items-center gap-3 mb-4">
                   <button className="btn create-btn-primary" onClick={generarTiradas}>
-                    🎲 {tiradas.length > 0 ? 'Volver a tirar' : 'Tirar Dados'}
+                    <Dices width={20} height={20} style={{ color: 'currentColor' }} />
+                        {tiradas.length > 0 ? 'Volver a tirar' : 'Tirar Dados'}
                   </button>
                   {tiradas.length > 0 && (
                     <div className="d-flex gap-2 flex-wrap">
@@ -535,7 +540,9 @@ export function CharacterCreate() {
         {/* ══ PASO 3: APARIENCIA ══ */}
         {paso === 3 && (
           <div className="create-card">
-            <h4 className="create-section-title mb-2">🎨 Apariencia del Personaje</h4>
+            <h4 className="create-section-title mb-2">
+               <ColorsSwatch width={20} height={20} style={{ color: 'currentColor' }} /> Apariencia del Personaje
+              </h4>
             <p className="create-method-desc mb-4">
               Selecciona un avatar para tu <strong>{raza} {clase}</strong> o sube tu propia imagen.
             </p>
@@ -543,8 +550,9 @@ export function CharacterCreate() {
             <div className="create-upload-area mb-4">
               <label className="create-upload-label" htmlFor="uploadAvatar">
                 {avatarCustom
-                  ? '✅ Imagen personalizada cargada — haz clic para cambiarla'
-                  : '📁 Subir mi propia imagen'}
+                  ? 'Imagen personalizada cargada — haz clic para cambiarla'
+                  : <><Folder width={20} height={20} style={{ color: 'currentColor' }} /> Subir mi propia imagen</>
+                  }
               </label>
               <input id="uploadAvatar" type="file" accept="image/*" className="d-none" onChange={handleUpload} />
             </div>
