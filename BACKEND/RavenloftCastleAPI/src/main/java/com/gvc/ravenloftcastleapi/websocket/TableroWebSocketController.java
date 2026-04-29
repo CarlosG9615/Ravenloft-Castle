@@ -49,6 +49,36 @@ public class TableroWebSocketController {
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/jugadores", jugadores);
     }
 
+    @MessageMapping("/campana/{campanaId}/chat.enviar")
+    public void enviarMensajeChat(@DestinationVariable String campanaId, @Payload MensajeChatDTO mensaje) {
+        messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/chat", mensaje);
+    }
+
+    public static class MensajeChatDTO {
+        private String id;
+        private String autor;
+        private String colorAutor;
+        private String texto;
+        private String tipo;
+        private String timestamp;
+        private Object tirada;
+
+        public String getId() { return id; }
+        public void setId(String id) { this.id = id; }
+        public String getAutor() { return autor; }
+        public void setAutor(String autor) { this.autor = autor; }
+        public String getColorAutor() { return colorAutor; }
+        public void setColorAutor(String colorAutor) { this.colorAutor = colorAutor; }
+        public String getTexto() { return texto; }
+        public void setTexto(String texto) { this.texto = texto; }
+        public String getTipo() { return tipo; }
+        public void setTipo(String tipo) { this.tipo = tipo; }
+        public String getTimestamp() { return timestamp; }
+        public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
+        public Object getTirada() { return tirada; }
+        public void setTirada(Object tirada) { this.tirada = tirada; }
+    }
+
     public static class JugadorWsDTO {
         private Long id;
         private String nombre;

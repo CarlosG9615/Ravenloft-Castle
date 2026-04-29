@@ -112,16 +112,15 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
       onConnect: () => {
         setConectado(true);
 
-        client.subscribe('/topic/partida', (frame) => {
-          const msg = JSON.parse(frame.body);
-          setMensajes(prev => [...prev, {
-            ...msg,
-            id: Date.now().toString() + Math.random(),
-            timestamp: msg.timestamp || hora(),
-          }]);
-        });
-
         if (campanaId) {
+          client.subscribe(`/topic/campana/${campanaId}/chat`, (frame) => {
+            const msg = JSON.parse(frame.body);
+            setMensajes(prev => [...prev, {
+              ...msg,
+              id: Date.now().toString() + Math.random(),
+              timestamp: msg.timestamp || hora(),
+            }]);
+          });
           client.subscribe(`/topic/campana/${campanaId}/jugadores`, (frame) => {
             const list = JSON.parse(frame.body);
             setJugadoresRed(list);
@@ -191,13 +190,16 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
   // ── ENVIAR MENSAJE ────────────────────────────────────
   const enviarMensaje = useCallback(() => {
     const texto = inputChat.trim();
-    if (!texto || !stompRef.current?.connected) return;
+    if (!texto || !stompRef.current?.connected || !campanaId) return;
+
+    const autorNombre = jugadorActual?.nombre || nombreMaster;
+    const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
 
     stompRef.current.publish({
-      destination: '/app/chat.enviar',
+      destination: `/app/campana/${campanaId}/chat.enviar`,
       body: JSON.stringify({
-        autor: nombreMaster,
-        colorAutor: colorMaster,
+        autor: autorNombre,
+        colorAutor: autorColor,
         texto,
         tipo: 'mensaje',
         timestamp: hora(),
@@ -205,7 +207,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     });
 
     setInputChat('');
-  }, [inputChat, nombreMaster, colorMaster]);
+  }, [inputChat, nombreMaster, colorMaster, campanaId, jugadorActual]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -225,20 +227,23 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
   const handleAnimacionFin = useCallback(() => {
     if (dadoActivo === null || resultadoActivo === null) return;
 
+    const autorNombre = jugadorActual?.nombre || nombreMaster;
+    const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+
     const total = resultadoActivo + modificador;
     const msg: MensajeChat = {
       id: Date.now().toString(),
-      autor: nombreMaster,
-      colorAutor: colorMaster,
+      autor: autorNombre,
+      colorAutor: autorColor,
       texto: '',
       tipo: 'tirada',
       timestamp: hora(),
       tirada: { dado: dadoActivo, resultado: resultadoActivo, modificador, total },
     };
 
-    if (stompRef.current?.connected) {
+    if (stompRef.current?.connected && campanaId) {
       stompRef.current.publish({
-        destination: '/app/chat.enviar',
+        destination: `/app/campana/${campanaId}/chat.enviar`,
         body: JSON.stringify(msg),
       });
     } else {
@@ -248,7 +253,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     setDadoActivo(null);
     setResultadoActivo(null);
     // Removemos el cambio automático de pestaña, así se queda donde el usuario estaba
-  }, [dadoActivo, resultadoActivo, modificador, nombreMaster, colorMaster]);
+  }, [dadoActivo, resultadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual]);
 
   // Si nos pasan jugadores, los mapeamos al formato visual. Si no, usamos los de DEMO.
   const jugadoresAMostrar = (jugadoresRed.length > 0 ? jugadoresRed : (jugadores !== undefined ? jugadores : JUGADORES_DEMO))
