@@ -7,6 +7,10 @@ export interface CampanaRequest {
   logo: string | null;
   imagen: string | null;
   mapas: string[];
+  maxJugadores?: number;
+  numSesiones?: number;
+  dificultad?: string;
+  codigoInvitacion?: string;
 }
 
 export interface CampanaResponse {

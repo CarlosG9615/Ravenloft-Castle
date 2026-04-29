@@ -160,11 +160,26 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
       onStompError: () => setConectado(false),
     });
 
+    const handleLeave = () => {
+      if (client.connected && campanaId && jugadorActual) {
+        client.publish({
+          destination: `/app/campana/${campanaId}/leave`,
+          body: jugadorActual.id.toString(),
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleLeave);
+
     client.activate();
     stompRef.current = client;
 
-    return () => { client.deactivate(); };
-  }, []);
+    return () => { 
+      handleLeave();
+      window.removeEventListener('beforeunload', handleLeave);
+      client.deactivate(); 
+    };
+  }, [campanaId, jugadorActual]);
 
   // Auto-scroll
   useEffect(() => {

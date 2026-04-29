@@ -97,6 +97,10 @@ export function CreateCampaign() {
   const [descripcion, setDescripcion] = useState('');
   const [logoFile, setLogoFile] = useState<string | null>(null);
   const [imagenFile, setImagenFile] = useState<string | null>(null);
+  const [maxJugadores, setMaxJugadores] = useState(5);
+  const [numSesiones, setNumSesiones] = useState(0);
+  const [dificultad, setDificultad] = useState('Media');
+  const [codigoInvitacion, setCodigoInvitacion] = useState('');
 
   // Mapas
   const [mapas, setMapas] = useState<Mapa[]>(MAPAS_MOCK);
@@ -176,6 +180,10 @@ export function CreateCampaign() {
         logo: logoFile,
         imagen: imagenFile,
         mapas: mapasSeleccionados.map(id => MAPAS_MOCK.find(m => m.id === id)?.imagen).filter((img): img is string => !!img),
+        maxJugadores,
+        numSesiones,
+        dificultad,
+        codigoInvitacion
       });
       // Optionally, navigate to a success page or back to /join where it shows "Mis Campañas"
       navigate('/join');
@@ -257,6 +265,34 @@ export function CreateCampaign() {
               <label className="cc-label">Descripción</label>
               <textarea className="cc-input cc-textarea" placeholder="Describe tu campaña..."
                 value={descripcion} onChange={e => setDescripcion(e.target.value)} rows={4} />
+            </div>
+
+            <div className="cc-field">
+              <label className="cc-label">Máximo de Jugadores</label>
+              <input className="cc-input" type="number" min="1" max="20"
+                value={maxJugadores} onChange={e => setMaxJugadores(parseInt(e.target.value))} />
+            </div>
+
+            <div className="cc-field">
+              <label className="cc-label">Número de Sesiones Estimadas (0 = indefinido)</label>
+              <input className="cc-input" type="number" min="0"
+                value={numSesiones} onChange={e => setNumSesiones(parseInt(e.target.value))} />
+            </div>
+
+            <div className="cc-field">
+              <label className="cc-label">Dificultad</label>
+              <select className="cc-input" style={{ backgroundColor: '#111', color: 'white', border: '1px solid #333' }} value={dificultad} onChange={e => setDificultad(e.target.value)}>
+                <option value="Fácil">Fácil</option>
+                <option value="Media">Media</option>
+                <option value="Difícil">Difícil</option>
+                <option value="Épica">Épica</option>
+              </select>
+            </div>
+
+            <div className="cc-field">
+              <label className="cc-label">Código de Invitación (Opcional)</label>
+              <input className="cc-input" placeholder="Déjalo vacío para autogenerar..."
+                value={codigoInvitacion} onChange={e => setCodigoInvitacion(e.target.value)} />
             </div>
 
             <button className="cc-btn-next" disabled={!nombre.trim()} onClick={() => setPaso(3)}>→</button>

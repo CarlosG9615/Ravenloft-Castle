@@ -15,7 +15,8 @@ public class CampanaRequest {
     private Integer maxJugadores;
     private Integer numSesiones;
     private String dificultad;
-    private String mapasSeleccionados;
+    private String codigoInvitacion;
+    private java.util.List<String> mapas;
     private String estado;
     private String logo;
     private String imagen;

@@ -19,7 +19,7 @@ public class CampanaResponse {
     private String dificultad;
     private String logo;
     private String imagen;
-    private String mapasSeleccionados;
+    private java.util.List<String> mapas;
     private Long masterId;
     private String masterNombre;
     private Integer maxJugadores;
