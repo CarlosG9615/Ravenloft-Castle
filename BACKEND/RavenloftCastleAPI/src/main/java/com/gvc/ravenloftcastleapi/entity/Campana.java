@@ -52,7 +52,7 @@ public class Campana {
     @Column(name = "mapas_seleccionados", columnDefinition = "LONGTEXT")
     private String mapasSeleccionados;
 
-    @Column(length = 500)
+    @Column(columnDefinition = "LONGTEXT")
     private String imagen;
 
     @ManyToOne

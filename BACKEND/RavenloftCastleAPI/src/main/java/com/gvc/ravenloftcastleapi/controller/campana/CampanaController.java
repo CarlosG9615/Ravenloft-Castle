@@ -39,7 +39,8 @@ public class CampanaController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<CampanaResponse> obtenerCampanaPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(campanaService.obtenerCampanaPorId(id));
+    public ResponseEntity<CampanaResponse> obtenerCampana(@PathVariable Long id) {
+        return ResponseEntity.ok(campanaService.obtenerCampana(id));
     }
+
 }

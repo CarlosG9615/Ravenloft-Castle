@@ -43,13 +43,13 @@ public class CampanaService {
         Campana campana = Campana.builder()
                 .nombre(request.getNombre())
                 .descripcion(request.getDescripcion())
-                .codigoInvitacion(UUID.randomUUID().toString().substring(0, 8)) // short random code
+                .codigoInvitacion(request.getCodigoInvitacion() != null && !request.getCodigoInvitacion().trim().isEmpty() ? request.getCodigoInvitacion() : UUID.randomUUID().toString().substring(0, 8))
             .active(active == null || active)
             .maxJugadores(maxJugadores)
             .numSesiones(numSesiones)
                 .sistema(request.getSistema() != null ? request.getSistema() : "D&D 5e")
                 .dificultad(request.getDificultad())
-                .mapasSeleccionados(request.getMapasSeleccionados())
+                .mapasSeleccionados(request.getMapas() != null ? String.join(",", request.getMapas()) : null)
                 .estado(request.getEstado() != null ? EstadoCampana.fromString(request.getEstado()) : EstadoCampana.ABIERTA)
                 .logo(request.getLogo())
                 .imagen(request.getImagen())
@@ -82,6 +82,12 @@ public class CampanaService {
         campanaRepository.deleteById(id);
     }
 
+    public CampanaResponse obtenerCampana(Long id) {
+        Campana campana = campanaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Campaña no encontrada"));
+        return mapToResponse(campana);
+    }
+
     private CampanaResponse mapToResponse(Campana campana) {
         return CampanaResponse.builder()
                 .id(campana.getId())
@@ -91,7 +97,7 @@ public class CampanaService {
                 .dificultad(campana.getDificultad())
                 .logo(campana.getLogo())
                 .imagen(campana.getImagen())
-                .mapasSeleccionados(campana.getMapasSeleccionados())
+                .mapas(campana.getMapasSeleccionados() != null ? java.util.Arrays.asList(campana.getMapasSeleccionados().split(",")) : null)
                 .masterId(campana.getMaster().getId())
                 .masterNombre(campana.getMaster().getNombre())
                 .maxJugadores(campana.getMaxJugadores())
