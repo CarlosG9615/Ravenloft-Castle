@@ -81,7 +81,7 @@ interface Props {
 }
 
 export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b', panelSuperior, jugadores, campanaId, jugadorActual }: Props) {
-  const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'dados'>('chat');
+  const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'dados' | 'voz'>('chat');
   const [mensajes, setMensajes] = useState<MensajeChat[]>([
     {
       id: '0',
@@ -100,6 +100,10 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
 
   const chatRef = useRef<HTMLDivElement>(null);
   const stompRef = useRef<Client | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const [micActivo, setMicActivo] = useState(false);
+  const [usuariosVoz, setUsuariosVoz] = useState<string[]>([]);
 
   const [jugadoresRed, setJugadoresRed] = useState<any[]>(jugadores || []);
 
@@ -114,6 +118,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
 
         if (campanaId) {
           client.subscribe(`/topic/campana/${campanaId}/chat`, (frame) => {
+      
             const msg = JSON.parse(frame.body);
             setMensajes(prev => [...prev, {
               ...msg,
@@ -122,8 +127,35 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
             }]);
           });
           client.subscribe(`/topic/campana/${campanaId}/jugadores`, (frame) => {
+
             const list = JSON.parse(frame.body);
             setJugadoresRed(list);
+          });
+          
+          // Voz - WebRTC
+          client.subscribe(`/topic/campana/${campanaId}/voice`, async (frame) => {
+            const señal = JSON.parse(frame.body);
+            const { tipo, de, sdp, candidate } = señal;
+            const miId = jugadorActual?.id?.toString() || 'master';
+
+            if (de === miId) return; // ignorar mis propios mensajes
+
+            if (tipo === 'offer') {
+              const pc = crearPeerConnection(de);
+              await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+              stompRef.current?.publish({
+                destination: `/app/campana/${campanaId}/voice`,
+                body: JSON.stringify({ tipo: 'answer', de: miId, para: de, sdp: answer }),
+              });
+            } else if (tipo === 'answer') {
+              const pc = peersRef.current.get(de);
+              if (pc) await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+            } else if (tipo === 'ice-candidate') {
+              const pc = peersRef.current.get(de);
+              if (pc) await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            }
           });
 
           if (jugadorActual) {
@@ -172,6 +204,9 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
 
     client.activate();
     stompRef.current = client;
+
+
+
 
     return () => { 
       handleLeave();
@@ -267,7 +302,79 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
         conectado: j.conectado !== false
       }));
 
-  return (
+   const crearPeerConnection = (peerId: string): RTCPeerConnection => {
+          const pc = new RTCPeerConnection({
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+          });
+
+          // Añadir tracks del micrófono local
+          if (localStreamRef.current) {
+            localStreamRef.current.getTracks().forEach(track => {
+              pc.addTrack(track, localStreamRef.current!);
+            });
+          }
+
+          // Enviar ICE candidates al otro usuario
+          pc.onicecandidate = (event) => {
+            console.log('ICE candidate:', event.candidate);
+            if (event.candidate && stompRef.current?.connected && campanaId) {
+              const miId = jugadorActual?.id?.toString() || 'master';
+              stompRef.current.publish({
+                destination: `/app/campana/${campanaId}/voice`,
+                body: JSON.stringify({ tipo: 'ice-candidate', de: miId, candidate: event.candidate }),
+              });
+            }
+          };
+
+          // Reproducir audio remoto
+          pc.ontrack = (event) => {
+            console.log('🎙 Audio recibido de:', peerId, event.streams);
+            const audio = document.createElement('audio');
+            audio.srcObject = event.streams[0];
+            audio.autoplay = true;
+            audio.volume = 1.0;
+            document.body.appendChild(audio);
+            audio.play().catch(e => console.error('Error reproduciendo audio:', e));
+            setUsuariosVoz(prev => [...new Set([...prev, peerId])]);
+          };
+
+          peersRef.current.set(peerId, pc);
+          return pc;
+}; 
+    const toggleMic = async () => {
+       console.log('jugadores en sala:', jugadoresAMostrar); 
+      if (!micActivo) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          localStreamRef.current = stream;
+          setMicActivo(true);
+
+          // Conectar con cada jugador de la sala
+          const miId = jugadorActual?.id?.toString() || 'master';
+          jugadoresAMostrar.forEach(async (j) => {
+            if (j.id === miId) return;
+            const pc = crearPeerConnection(j.id);
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            stompRef.current?.publish({
+              destination: `/app/campana/${campanaId}/voice`,
+              body: JSON.stringify({ tipo: 'offer', de: miId, sdp: offer }),
+            });
+          });
+        } catch (err) {
+          console.error('Error accediendo al micrófono:', err);
+        }
+      } else {
+        localStreamRef.current?.getTracks().forEach(t => t.stop());
+        localStreamRef.current = null;
+        peersRef.current.forEach(pc => pc.close());
+        peersRef.current.clear();
+        setMicActivo(false);
+        setUsuariosVoz([]);
+      }
+    };
+
+return (
     <div className="pp-panel">
 
       {/* ANIMACIÓN DADO */}
@@ -297,6 +404,9 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
         </button>
         <button className={`pp-tab ${pestana === 'dados' ? 'active' : ''}`} onClick={() => setPestana('dados')}>
           🎲 Dados
+        </button>
+        <button className={`pp-tab ${pestana === 'voz' ? 'active' : ''}`} onClick={() => setPestana('voz')}>
+          🎙 Voz
         </button>
       </div>
 
@@ -441,6 +551,35 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
           </p>
         </div>
       )}
+
+      {/* ── VOZ ── */}
+      {pestana === 'voz' && (
+        <div className="pp-seccion pp-voz-wrap">
+          <p className="pp-dados-hint">Canal de voz de la partida</p>
+
+          <button
+            className={`pp-mic-btn ${micActivo ? 'activo' : ''}`}
+            onClick={toggleMic}
+          >
+            {micActivo ? '🎙 Micrófono activo' : '🔇 Activar micrófono'}
+          </button>
+
+          <div className="pp-voz-usuarios">
+            {usuariosVoz.length === 0 ? (
+              <p className="pp-dados-hint" style={{ marginTop: 12 }}>
+                Nadie más en el canal de voz
+              </p>
+            ) : (
+              usuariosVoz.map(id => (
+                <div key={id} className="pp-voz-usuario">
+                  <span className="pp-conexion-dot online" />
+                  <span>{jugadoresAMostrar.find(j => j.id === id)?.nombre || id}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+)}
 
     </div>
   );
