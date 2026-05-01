@@ -15,7 +15,7 @@
     "@fortawesome/fontawesome-free": "^7.2.0",
     "@stomp/stompjs": "^7.3.0",
     "bootstrap": "^5.3.8",
-    "konva": "^10.2.5",
+    "konva": "^10.3.0",
     "lucide-react": "^1.7.0",
     "pixelarticons": "^2.1.0",
     "react": "^19.2.0",
