@@ -72,10 +72,20 @@ export function Tablero() {
 
   const [scale, setScale]       = useState(calcularScaleInicial);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [tokens, setTokens]     = useState<Token[]>([
-    { id: '1', x: 100, y: 100, color: COLORES_TOKEN.jugador, nombre: 'P1', tipo: 'jugador' },
-    { id: '2', x: 200, y: 150, color: COLORES_TOKEN.jugador, nombre: 'P2', tipo: 'jugador' },
-  ]);
+  const [tokensPorMapa, setTokensPorMapa] = useState<Record<string, Token[]>>({
+    [mapaUrl]: [
+      { id: '1', x: 100, y: 100, color: COLORES_TOKEN.jugador, nombre: 'P1', tipo: 'jugador' },
+      { id: '2', x: 200, y: 150, color: COLORES_TOKEN.jugador, nombre: 'P2', tipo: 'jugador' },
+    ]
+  });
+  const tokens = tokensPorMapa[mapaActualUrl] || [];
+  const setTokens = (updater: Token[] | ((prev: Token[]) => Token[])) => {
+    setTokensPorMapa(prev => {
+      const actualTokens = prev[mapaActualUrl] || [];
+      const newTokens = typeof updater === 'function' ? updater(actualTokens) : updater;
+      return { ...prev, [mapaActualUrl]: newTokens };
+    });
+  };
   const [herramienta, setHerramienta]             = useState<'mover' | 'token' | 'borrar'>('mover');
   const [tipoToken, setTipoToken]                 = useState<'jugador' | 'enemigo' | 'npc'>('jugador');
   const [tokenNombre, setTokenNombre]             = useState('');
@@ -295,7 +305,11 @@ export function Tablero() {
             x={position.x}
             y={position.y}
             draggable={herramienta === 'mover'}
-            onDragEnd={e => setPosition({ x: e.target.x(), y: e.target.y() })}
+            onDragEnd={e => {
+                if (e.target === e.target.getStage()) {
+                    setPosition({ x: e.target.x(), y: e.target.y() });
+                }
+            }}
             onWheel={handleWheel}
             onClick={handleStageClick}
         >
@@ -309,7 +323,10 @@ export function Tablero() {
                     x={token.x}
                     y={token.y}
                     draggable={herramienta === 'mover'}
-                    onDragEnd={e => moverToken(token.id, snapToGrid(e.target.x()), snapToGrid(e.target.y()))}
+                    onDragEnd={e => {
+                      e.cancelBubble = true;
+                      moverToken(token.id, snapToGrid(e.target.x()), snapToGrid(e.target.y()));
+                    }}
                     onClick={() => borrarToken(token.id)}
                     onMouseEnter={e => {
                       const stage = e.target.getStage();
