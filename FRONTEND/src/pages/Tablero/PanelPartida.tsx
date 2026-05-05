@@ -3,6 +3,9 @@ import type { ReactNode } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { DiceRoller } from './DiceRoller';
+import { Comment, Users, Mic, MicOff} from 'pixelarticons/react'
+import { Dices } from 'lucide-react';
+
 import './PanelPartida.css';
 
 // ── TIPOS ─────────────────────────────────────────────────
@@ -397,16 +400,16 @@ return (
       {/* PESTAÑAS */}
       <div className="pp-tabs">
         <button className={`pp-tab ${pestana === 'chat' ? 'active' : ''}`} onClick={() => setPestana('chat')}>
-          💬 Chat
+           <Comment width={16} height={16} style={{ marginRight: 4 }} />
         </button>
         <button className={`pp-tab ${pestana === 'jugadores' ? 'active' : ''}`} onClick={() => setPestana('jugadores')}>
-          👥 Jugadores
+          <Users width={16} height={16} style={{ marginRight: 4 }} />
         </button>
         <button className={`pp-tab ${pestana === 'dados' ? 'active' : ''}`} onClick={() => setPestana('dados')}>
-          🎲 Dados
+          <Dices width={16} height={16} style={{ marginRight: 4 }} />
         </button>
         <button className={`pp-tab ${pestana === 'voz' ? 'active' : ''}`} onClick={() => setPestana('voz')}>
-          🎙 Voz
+          <Mic width={16} height={16} style={{ marginRight: 4 }} />
         </button>
       </div>
 
@@ -561,7 +564,7 @@ return (
             className={`pp-mic-btn ${micActivo ? 'activo' : ''}`}
             onClick={toggleMic}
           >
-            {micActivo ? '🎙 Micrófono activo' : '🔇 Activar micrófono'}
+            {micActivo ? '🎙 Micrófono activo' : '  Activar micrófono'}
           </button>
 
           <div className="pp-voz-usuarios">
