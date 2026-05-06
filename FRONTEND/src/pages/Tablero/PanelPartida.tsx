@@ -3,12 +3,10 @@ import type { ReactNode } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { DiceRoller } from './DiceRoller';
-import { Comment, Users, Mic, MicOff} from 'pixelarticons/react'
+import { Comment, Users, Mic, Smile } from 'pixelarticons/react'
 import { Dices } from 'lucide-react';
-
 import './PanelPartida.css';
 
-// ── TIPOS ─────────────────────────────────────────────────
 interface Jugador {
   id: string;
   nombre: string;
@@ -43,6 +41,16 @@ const DADOS = [
   { caras: 20, label: 'd20' },
 ];
 
+const EMOTES = [
+  { id: 'emoji-sorpre',   src: '/images/emotes/emoji-sorpre.png',   label: 'Sorprendido' },
+  { id: 'emoji-molest',   src: '/images/emotes/emoji-molest.png',   label: 'Molesto' },
+  { id: 'emoji-furioso',  src: '/images/emotes/emoji-furioso.png',  label: 'Furioso' },
+  { id: 'emoji-gracioso', src: '/images/emotes/emoji-gracioso.png', label: 'Gracioso' },
+  { id: 'emoji-guino',    src: '/images/emotes/emoji-guino.png',    label: 'Guiño' },
+  { id: 'emoji-riendo',   src: '/images/emotes/emoji-riendo.png',   label: 'Riendo' },
+  { id: 'emoji-decep',    src: '/images/emotes/emoji-decep.png',    label: 'Decepcionado' },
+];
+
 const JUGADORES_DEMO: Jugador[] = [
   { id: '1', nombre: 'Valdris',  clase: 'Bárbaro', hp: 28, hpMax: 35, color: '#4a90d9', conectado: true  },
   { id: '2', nombre: 'Seraphel', clase: 'Clérigo', hp: 18, hpMax: 22, color: '#2ecc71', conectado: true  },
@@ -50,18 +58,10 @@ const JUGADORES_DEMO: Jugador[] = [
 ];
 
 const COLORES_CLASES: Record<string, string> = {
-  Bárbaro: '#e74c3c',
-  Bardo: '#9b59b6',
-  Clérigo: '#f1c40f',
-  Druida: '#2ecc71',
-  Guerrero: '#c0392b',
-  Monje: '#27ae60',
-  Paladín: '#f39c12',
-  Explorador: '#16a085',
-  Pícaro: '#34495e',
-  Hechicero: '#8e44ad',
-  Brujo: '#2980b9',
-  Mago: '#3498db',
+  Bárbaro: '#e74c3c', Bardo: '#9b59b6', Clérigo: '#f1c40f',
+  Druida: '#2ecc71', Guerrero: '#c0392b', Monje: '#27ae60',
+  Paladín: '#f39c12', Explorador: '#16a085', Pícaro: '#34495e',
+  Hechicero: '#8e44ad', Brujo: '#2980b9', Mago: '#3498db',
   Desconocida: '#95a5a6'
 };
 
@@ -69,16 +69,29 @@ function hora() {
   return new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 
-function tirarDado(caras: number): number {
-  return Math.floor(Math.random() * caras) + 1;
+function renderTextoConEmotes(texto: string) {
+  const partes = texto.split(/(\[emoji-[^\]]+\])/g);
+  return partes.map((parte, i) => {
+    const match = parte.match(/^\[([^\]]+)\]$/);
+    if (match) {
+      return (
+        <img
+          key={i}
+          src={`/images/emotes/${match[1]}.png`}
+          alt={match[1]}
+          style={{ width: 64, height: 64, verticalAlign: 'middle', margin: '0 2px' }}
+        />
+      );
+    }
+    return <span key={i}>{parte}</span>;
+  });
 }
 
-// ── COMPONENTE ────────────────────────────────────────────
 interface Props {
   nombreMaster?: string;
   colorMaster?: string;
   panelSuperior?: ReactNode;
-  jugadores?: any[]; // The real players mapped from backend, if present
+  jugadores?: any[];
   campanaId?: number | string;
   jugadorActual?: any;
 }
@@ -100,6 +113,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
   const [conectado, setConectado] = useState(false);
   const [dadoActivo, setDadoActivo] = useState<string | null>(null);
   const [resultadoActivo, setResultadoActivo] = useState<number | null>(null);
+  const [mostrarEmotes, setMostrarEmotes] = useState(false);
 
   const chatRef = useRef<HTMLDivElement>(null);
   const stompRef = useRef<Client | null>(null);
@@ -107,21 +121,16 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const [micActivo, setMicActivo] = useState(false);
   const [usuariosVoz, setUsuariosVoz] = useState<string[]>([]);
-
   const [jugadoresRed, setJugadoresRed] = useState<any[]>(jugadores || []);
 
-  // ── CONEXIÓN WEBSOCKET ──────────────────────────────────
   useEffect(() => {
     const client = new Client({
       webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
       reconnectDelay: 5000,
-
       onConnect: () => {
         setConectado(true);
-
         if (campanaId) {
           client.subscribe(`/topic/campana/${campanaId}/chat`, (frame) => {
-      
             const msg = JSON.parse(frame.body);
             setMensajes(prev => [...prev, {
               ...msg,
@@ -130,19 +139,14 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
             }]);
           });
           client.subscribe(`/topic/campana/${campanaId}/jugadores`, (frame) => {
-
             const list = JSON.parse(frame.body);
             setJugadoresRed(list);
           });
-          
-          // Voz - WebRTC
           client.subscribe(`/topic/campana/${campanaId}/voice`, async (frame) => {
             const señal = JSON.parse(frame.body);
             const { tipo, de, sdp, candidate } = señal;
             const miId = jugadorActual?.id?.toString() || 'master';
-
-            if (de === miId) return; // ignorar mis propios mensajes
-
+            if (de === miId) return;
             if (tipo === 'offer') {
               const pc = crearPeerConnection(de);
               await pc.setRemoteDescription(new RTCSessionDescription(sdp));
@@ -160,7 +164,6 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
               if (pc) await pc.addIceCandidate(new RTCIceCandidate(candidate));
             }
           });
-
           if (jugadorActual) {
             client.publish({
               destination: `/app/campana/${campanaId}/join`,
@@ -168,7 +171,6 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
             });
           }
         }
-
         setMensajes(prev => [...prev, {
           id: 'connected-' + Date.now(),
           autor: 'Sistema',
@@ -178,7 +180,6 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
           timestamp: hora(),
         }]);
       },
-
       onDisconnect: () => {
         setConectado(false);
         setMensajes(prev => [...prev, {
@@ -190,7 +191,6 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
           timestamp: hora(),
         }]);
       },
-
       onStompError: () => setConectado(false),
     });
 
@@ -204,35 +204,27 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     };
 
     window.addEventListener('beforeunload', handleLeave);
-
     client.activate();
     stompRef.current = client;
 
-
-
-
-    return () => { 
+    return () => {
       handleLeave();
       window.removeEventListener('beforeunload', handleLeave);
-      client.deactivate(); 
+      client.deactivate();
     };
   }, [campanaId, jugadorActual]);
 
-  // Auto-scroll
   useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
   }, [mensajes]);
 
-  // ── ENVIAR MENSAJE ────────────────────────────────────
   const enviarMensaje = useCallback(() => {
     const texto = inputChat.trim();
     if (!texto || !stompRef.current?.connected || !campanaId) return;
-
     const autorNombre = jugadorActual?.nombre || nombreMaster;
     const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
-
     stompRef.current.publish({
       destination: `/app/campana/${campanaId}/chat.enviar`,
       body: JSON.stringify({
@@ -243,7 +235,6 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
         timestamp: hora(),
       }),
     });
-
     setInputChat('');
   }, [inputChat, nombreMaster, colorMaster, campanaId, jugadorActual]);
 
@@ -254,21 +245,16 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     }
   };
 
-  // ── TIRAR DADO ────────────────────────────────────────
   const lanzarDado = (caras: number, label: string) => {
-    const resultado = tirarDado(caras);
     setDadoActivo(label);
-    setResultadoActivo(resultado);
+    setResultadoActivo(0);
   };
 
-  // ── CUANDO TERMINA LA ANIMACIÓN ───────────────────────
-  const handleAnimacionFin = useCallback(() => {
-    if (dadoActivo === null || resultadoActivo === null) return;
-
+  const handleAnimacionFin = useCallback((resultadoReal: number) => {
+    if (dadoActivo === null) return;
     const autorNombre = jugadorActual?.nombre || nombreMaster;
     const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
-
-    const total = resultadoActivo + modificador;
+    const total = resultadoReal + modificador;
     const msg: MensajeChat = {
       id: Date.now().toString(),
       autor: autorNombre,
@@ -276,9 +262,8 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
       texto: '',
       tipo: 'tirada',
       timestamp: hora(),
-      tirada: { dado: dadoActivo, resultado: resultadoActivo, modificador, total },
+      tirada: { dado: dadoActivo, resultado: resultadoReal, modificador, total },
     };
-
     if (stompRef.current?.connected && campanaId) {
       stompRef.current.publish({
         destination: `/app/campana/${campanaId}/chat.enviar`,
@@ -287,120 +272,100 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     } else {
       setMensajes(prev => [...prev, msg]);
     }
-
     setDadoActivo(null);
     setResultadoActivo(null);
-    // Removemos el cambio automático de pestaña, así se queda donde el usuario estaba
-  }, [dadoActivo, resultadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual]);
+  }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual]);
 
-  // Si nos pasan jugadores, los mapeamos al formato visual. Si no, usamos los de DEMO.
   const jugadoresAMostrar = (jugadoresRed.length > 0 ? jugadoresRed : (jugadores !== undefined ? jugadores : JUGADORES_DEMO))
     .map((j: any, i: number) => ({
-        id: j.id?.toString() || i.toString(),
-        nombre: j.nombre || j.usuarioNombre || 'Aventurero',
-        clase: j.clase || 'Desconocida',
-        hp: j.hp || 10,
-        hpMax: j.hpMax || 10,
-        color: j.color || COLORES_CLASES[j.clase] || '#4a90d9',
-        conectado: j.conectado !== false
-      }));
+      id: j.id?.toString() || i.toString(),
+      nombre: j.nombre || j.usuarioNombre || 'Aventurero',
+      clase: j.clase || 'Desconocida',
+      hp: j.hp || 10,
+      hpMax: j.hpMax || 10,
+      color: j.color || COLORES_CLASES[j.clase] || '#4a90d9',
+      conectado: j.conectado !== false
+    }));
 
-   const crearPeerConnection = (peerId: string): RTCPeerConnection => {
-          const pc = new RTCPeerConnection({
-            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-          });
-
-          // Añadir tracks del micrófono local
-          if (localStreamRef.current) {
-            localStreamRef.current.getTracks().forEach(track => {
-              pc.addTrack(track, localStreamRef.current!);
-            });
-          }
-
-          // Enviar ICE candidates al otro usuario
-          pc.onicecandidate = (event) => {
-            console.log('ICE candidate:', event.candidate);
-            if (event.candidate && stompRef.current?.connected && campanaId) {
-              const miId = jugadorActual?.id?.toString() || 'master';
-              stompRef.current.publish({
-                destination: `/app/campana/${campanaId}/voice`,
-                body: JSON.stringify({ tipo: 'ice-candidate', de: miId, candidate: event.candidate }),
-              });
-            }
-          };
-
-          // Reproducir audio remoto
-          pc.ontrack = (event) => {
-            console.log('🎙 Audio recibido de:', peerId, event.streams);
-            const audio = document.createElement('audio');
-            audio.srcObject = event.streams[0];
-            audio.autoplay = true;
-            audio.volume = 1.0;
-            document.body.appendChild(audio);
-            audio.play().catch(e => console.error('Error reproduciendo audio:', e));
-            setUsuariosVoz(prev => [...new Set([...prev, peerId])]);
-          };
-
-          peersRef.current.set(peerId, pc);
-          return pc;
-}; 
-    const toggleMic = async () => {
-       console.log('jugadores en sala:', jugadoresAMostrar); 
-      if (!micActivo) {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          localStreamRef.current = stream;
-          setMicActivo(true);
-
-          // Conectar con cada jugador de la sala
-          const miId = jugadorActual?.id?.toString() || 'master';
-          jugadoresAMostrar.forEach(async (j) => {
-            if (j.id === miId) return;
-            const pc = crearPeerConnection(j.id);
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            stompRef.current?.publish({
-              destination: `/app/campana/${campanaId}/voice`,
-              body: JSON.stringify({ tipo: 'offer', de: miId, sdp: offer }),
-            });
-          });
-        } catch (err) {
-          console.error('Error accediendo al micrófono:', err);
-        }
-      } else {
-        localStreamRef.current?.getTracks().forEach(t => t.stop());
-        localStreamRef.current = null;
-        peersRef.current.forEach(pc => pc.close());
-        peersRef.current.clear();
-        setMicActivo(false);
-        setUsuariosVoz([]);
+  const crearPeerConnection = (peerId: string): RTCPeerConnection => {
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        pc.addTrack(track, localStreamRef.current!);
+      });
+    }
+    pc.onicecandidate = (event) => {
+      if (event.candidate && stompRef.current?.connected && campanaId) {
+        const miId = jugadorActual?.id?.toString() || 'master';
+        stompRef.current.publish({
+          destination: `/app/campana/${campanaId}/voice`,
+          body: JSON.stringify({ tipo: 'ice-candidate', de: miId, candidate: event.candidate }),
+        });
       }
     };
+    pc.ontrack = (event) => {
+      const audio = document.createElement('audio');
+      audio.srcObject = event.streams[0];
+      audio.autoplay = true;
+      audio.volume = 1.0;
+      document.body.appendChild(audio);
+      audio.play().catch(e => console.error('Error reproduciendo audio:', e));
+      setUsuariosVoz(prev => [...new Set([...prev, peerId])]);
+    };
+    peersRef.current.set(peerId, pc);
+    return pc;
+  };
 
-return (
+  const toggleMic = async () => {
+    if (!micActivo) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        localStreamRef.current = stream;
+        setMicActivo(true);
+        const miId = jugadorActual?.id?.toString() || 'master';
+        jugadoresAMostrar.forEach(async (j) => {
+          if (j.id === miId) return;
+          const pc = crearPeerConnection(j.id);
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          stompRef.current?.publish({
+            destination: `/app/campana/${campanaId}/voice`,
+            body: JSON.stringify({ tipo: 'offer', de: miId, sdp: offer }),
+          });
+        });
+      } catch (err) {
+        console.error('Error accediendo al micrófono:', err);
+      }
+    } else {
+      localStreamRef.current?.getTracks().forEach(t => t.stop());
+      localStreamRef.current = null;
+      peersRef.current.forEach(pc => pc.close());
+      peersRef.current.clear();
+      setMicActivo(false);
+      setUsuariosVoz([]);
+    }
+  };
+
+  return (
     <div className="pp-panel">
-
-      {/* ANIMACIÓN DADO */}
       <DiceRoller
         dado={dadoActivo}
         resultado={resultadoActivo}
         onAnimacionFin={handleAnimacionFin}
       />
 
-      {/* INDICADOR CONEXIÓN */}
       <div className="pp-conexion">
         <span className={`pp-conexion-dot ${conectado ? 'online' : 'offline'}`} />
         <span className="pp-conexion-texto">{conectado ? 'En línea' : 'Sin conexión'}</span>
       </div>
 
-      {panelSuperior && (
-        <div className="pp-panel-superior">{panelSuperior}</div>
-      )}
+      {panelSuperior && <div className="pp-panel-superior">{panelSuperior}</div>}
 
-      {/* PESTAÑAS */}
       <div className="pp-tabs">
         <button className={`pp-tab ${pestana === 'chat' ? 'active' : ''}`} onClick={() => setPestana('chat')}>
-           <Comment width={16} height={16} style={{ marginRight: 4 }} />
+          <Comment width={16} height={16} style={{ marginRight: 4 }} />
         </button>
         <button className={`pp-tab ${pestana === 'jugadores' ? 'active' : ''}`} onClick={() => setPestana('jugadores')}>
           <Users width={16} height={16} style={{ marginRight: 4 }} />
@@ -419,21 +384,18 @@ return (
           <div className="pp-chat-mensajes" ref={chatRef}>
             {mensajes.map(msg => (
               <div key={msg.id} className={`pp-msg pp-msg--${msg.tipo}`}>
-
                 {msg.tipo === 'sistema' && (
                   <span className="pp-msg-sistema">⚔ {msg.texto}</span>
                 )}
-
                 {msg.tipo === 'mensaje' && (
                   <>
                     <div className="pp-msg-cabecera">
                       <span className="pp-msg-autor" style={{ color: msg.colorAutor }}>{msg.autor}</span>
                       <span className="pp-msg-hora">{msg.timestamp}</span>
                     </div>
-                    <p className="pp-msg-texto">{msg.texto}</p>
+                    <p className="pp-msg-texto">{renderTextoConEmotes(msg.texto)}</p>
                   </>
                 )}
-
                 {msg.tipo === 'tirada' && msg.tirada && (
                   <>
                     <div className="pp-msg-cabecera">
@@ -464,22 +426,45 @@ return (
                     </div>
                   </>
                 )}
-
               </div>
             ))}
           </div>
 
           <div className="pp-chat-input-wrap">
-            <textarea
-              className="pp-chat-input"
-              placeholder={conectado ? 'Escribe un mensaje...' : 'Sin conexión al servidor...'}
-              value={inputChat}
-              onChange={e => setInputChat(e.target.value)}
-              onKeyDown={handleKeyDown}
-              rows={2}
-              disabled={!conectado}
-            />
-            <button className="pp-chat-send" onClick={enviarMensaje} disabled={!conectado}>➤</button>
+            {mostrarEmotes && (
+              <div className="pp-emotes-picker">
+                {EMOTES.map(e => (
+                  <img
+                    key={e.id}
+                    src={e.src}
+                    alt={e.label}
+                    title={e.label}
+                    className="pp-emote-opcion"
+                    onClick={() => {
+                      setInputChat(prev => prev + `[${e.id}]`);
+                      setMostrarEmotes(false);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            <div className="pp-chat-input-row">
+              <button
+                className="pp-emote-btn"
+                onClick={() => setMostrarEmotes(!mostrarEmotes)}
+                title="Emotes"
+              ><Smile width={24} height={24} fill="#f39c12" /></button>
+              <textarea
+                className="pp-chat-input"
+                placeholder={conectado ? 'Escribe un mensaje...' : 'Sin conexión al servidor...'}
+                value={inputChat}
+                onChange={e => setInputChat(e.target.value)}
+                onKeyDown={handleKeyDown}
+                rows={2}
+                disabled={!conectado}
+              />
+              <button className="pp-chat-send" onClick={enviarMensaje} disabled={!conectado}>➤</button>
+            </div>
           </div>
         </div>
       )}
@@ -525,7 +510,6 @@ return (
       {pestana === 'dados' && (
         <div className="pp-seccion pp-dados-wrap">
           <p className="pp-dados-hint">Haz clic en un dado para lanzarlo</p>
-
           <div className="pp-dados-grid">
             {DADOS.map(({ caras, label }) => (
               <button
@@ -539,7 +523,6 @@ return (
               </button>
             ))}
           </div>
-
           <div className="pp-modificador-wrap">
             <label className="pp-mod-label">Modificador</label>
             <div className="pp-mod-controles">
@@ -548,7 +531,6 @@ return (
               <button className="pp-mod-btn" onClick={() => setModificador(m => m + 1)}>+</button>
             </div>
           </div>
-
           <p className="pp-dados-hint" style={{ marginTop: 12 }}>
             El resultado aparecerá en el chat
           </p>
@@ -559,14 +541,9 @@ return (
       {pestana === 'voz' && (
         <div className="pp-seccion pp-voz-wrap">
           <p className="pp-dados-hint">Canal de voz de la partida</p>
-
-          <button
-            className={`pp-mic-btn ${micActivo ? 'activo' : ''}`}
-            onClick={toggleMic}
-          >
+          <button className={`pp-mic-btn ${micActivo ? 'activo' : ''}`} onClick={toggleMic}>
             {micActivo ? '🎙 Micrófono activo' : '  Activar micrófono'}
           </button>
-
           <div className="pp-voz-usuarios">
             {usuariosVoz.length === 0 ? (
               <p className="pp-dados-hint" style={{ marginTop: 12 }}>
@@ -582,8 +559,7 @@ return (
             )}
           </div>
         </div>
-)}
-
+      )}
     </div>
   );
 }

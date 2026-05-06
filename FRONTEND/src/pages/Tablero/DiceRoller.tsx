@@ -5,21 +5,15 @@ import './DiceRoller.css';
 interface Props {
   dado: string | null;
   resultado: number | null;
-  onAnimacionFin: () => void;
+  onAnimacionFin: (resultadoReal : number) => void;
 }
-
-const container = document.createElement('div');
-container.id = 'dice-box-container';
-container.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;pointer-events:none;';
-document.body.appendChild(container);
 
 export function DiceRoller({ dado, resultado, onAnimacionFin }: Props) {
   const diceBoxRef = useRef<any>(null);
   const [animando, setAnimando] = useState(false);
   const callbackRef = useRef(onAnimacionFin);
   const initializedRef = useRef(false);
-
-  const rollSound = new Audio('public/sounds/diceroll/dado.wav'); 
+  const rollSound = new Audio('public/sounds/diceroll/dado.wav');
 
   useEffect(() => {
     callbackRef.current = onAnimacionFin;
@@ -27,6 +21,10 @@ export function DiceRoller({ dado, resultado, onAnimacionFin }: Props) {
 
   useEffect(() => {
     if (initializedRef.current) return;
+
+    const contenedor = document.getElementById('dice-box-container');
+    if (!contenedor) return;
+
     initializedRef.current = true;
 
     import('@3d-dice/dice-box').then(({ default: DiceBox }) => {
@@ -44,27 +42,33 @@ export function DiceRoller({ dado, resultado, onAnimacionFin }: Props) {
         throwForce: 1.5,
         startingHeight: 12,
         settleTimeout: 3000,
-        scale: 25,
+        scale: 7,
         theme: 'default',
         offscreen: true,
-        
       });
 
       box.init().then(() => {
-
-
         diceBoxRef.current = box;
+        setTimeout(() => {
+          const canvas = document.querySelector('#dice-box-container canvas') as HTMLCanvasElement;
+          if (canvas) {
+            canvas.style.width = '100vw';
+            canvas.style.height = '100vh';
+            canvas.style.position = 'fixed';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+          }
         window.dispatchEvent(new Event('resize'));
+        }, 200);
         console.log('✅ DiceBox listo');
       }).catch((err: any) => console.error('Error init:', err));
 
     }).catch((err: any) => console.error('Error cargando DiceBox:', err));
-  }, []);
+  }, [animando]);
 
   useEffect(() => {
     if (!dado || resultado === null || !diceBoxRef.current) return;
 
-    container.style.pointerEvents = 'all';
     setAnimando(true);
 
     const diceMap: Record<string, string> = {
@@ -78,39 +82,34 @@ export function DiceRoller({ dado, resultado, onAnimacionFin }: Props) {
     rollSound.currentTime = 0;
     rollSound.play().catch(() => {});
 
-    diceBoxRef.current.roll(notation).then(() => {
+    diceBoxRef.current.roll(notation).then((resultados: any[]) => {
+      
+      console.log('Resultado DiceBox:', JSON.stringify(resultados));
+      
+      const resultadoReal = resultados?.[0]?.value ?? resultados; 
       setTimeout(() => {
         setAnimando(false);
-        container.style.pointerEvents = 'none';
-        callbackRef.current();
+        callbackRef.current(resultadoReal);
         diceBoxRef.current?.clear();
       }, 1500);
     }).catch(() => {
       setAnimando(false);
-      callbackRef.current();
+      callbackRef.current(resultado ?? 1);
     });
   }, [dado, resultado]);
 
   return createPortal(
     <>
-      {animando && resultado !== null && dado && (
-        <div style={{
-          position: 'fixed',
-          bottom: '10%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 10000,
-          textAlign: 'center',
-          pointerEvents: 'none',
-        }}>
-          <div style={{ fontSize: 72, fontWeight: 'bold', color: '#e2b96f', textShadow: '0 0 20px rgba(226,185,111,0.8)' }}>
-            {resultado}
-          </div>
-          <div style={{ fontSize: 18, color: 'rgba(255,255,255,0.6)', fontStyle: 'italic' }}>
-            {dado.toUpperCase()}
-          </div>
-        </div>
-      )}
+      <div id="dice-box-container" style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 9999,
+        pointerEvents: animando ? 'all' : 'none',
+      }} />
+      
     </>,
     document.body
   );

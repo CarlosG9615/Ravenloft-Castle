@@ -504,3 +504,45 @@
   font-size: 13px;
   color: rgba(255,255,255,0.7);
 }
+.pp-chat-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.pp-emote-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.pp-emote-btn:hover {
+  opacity: 1;
+}
+
+.pp-emotes-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(20, 10, 5, 0.95);
+  border: 1px solid rgba(139, 0, 0, 0.4);
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+
+.pp-emote-opcion {
+  width: 56px;
+  height: 56px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: transform 0.15s;
+}
+
+.pp-emote-opcion:hover {
+  transform: scale(1.2);
+}
