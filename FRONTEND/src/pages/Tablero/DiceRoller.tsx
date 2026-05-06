@@ -40,7 +40,7 @@ export function DiceRoller({ dado, resultado, onAnimacionFin }: Props) {
         angularDamping: 0.4,
         linearDamping: 0.5,
         spinForce: 3,
-        themeColor: '#000000',
+        themeColor: '#591414',
         throwForce: 1.5,
         startingHeight: 12,
         settleTimeout: 3000,
