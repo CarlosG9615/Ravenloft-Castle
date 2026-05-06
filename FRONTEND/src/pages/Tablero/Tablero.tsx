@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Stage, Layer, Image, Line, Circle, Text, Group } from 'react-konva';
+import { Stage, Layer, Image, Line, Circle, Text, Group, Rect } from 'react-konva';
 import { PanelPartida } from './PanelPartida';
 import { obtenerCampanaPorId } from '../../services/campanaService';
 import useImage from 'use-image';
@@ -92,6 +92,101 @@ export function Tablero() {
   const [mostrarCuadricula, setMostrarCuadricula] = useState(true);
   const [panelAbierto, setPanelAbierto]           = useState(true);
 
+  // --- NUEVA LÓGICA DE MOVIMIENTO INTERACTIVO ---
+  const snapToGrid = (val: number) => Math.round(val / TAMANYO_CELDA) * TAMANYO_CELDA + TAMANYO_CELDA / 2;
+  const snapToCorner = (val: number) => Math.round(val / TAMANYO_CELDA) * TAMANYO_CELDA;
+
+  const [animatingTokenId, setAnimatingTokenId] = useState<string | null>(null);
+  const [animPath, setAnimPath] = useState<{x: number, y: number}[]>([]);
+  const [animStep, setAnimStep] = useState(0);
+  const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [dragOrigin, setDragOrigin] = useState<{ x: number, y: number } | null>(null);
+  const [dragCurrent, setDragCurrent] = useState<{ x: number, y: number } | null>(null);
+  const draggingRef = useRef<{ tokenId: string; origin: {x:number,y:number}; current: {x:number,y:number} } | null>(null);
+
+  useEffect(() => {
+    return () => { if (animTimerRef.current) clearTimeout(animTimerRef.current); };
+  }, []);
+
+  const buildPath = (from: {x:number, y:number}, to: {x:number, y:number}) => {
+    const path = [from];
+    if (from.x === to.x) {
+      const dist = to.y - from.y;
+      const steps = Math.abs(dist) / TAMANYO_CELDA;
+      const dir = dist > 0 ? TAMANYO_CELDA : -TAMANYO_CELDA;
+      for (let i = 1; i <= steps; i++) path.push({ x: from.x, y: from.y + dir * i });
+    } else {
+      const dist = to.x - from.x;
+      const steps = Math.abs(dist) / TAMANYO_CELDA;
+      const dir = dist > 0 ? TAMANYO_CELDA : -TAMANYO_CELDA;
+      for (let i = 1; i <= steps; i++) path.push({ x: from.x + dir * i, y: from.y });
+    }
+    return path;
+  };
+
+  const constrainToAxis = (origin: {x:number, y:number}, target: {x:number, y:number}) => {
+    const dx = Math.abs(target.x - origin.x);
+    const dy = Math.abs(target.y - origin.y);
+    return dx >= dy ? { x: target.x, y: origin.y } : { x: origin.x, y: target.y };
+  };
+
+  const startAnimation = (tokenId: string, path: {x:number, y:number}[]) => {
+    if (animTimerRef.current) clearTimeout(animTimerRef.current);
+    setAnimatingTokenId(tokenId);
+    setAnimPath(path);
+    setAnimStep(0);
+
+    let step = 0;
+    const advance = () => {
+      step++;
+      if (step >= path.length) {
+        const to = path[path.length - 1];
+        setAnimatingTokenId(null);
+        setAnimPath([]);
+        setAnimStep(0);
+        moverToken(tokenId, to.x, to.y);
+        return;
+      }
+      moverToken(tokenId, path[step].x, path[step].y);
+      setAnimStep(step);
+      animTimerRef.current = setTimeout(advance, 220);
+    };
+    advance();
+  };
+
+  let overlayCells: {x:number, y:number, step:number}[] = [];
+  if (dragCurrent && dragOrigin) {
+    const path = buildPath(dragOrigin, dragCurrent);
+    overlayCells = path.slice(1).map((pos, i) => ({ ...pos, step: i + 1 }));
+  } else if (animatingTokenId && animPath.length > 0 && animStep > 0) {
+    overlayCells = animPath.slice(1, animStep + 1).map((pos, i) => ({ ...pos, step: i + 1 }));
+  }
+
+  const handleStagePointerMove = (e: any) => {
+    if (draggingRef.current) {
+      const stage = stageRef.current;
+      const pointer = stage.getPointerPosition();
+      const x = (pointer.x - position.x) / scale;
+      const y = (pointer.y - position.y) / scale;
+      const raw = { x: snapToGrid(x), y: snapToGrid(y) };
+      const constrained = constrainToAxis(draggingRef.current.origin, raw);
+      draggingRef.current.current = constrained;
+      setDragCurrent(constrained);
+    }
+  };
+
+  const handleStagePointerUp = () => {
+    if (draggingRef.current) {
+      const { tokenId, origin, current } = draggingRef.current;
+      draggingRef.current = null;
+      setDragCurrent(null);
+      setDragOrigin(null);
+      if (origin.x !== current.x || origin.y !== current.y) {
+        startAnimation(tokenId, buildPath(origin, current));
+      }
+    }
+  };
   // ── FETCH DE MAPAS DESDE EL BACKEND ──────────────────────
   // Llama al endpoint de Spring Boot al montar el componente.
   // El backend debe devolver: ["ruta1.jpg", "ruta2.jpg", ...]
@@ -170,9 +265,6 @@ export function Tablero() {
     if (herramienta === 'borrar')
       setTokens(prev => prev.filter(t => t.id !== id));
   };
-
-  const snapToGrid = (val: number) =>
-      Math.round(val / TAMANYO_CELDA) * TAMANYO_CELDA + TAMANYO_CELDA / 2;
 
   const resetearVista = () => {
     setScale(calcularScaleInicial());
@@ -304,7 +396,7 @@ export function Tablero() {
             scaleY={scale}
             x={position.x}
             y={position.y}
-            draggable={herramienta === 'mover'}
+            draggable={herramienta === 'mover' && !draggingRef.current}
             onDragEnd={e => {
                 if (e.target === e.target.getStage()) {
                     setPosition({ x: e.target.x(), y: e.target.y() });
@@ -312,20 +404,46 @@ export function Tablero() {
             }}
             onWheel={handleWheel}
             onClick={handleStageClick}
+            onPointerMove={handleStagePointerMove}
+            onPointerUp={handleStagePointerUp}
         >
           <Layer>
             <MapaFondo src={mapaActualUrl} ancho={MAPA_ANCHO} alto={MAPA_ALTO} />
             {mostrarCuadricula && <Cuadricula ancho={MAPA_ANCHO} alto={MAPA_ALTO} celda={TAMANYO_CELDA} />}
 
-            {tokens.map(token => (
+            {/* OVERLAY DE MOVIMIENTO */}
+            {overlayCells.map(({ x, y, step }) => (
+                <Group key={`ov-${x}-${y}`} x={x - TAMANYO_CELDA/2} y={y - TAMANYO_CELDA/2} listening={false}>
+                  <Rect width={TAMANYO_CELDA} height={TAMANYO_CELDA} fill="rgba(255, 204, 0, 0.45)" stroke="rgba(255, 220, 120, 0.9)" strokeWidth={1.5} />
+                  <Text text={step.toString()} width={TAMANYO_CELDA} height={TAMANYO_CELDA} align="center" verticalAlign="middle" fontStyle="bold" fontSize={18} fill="#ffffff" shadowColor="rgba(0,0,0,0.85)" shadowBlur={4} />
+                </Group>
+            ))}
+
+            {tokens.map(token => {
+                const isActiveAnim = animatingTokenId === token.id;
+                // si el token se está arrastrando en este instante o si usa estado de animación,
+                // su x e y cambian a través del render de estado origin/current
+                // wait, if we use dragCurrent correctly, we should render the dragged token at current
+                // actually, during dragging 'moverToken' is NOT called until path is established.
+                const isDragging = draggingRef.current?.tokenId === token.id && dragCurrent;
+                const renderX = isDragging ? dragCurrent.x : token.x;
+                const renderY = isDragging ? dragCurrent.y : token.y;
+
+                return (
                 <Group
                     key={token.id}
-                    x={token.x}
-                    y={token.y}
-                    draggable={herramienta === 'mover'}
-                    onDragEnd={e => {
+                    x={renderX}
+                    y={renderY}
+                    draggable={false}
+                    onPointerDown={e => {
+                      if (herramienta !== 'mover') return;
                       e.cancelBubble = true;
-                      moverToken(token.id, snapToGrid(e.target.x()), snapToGrid(e.target.y()));
+                      if (!animatingTokenId) {
+                        const origin = { x: token.x, y: token.y };
+                        setDragOrigin(origin);
+                        setDragCurrent(origin);
+                        draggingRef.current = { tokenId: token.id, origin, current: origin };
+                      }
                     }}
                     onClick={() => borrarToken(token.id)}
                     onMouseEnter={e => {
@@ -342,7 +460,8 @@ export function Tablero() {
                   <Text text={token.nombre.charAt(0).toUpperCase()} fontSize={16} fontStyle="bold" fill="white" align="center" verticalAlign="middle" width={40} height={40} offsetX={20} offsetY={20} />
                   <Text text={token.nombre} fontSize={10} fill="white" align="center" width={60} offsetX={30} offsetY={-26} shadowColor="black" shadowBlur={4} />
                 </Group>
-            ))}
+               );
+            })}
           </Layer>
         </Stage>
 
@@ -363,3 +482,5 @@ export function Tablero() {
       </div>
   );
 }
+
+
