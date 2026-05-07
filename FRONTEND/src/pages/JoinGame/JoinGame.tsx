@@ -301,20 +301,21 @@ function ModalCampana({
                   if (soyMaster) {
                     navigate('/tablero', {
                       state: {
-                        campanaId: campana.id,
-                        campaaNombre: campana.nombre,
-                        mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
-                        jugadores: campana.jugadores,
-                        jugadorActual: {
-                          id: user?.id || Date.now(),
-                          nombre: user?.nombre || 'Tú',
-                          clase: 'Aventurero',
-                          hp: 20,
-                          hpMax: 20,
-                          conectado: true
-                        }
+                      campanaId: campana.id,
+                      campaaNombre: campana.nombre,
+                      mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
+                      jugadores: campana.jugadores,
+                      esMaster: true, 
+                      jugadorActual: {
+                        id: user?.id || Date.now(),
+                        nombre: user?.nombre || 'Tú',
+                        clase: 'Aventurero',
+                        hp: 20,
+                        hpMax: 20,
+                        conectado: true
                       }
-                    });
+                    }
+                  });
                     return;
                   }
 
@@ -333,6 +334,7 @@ function ModalCampana({
                       campaaNombre: campana.nombre,
                       mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
                       jugadores: misJugadores,
+                      esMaster: false,
                       jugadorActual: jugadorRed
                     }
                   });

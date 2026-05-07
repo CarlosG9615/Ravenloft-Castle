@@ -1,28 +1,24 @@
-/* =========================================
-   PANEL PARTIDA — panel derecho del tablero
-   ========================================= */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
 .pp-panel {
   position: fixed;
   top: 0px;
   right: 0;
-  width: 400px;
+  width: 500px;
   height: 100vh;
-  background: rgba(8, 2, 2, 0.92);
-  border-left: 1px solid rgba(139, 0, 0, 0.3);
-  backdrop-filter: blur(12px);
-  overflow: hidden; 
+  background: rgba(8, 2, 2, 0.65);
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   z-index: 100;
-  font-family: 'Segoe UI', sans-serif;
-
+  font-family: 'Press Start 2P', monospace;
 }
 
-/* ── PESTAÑAS ── */
 .pp-tabs {
   display: flex;
-  border-bottom: 1px solid rgba(139, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
 }
 
@@ -32,45 +28,44 @@
   background: transparent;
   border: none;
   color: rgba(200, 170, 120, 0.45);
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.5px;
   cursor: pointer;
   transition: all 0.2s;
   border-bottom: 2px solid transparent;
+  font-family: 'Press Start 2P', monospace;
 }
 
 .pp-tab:hover {
   color: rgba(200, 170, 120, 0.8);
-  background: rgba(139, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .pp-tab.active {
   color: rgba(220, 190, 140, 1);
-  border-bottom-color: #8b0000;
-  background: rgba(139, 0, 0, 0.12);
+  border-bottom-color: rgba(200, 170, 120, 0.6);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-/* ── SECCIÓN GENÉRICA ── */
 .pp-seccion {
   flex: 1;
   overflow-y: auto;
   padding: 12px;
-    min-height: 0;  
+  min-height: 0;
   scrollbar-width: thin;
-  scrollbar-color: rgba(139, 0, 0, 0.4) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
 .pp-seccion::-webkit-scrollbar { width: 4px; }
-.pp-seccion::-webkit-scrollbar-thumb { background: rgba(139, 0, 0, 0.4); border-radius: 2px; }
+.pp-seccion::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
 
-/* ── CHAT ── */
 .pp-chat-wrap {
   display: flex;
   flex-direction: column;
   padding: 0;
   gap: 0;
-  height: 100%;        
+  height: 100%;
   overflow: hidden;
 }
 
@@ -81,31 +76,34 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-height: 0; 
-   height: 100%; 
+  min-height: 0;
+  height: 100%;
   scrollbar-width: thin;
-  scrollbar-color: rgba(139, 0, 0, 0.4) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
 .pp-chat-mensajes::-webkit-scrollbar { width: 4px; }
-.pp-chat-mensajes::-webkit-scrollbar-thumb { background: rgba(139, 0, 0, 0.4); border-radius: 2px; }
+.pp-chat-mensajes::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 2px; }
 
-/* Mensajes */
-.pp-msg { display: flex; flex-direction: column; gap: 2px; }
-
-.pp-msg--sistema {
-  text-align: center;
+.pp-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
+.pp-msg--sistema { text-align: center; }
+
 .pp-msg-sistema {
-  font-size: 11px;
-  color: rgba(139, 0, 0, 0.8);
-  background: rgba(139, 0, 0, 0.08);
-  border: 1px solid rgba(139, 0, 0, 0.2);
+  font-size: 8px;
+  color: rgba(200, 170, 120, 0.6);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 4px;
   padding: 5px 10px;
   display: block;
   font-style: italic;
+  font-family: 'Press Start 2P', monospace;
+  line-height: 1.8;
 }
 
 .pp-msg-cabecera {
@@ -115,45 +113,58 @@
 }
 
 .pp-msg-autor {
-  font-size: 11px;
+  font-size: 8px;
   font-weight: 700;
   letter-spacing: 0.3px;
+  font-family: 'Press Start 2P', monospace;
 }
 
 .pp-msg-hora {
-  font-size: 10px;
+  font-size: 7px;
   color: rgba(200, 170, 120, 0.3);
   margin-left: auto;
+  font-family: 'Press Start 2P', monospace;
 }
 
-.pp-msg-texto {
-  font-size: 13px;
-  color: rgba(220, 200, 170, 0.9);
+.pp-msg--mensaje .pp-msg-texto {
+  font-size: 9px;
+  color: rgba(220, 200, 170, 0.95);
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.8;
   word-break: break-word;
+  background: rgba(15, 4, 4, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0 8px 8px 8px;
+  padding: 8px 10px;
+  font-family: 'Press Start 2P', monospace;
 }
 
-/* Tirada */
+.pp-msg--mensaje.otros .pp-msg-texto {
+  background: rgba(8, 8, 8, 0.75);
+  border-color: rgba(255, 255, 255, 0.06);
+  border-radius: 8px 8px 8px 0;
+}
+
 .pp-tirada-resultado {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(139, 0, 0, 0.1);
-  border: 1px solid rgba(139, 0, 0, 0.25);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
   padding: 6px 10px;
   margin-top: 2px;
 }
 
 .pp-tirada-dado {
-  font-size: 11px;
+  font-size: 8px;
   font-weight: 700;
   color: rgba(200, 170, 120, 0.7);
-  background: rgba(139, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.06);
   padding: 2px 6px;
   border-radius: 3px;
   letter-spacing: 0.5px;
+  font-family: 'Press Start 2P', monospace;
 }
 
 .pp-tirada-desglose {
@@ -167,23 +178,18 @@
   font-size: 20px;
   font-weight: 700;
   color: rgba(220, 190, 140, 0.95);
+  font-family: 'Press Start 2P', monospace;
 }
 
-.pp-tirada-mod {
-  font-size: 13px;
-  color: rgba(200, 170, 120, 0.6);
-}
-
-.pp-tirada-igual {
-  font-size: 13px;
-  color: rgba(200, 170, 120, 0.4);
-}
+.pp-tirada-mod { font-size: 11px; color: rgba(200, 170, 120, 0.6); font-family: 'Press Start 2P', monospace; }
+.pp-tirada-igual { font-size: 11px; color: rgba(200, 170, 120, 0.4); }
 
 .pp-tirada-total {
   font-size: 22px;
   font-weight: 900;
   color: rgba(220, 190, 140, 0.95);
   margin-left: 2px;
+  font-family: 'Press Start 2P', monospace;
 }
 
 .pp-tirada-total.critico {
@@ -196,34 +202,35 @@
   text-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
 }
 
-/* Input chat */
 .pp-chat-input-wrap {
   display: flex;
+  flex-direction: column;
   gap: 6px;
   padding: 10px 12px;
-  border-top: 1px solid rgba(139, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
 }
 
 .pp-chat-input {
   flex: 1;
-  background: rgba(139, 0, 0, 0.08);
-  border: 1px solid rgba(139, 0, 0, 0.25);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   color: rgba(220, 200, 170, 0.9);
-  font-size: 13px;
+  font-size: 9px;
   padding: 7px 10px;
   resize: none;
-  font-family: inherit;
+  font-family: 'Press Start 2P', monospace;
   transition: border-color 0.2s;
+  line-height: 1.8;
 }
 
 .pp-chat-input::placeholder { color: rgba(200, 170, 120, 0.3); }
-.pp-chat-input:focus { outline: none; border-color: rgba(139, 0, 0, 0.5); }
+.pp-chat-input:focus { outline: none; border-color: rgba(255, 255, 255, 0.2); }
 
 .pp-chat-send {
-  background: #8b0000;
-  border: none;
+  background: rgba(30, 5, 5, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 6px;
   color: rgba(220, 190, 140, 0.9);
   font-size: 16px;
@@ -233,34 +240,21 @@
   flex-shrink: 0;
 }
 
-.pp-chat-send:hover { background: #a00000; }
+.pp-chat-send:hover { background: rgba(50, 8, 8, 0.9); }
 
-/* ── JUGADORES ── */
-.pp-jugadores-lista {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+.pp-jugadores-lista { display: flex; flex-direction: column; gap: 10px; }
 
 .pp-jugador {
-  background: rgba(139, 0, 0, 0.07);
-  border: 1px solid rgba(139, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 8px;
   padding: 10px 12px;
   transition: border-color 0.2s;
 }
 
-.pp-jugador.desconectado {
-  opacity: 0.5;
-  border-color: rgba(100, 100, 100, 0.2);
-}
+.pp-jugador.desconectado { opacity: 0.5; }
 
-.pp-jugador-cabecera {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-bottom: 8px;
-}
+.pp-jugador-cabecera { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
 
 .pp-jugador-dot {
   width: 8px;
@@ -270,37 +264,20 @@
   box-shadow: 0 0 6px currentColor;
 }
 
-.pp-jugador-nombre {
-  font-size: 13px;
-  font-weight: 700;
-  color: rgba(220, 190, 140, 0.95);
-}
+.pp-jugador-nombre { font-size: 9px; font-weight: 700; color: rgba(220, 190, 140, 0.95); font-family: 'Press Start 2P', monospace; }
+.pp-jugador-clase { font-size: 8px; color: rgba(200, 170, 120, 0.5); margin-left: auto; font-family: 'Press Start 2P', monospace; }
+.pp-jugador-off { font-size: 8px; color: #888; font-style: italic; }
 
-.pp-jugador-clase {
-  font-size: 11px;
-  color: rgba(200, 170, 120, 0.5);
-  margin-left: auto;
-}
-
-.pp-jugador-off {
-  font-size: 10px;
-  color: #888;
-  font-style: italic;
-}
-
-.pp-jugador-hp-wrap {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
+.pp-jugador-hp-wrap { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
 
 .pp-jugador-hp-label {
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   color: rgba(200, 170, 120, 0.5);
   letter-spacing: 0.5px;
   width: 18px;
   flex-shrink: 0;
+  font-family: 'Press Start 2P', monospace;
 }
 
 .pp-jugador-hp-barra {
@@ -317,34 +294,60 @@
   transition: width 0.4s ease, background 0.4s ease;
 }
 
-.pp-jugador-hp-num {
-  font-size: 11px;
-  color: rgba(220, 190, 140, 0.7);
-  width: 36px;
-  text-align: right;
-  flex-shrink: 0;
+.pp-jugador-hp-num { font-size: 8px; color: rgba(220, 190, 140, 0.7); width: 36px; text-align: right; flex-shrink: 0; font-family: 'Press Start 2P', monospace; }
+
+/* ── STATS JUGADOR ── */
+.pp-jugador-stats {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  margin-top: 8px;
 }
 
-/* ── DADOS ── */
-.pp-dados-wrap {
+.pp-jugador-stat {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  padding: 4px 2px;
+  gap: 2px;
 }
 
-.pp-dados-hint {
+.pp-jugador-stat-label {
+  font-size: 6px;
+  color: rgba(200, 170, 120, 0.6);
+  font-family: 'Press Start 2P', monospace;
+  letter-spacing: 0.3px;
+}
+
+.pp-jugador-stat-valor {
   font-size: 11px;
+  font-weight: 700;
+  color: rgba(220, 190, 140, 0.95);
+  font-family: 'Press Start 2P', monospace;
+}
+
+.pp-jugador-stat-mod {
+  font-size: 7px;
+  color: rgba(200, 170, 120, 0.7);
+  font-family: 'Press Start 2P', monospace;
+}
+
+.pp-dados-wrap { display: flex; flex-direction: column; gap: 16px; }
+
+.pp-dados-hint {
+  font-size: 8px;
   color: rgba(200, 170, 120, 0.4);
   text-align: center;
   margin: 0;
   font-style: italic;
+  font-family: 'Press Start 2P', monospace;
+  line-height: 1.8;
 }
 
-.pp-dados-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
+.pp-dados-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 
 .pp-dado-btn {
   display: flex;
@@ -352,8 +355,8 @@
   align-items: center;
   gap: 4px;
   padding: 12px 8px;
-  background: rgba(139, 0, 0, 0.1);
-  border: 1px solid rgba(139, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -361,10 +364,10 @@
 }
 
 .pp-dado-btn:hover:not(:disabled) {
-  background: rgba(139, 0, 0, 0.25);
-  border-color: rgba(139, 0, 0, 0.6);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .pp-dado-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -380,21 +383,12 @@
   to   { transform: rotate(8deg) scale(1.1); }
 }
 
-.pp-dado-icono {
-  font-size: 20px;
-  line-height: 1;
-}
+.pp-dado-icono { font-size: 20px; line-height: 1; }
+.pp-dado-label { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; font-family: 'Press Start 2P', monospace; }
 
-.pp-dado-label {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-/* Modificador */
 .pp-modificador-wrap {
-  background: rgba(139, 0, 0, 0.07);
-  border: 1px solid rgba(139, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 8px;
   padding: 10px 14px;
   display: flex;
@@ -402,24 +396,14 @@
   justify-content: space-between;
 }
 
-.pp-mod-label {
-  font-size: 11px;
-  color: rgba(200, 170, 120, 0.6);
-  font-weight: 600;
-  letter-spacing: 0.5px;
-}
-
-.pp-mod-controles {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+.pp-mod-label { font-size: 8px; color: rgba(200, 170, 120, 0.6); font-weight: 600; letter-spacing: 0.5px; font-family: 'Press Start 2P', monospace; }
+.pp-mod-controles { display: flex; align-items: center; gap: 10px; }
 
 .pp-mod-btn {
   width: 26px;
   height: 26px;
-  background: rgba(139, 0, 0, 0.2);
-  border: 1px solid rgba(139, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
   color: rgba(220, 190, 140, 0.9);
   font-size: 16px;
@@ -431,63 +415,54 @@
   line-height: 1;
 }
 
-.pp-mod-btn:hover { background: rgba(139, 0, 0, 0.4); }
+.pp-mod-btn:hover { background: rgba(255, 255, 255, 0.1); }
+.pp-mod-valor { font-size: 14px; font-weight: 700; color: rgba(220, 190, 140, 0.95); min-width: 32px; text-align: center; font-family: 'Press Start 2P', monospace; }
 
-.pp-mod-valor {
-  font-size: 16px;
-  font-weight: 700;
-  color: rgba(220, 190, 140, 0.95);
-  min-width: 32px;
-  text-align: center;
-}
-
-/* ── INDICADOR CONEXIÓN ── */
 .pp-conexion {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border-bottom: 1px solid rgba(139, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
 }
 
-.pp-conexion-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
+.pp-conexion-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .pp-conexion-dot.online  { background: #2ecc71; box-shadow: 0 0 6px #2ecc71; }
 .pp-conexion-dot.offline { background: #e74c3c; box-shadow: 0 0 6px #e74c3c; }
-
-.pp-conexion-texto {
-  font-size: 10px;
-  color: rgba(200, 170, 120, 0.5);
-  letter-spacing: 0.5px;
-}
+.pp-conexion-texto { font-size: 8px; color: rgba(200, 170, 120, 0.5); letter-spacing: 0.5px; font-family: 'Press Start 2P', monospace; }
 
 .pp-panel-superior {
   padding: 10px 12px;
-  border-bottom: 1px solid rgba(139, 0, 0, 0.2);
-  background: rgba(139, 0, 0, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
 }
+
 .pp-mic-btn {
   padding: 12px 32px;
   border-radius: 30px;
-  border: 1px solid rgba(255,255,255,0.2);
-  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.3);
   color: white;
-  font-size: 14px;
+  font-size: 9px;
   cursor: pointer;
   transition: all 0.3s ease;
   margin: 16px auto;
   display: block;
+  font-family: 'Press Start 2P', monospace;
+  line-height: 1.8;
 }
 
 .pp-mic-btn.activo {
-  background: rgba(139,0,0,0.5);
-  border-color: rgba(200,50,30,0.6);
+  background: rgba(30, 5, 5, 0.7);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.pp-voz-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .pp-voz-usuarios {
@@ -495,15 +470,23 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px;
+  flex: 1;
 }
 
 .pp-voz-usuario {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
-  color: rgba(255,255,255,0.7);
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  font-family: 'Press Start 2P', monospace;
+  line-height: 1.8;
 }
+
 .pp-chat-input-row {
   display: flex;
   gap: 6px;
@@ -520,17 +503,15 @@
   transition: opacity 0.2s;
 }
 
-.pp-emote-btn:hover {
-  opacity: 1;
-}
+.pp-emote-btn:hover { opacity: 1; }
 
 .pp-emotes-picker {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   padding: 8px;
-  background: rgba(20, 10, 5, 0.95);
-  border: 1px solid rgba(139, 0, 0, 0.4);
+  background: rgba(10, 5, 5, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   margin-bottom: 6px;
 }
@@ -543,6 +524,4 @@
   transition: transform 0.15s;
 }
 
-.pp-emote-opcion:hover {
-  transform: scale(1.2);
-}
+.pp-emote-opcion:hover { transform: scale(1.2); }

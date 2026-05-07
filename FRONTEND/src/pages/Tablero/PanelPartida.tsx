@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { DiceRoller } from './DiceRoller';
-import { Comment, Users, Mic, Smile } from 'pixelarticons/react'
+import { Comment, Users, Mic } from 'pixelarticons/react'
 import { Dices } from 'lucide-react';
 import './PanelPartida.css';
 
@@ -15,6 +15,12 @@ interface Jugador {
   hpMax: number;
   color: string;
   conectado: boolean;
+  fuerza?: number;
+  destreza?: number;
+  constitucion?: number;
+  inteligencia?: number;
+  sabiduria?: number;
+  carisma?: number;
 }
 
 interface MensajeChat {
@@ -94,9 +100,10 @@ interface Props {
   jugadores?: any[];
   campanaId?: number | string;
   jugadorActual?: any;
+  esMaster?: boolean;
 }
 
-export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b', panelSuperior, jugadores, campanaId, jugadorActual }: Props) {
+export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b', panelSuperior, jugadores, campanaId, jugadorActual, esMaster = false }: Props) {
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'dados' | 'voz'>('chat');
   const [mensajes, setMensajes] = useState<MensajeChat[]>([
     {
@@ -284,7 +291,13 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
       hp: j.hp || 10,
       hpMax: j.hpMax || 10,
       color: j.color || COLORES_CLASES[j.clase] || '#4a90d9',
-      conectado: j.conectado !== false
+      conectado: j.conectado !== false,
+      fuerza: j.fuerza,
+      destreza: j.destreza,
+      constitucion: j.constitucion,
+      inteligencia: j.inteligencia,
+      sabiduria: j.sabiduria,
+      carisma: j.carisma,
     }));
 
   const crearPeerConnection = (peerId: string): RTCPeerConnection => {
@@ -383,7 +396,9 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
         <div className="pp-seccion pp-chat-wrap">
           <div className="pp-chat-mensajes" ref={chatRef}>
             {mensajes.map(msg => (
-              <div key={msg.id} className={`pp-msg pp-msg--${msg.tipo}`}>
+              <div key={msg.id} className={`pp-msg pp-msg--${msg.tipo} ${
+                msg.tipo === 'mensaje' && msg.autor !== (jugadorActual?.nombre || nombreMaster) ? 'otros' : ''
+              }`}>
                 {msg.tipo === 'sistema' && (
                   <span className="pp-msg-sistema">⚔ {msg.texto}</span>
                 )}
@@ -453,7 +468,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
                 className="pp-emote-btn"
                 onClick={() => setMostrarEmotes(!mostrarEmotes)}
                 title="Emotes"
-              ><Smile width={24} height={24} fill="#f39c12" /></button>
+              >🐉</button>
               <textarea
                 className="pp-chat-input"
                 placeholder={conectado ? 'Escribe un mensaje...' : 'Sin conexión al servidor...'}
@@ -474,29 +489,51 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
         <div className="pp-seccion">
           <div className="pp-jugadores-lista">
             {jugadoresAMostrar.length > 0 ? (
-              jugadoresAMostrar.map(j => (
-                <div key={j.id} className={`pp-jugador ${j.conectado ? '' : 'desconectado'}`}>
-                  <div className="pp-jugador-cabecera">
-                    <span className="pp-jugador-dot" style={{ background: j.conectado ? j.color : '#555' }} />
-                    <span className="pp-jugador-nombre">{j.nombre}</span>
-                    <span className="pp-jugador-clase">{j.clase}</span>
-                    {!j.conectado && <span className="pp-jugador-off">desconectado</span>}
-                  </div>
-                  <div className="pp-jugador-hp-wrap">
-                    <span className="pp-jugador-hp-label">HP</span>
-                    <div className="pp-jugador-hp-barra">
-                      <div
-                        className="pp-jugador-hp-fill"
-                        style={{
-                          width: `${(j.hp / j.hpMax) * 100}%`,
-                          background: j.hp / j.hpMax > 0.5 ? '#2ecc71' : j.hp / j.hpMax > 0.25 ? '#f39c12' : '#e74c3c',
-                        }}
-                      />
+              jugadoresAMostrar.map(j => {
+                const stats = [
+                  { label: 'FUE', valor: j.fuerza ?? 10 },
+                  { label: 'DES', valor: j.destreza ?? 10 },
+                  { label: 'CON', valor: j.constitucion ?? 10 },
+                  { label: 'INT', valor: j.inteligencia ?? 10 },
+                  { label: 'SAB', valor: j.sabiduria ?? 10 },
+                  { label: 'CAR', valor: j.carisma ?? 10 },
+                ];
+                return (
+                  <div key={j.id} className={`pp-jugador ${j.conectado ? '' : 'desconectado'}`}>
+                    <div className="pp-jugador-cabecera">
+                      <span className="pp-jugador-dot" style={{ background: j.conectado ? j.color : '#555' }} />
+                      <span className="pp-jugador-nombre">{j.nombre}</span>
+                      <span className="pp-jugador-clase">{j.clase}</span>
+                      {!j.conectado && <span className="pp-jugador-off">desconectado</span>}
                     </div>
-                    <span className="pp-jugador-hp-num">{j.hp}/{j.hpMax}</span>
+                    <div className="pp-jugador-hp-wrap">
+                      <span className="pp-jugador-hp-label">HP</span>
+                      <div className="pp-jugador-hp-barra">
+                        <div
+                          className="pp-jugador-hp-fill"
+                          style={{
+                            width: `${(j.hp / j.hpMax) * 100}%`,
+                            background: j.hp / j.hpMax > 0.5 ? '#2ecc71' : j.hp / j.hpMax > 0.25 ? '#f39c12' : '#e74c3c',
+                          }}
+                        />
+                      </div>
+                      <span className="pp-jugador-hp-num">{j.hp}/{j.hpMax}</span>
+                    </div>
+                    <div className="pp-jugador-stats">
+                      {stats.map(({ label, valor }) => {
+                        const mod = Math.floor((valor - 10) / 2);
+                        return (
+                          <div key={label} className="pp-jugador-stat">
+                            <span className="pp-jugador-stat-label">{label}</span>
+                            <span className="pp-jugador-stat-valor">{valor}</span>
+                            <span className="pp-jugador-stat-mod">{mod >= 0 ? `+${mod}` : mod}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <p className="tb-vacio" style={{ textAlign: 'center', opacity: 0.5, fontSize: '13px', paddingTop: '20px' }}>
                 Sin jugadores en la partida
