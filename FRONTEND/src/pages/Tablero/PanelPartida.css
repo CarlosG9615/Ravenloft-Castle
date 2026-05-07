@@ -264,6 +264,31 @@
   box-shadow: 0 0 6px currentColor;
 }
 
+.pp-jugador-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.pp-jugador-avatar-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(220, 190, 140, 0.9);
+  flex-shrink: 0;
+  font-family: 'Press Start 2P', monospace;
+}
+
 .pp-jugador-nombre { font-size: 9px; font-weight: 700; color: rgba(220, 190, 140, 0.95); font-family: 'Press Start 2P', monospace; }
 .pp-jugador-clase { font-size: 8px; color: rgba(200, 170, 120, 0.5); margin-left: auto; font-family: 'Press Start 2P', monospace; }
 .pp-jugador-off { font-size: 8px; color: #888; font-style: italic; }

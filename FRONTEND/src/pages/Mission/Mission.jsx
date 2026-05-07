@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { BackButton } from '../../components/BackButton/BackButton';
+import { CharacterSelectModal } from '../../components/CharacterSelectModal/CharacterSelectModal';
 import { API_URL, authHeaders } from '../../services/api';
 import { getPersonajes } from '../../services/personajeService';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
@@ -9,16 +10,17 @@ import './Mission.css';
 
 const isAbsoluteUrl = (value) => /^https?:\/\//i.test(value);
 const isDataUrl = (value) => /^data:/i.test(value);
+const isAppPath = (value) => value?.startsWith?.('/') ?? false;
 
 const resolveAvatarUrl = (avatar) => {
 	if (!avatar) return '/images/avatars/default.png';
-	if (isAbsoluteUrl(avatar) || isDataUrl(avatar)) return avatar;
+	if (isAbsoluteUrl(avatar) || isDataUrl(avatar) || isAppPath(avatar)) return avatar;
 	return getCartaUrl(avatar);
 };
 
 const resolveAvatarPreviewUrl = (avatar) => {
 	if (!avatar) return '/images/avatars/default.png';
-	if (isAbsoluteUrl(avatar) || isDataUrl(avatar)) return avatar;
+	if (isAbsoluteUrl(avatar) || isDataUrl(avatar) || isAppPath(avatar)) return avatar;
 	return getAvatarUrl(avatar);
 };
 
@@ -474,93 +476,23 @@ export function Mission() {
 				)}
 			</div>
 
-			{isCharacterModalOpen && (
-				<div className="mission-character-modal-overlay" role="dialog" aria-modal="true" aria-label="Selecciona a tu personaje">
-					<div className="mission-character-modal-card">
-						<button type="button" className="mission-character-modal-close" onClick={cerrarModalPersonaje} aria-label="Cerrar">
-							×
-						</button>
-
-						<h2 className="mission-character-modal-title">Selecciona a tu personaje</h2>
-
-						{personajesCargando ? (
-							<div className="mission-character-modal-state">Cargando personajes...</div>
-						) : personajesError ? (
-							<div className="mission-character-modal-state mission-character-modal-state-error">{personajesError}</div>
-						) : personajes.length === 0 ? (
-							<div className="mission-character-modal-state">No tienes personajes disponibles.</div>
-						) : (
-							<div className="mission-character-layout">
-								<div className="mission-character-list" aria-label="Lista de personajes">
-									<div className="mission-character-grid">
-										{personajes.map(personaje => {
-											const isSelected = personajeSeleccionado?.id === personaje.id;
-											return (
-												<button
-													type="button"
-													key={personaje.id}
-													className={`mission-character-card ${isSelected ? 'is-selected' : ''}`}
-													onClick={() => setPersonajeSeleccionado(personaje)}
-												>
-													<div className="mission-character-card-frame">
-														<img
-															src={resolveAvatarUrl(personaje.avatar)}
-															alt={personaje.nombre}
-															className="mission-character-card-img"
-															loading="lazy"
-														/>
-													</div>
-													<span className="mission-character-card-name">{personaje.nombre}</span>
-												</button>
-											);
-										})}
-									</div>
-								</div>
-
-								<div className="mission-character-preview" aria-label="Avatar seleccionado">
-									{personajeSeleccionado ? (
-										<>
-											<div className="mission-character-preview-head">
-												<span className="mission-character-preview-head-spacer" aria-hidden="true" />
-												<h3 className="mission-character-preview-name">{personajeSeleccionado.nombre}</h3>
-												<span className="mission-character-preview-level">Nivel {personajeSeleccionado.nivel ?? '-'}</span>
-											</div>
-											<div className="mission-character-preview-media">
-												<img
-													src={resolveAvatarPreviewUrl(personajeSeleccionado.avatar)}
-													alt={personajeSeleccionado.nombre}
-													className="mission-character-preview-img"
-												/>
-											</div>
-											<div className="mission-character-stats-grid" aria-label="Estadísticas del personaje">
-												{statsPersonajeSeleccionado.map(stat => (
-													<div key={stat.key} className="mission-character-stat-item">
-														<span className="mission-character-stat-label">{stat.label}:</span>
-														<span className="mission-character-stat-value">{stat.value}</span>
-													</div>
-												))}
-											</div>
-										</>
-									) : (
-										<div className="mission-character-preview-empty">Selecciona un personaje para ver su avatar</div>
-									)}
-								</div>
-							</div>
-						)}
-
-						<div className="mission-character-enter-wrap">
-							<button
-								type="button"
-								className="mision-modo-btn mission-character-enter-btn"
-								onClick={entrarConPersonaje}
-								disabled={!personajeSeleccionado}
-							>
-								Entrar
-							</button>
-						</div>
-					</div>
-				</div>
-			)}
+			<CharacterSelectModal
+				isOpen={isCharacterModalOpen}
+				title="Selecciona a tu personaje"
+				personajes={personajes}
+				loading={personajesCargando}
+				error={personajesError}
+				selected={personajeSeleccionado}
+				onSelect={setPersonajeSeleccionado}
+				onClose={cerrarModalPersonaje}
+				onConfirm={entrarConPersonaje}
+				confirmLabel="Entrar"
+				stats={statsPersonajeSeleccionado}
+				getCardImage={personaje => resolveAvatarUrl(personaje.avatar)}
+				getPreviewImage={personaje => resolveAvatarPreviewUrl(personaje.avatar)}
+				emptyMessage="No tienes personajes disponibles."
+				previewEmptyMessage="Selecciona un personaje para ver su avatar"
+			/>
 
 			{showNivelInsuficienteModal && (
 				<div className="mission-level-gate-overlay" role="dialog" aria-modal="true" aria-label="Nivel insuficiente">

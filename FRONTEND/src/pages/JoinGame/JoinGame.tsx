@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './JoinGame.css';
 import { API_URL } from '../../services/api';
 import { obtenerCampanasActivas } from '../../services/campanaService';
+import { getPersonajes } from '../../services/personajeService';
 import { getMySuscripciones, getUserSuscripciones } from '../../services/suscripcionService';
-import { getCampanaUrl, getModoHistoriaImageCandidates } from '../../utils/imageUtils';
+import { getAvatarUrl, getCampanaUrl, getCartaUrl, getModoHistoriaImageCandidates } from '../../utils/imageUtils';
 import { useAuth } from '../../services/AuthContext';
+import { CharacterSelectModal } from '../../components/CharacterSelectModal/CharacterSelectModal';
 
 // ── TIPOS ─────────────────────────────────────────────────
 interface Jugador {
@@ -67,6 +69,16 @@ interface ModoHistoria {
 interface SuscripcionResumen {
   tipo?: string | null;
   estado?: string | null;
+}
+
+interface Personaje {
+  id: number;
+  nombre: string;
+  avatar?: string;
+  nivel?: number;
+  statsFinales?: Record<string, number>;
+  statsBase?: Record<string, number>;
+  [key: string]: unknown;
 }
 
 type TipoSuscripcion = 'BASICA' | 'PREMIUM' | 'VIP';
@@ -152,6 +164,48 @@ const DIFICULTAD_COLOR: Record<string, string> = {
   'Épica':   '#9b59b6',
 };
 
+const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
+const isDataUrl = (value: string) => /^data:/i.test(value);
+const isAppPath = (value: string) => value.startsWith('/');
+
+const resolveAvatarUrl = (avatar?: string) => {
+  if (!avatar) return '/images/avatars/default.png';
+  if (isAbsoluteUrl(avatar) || isDataUrl(avatar) || isAppPath(avatar)) return avatar;
+  return getCartaUrl(avatar);
+};
+
+const resolveAvatarPreviewUrl = (avatar?: string) => {
+  if (!avatar) return '/images/avatars/default.png';
+  if (isAbsoluteUrl(avatar) || isDataUrl(avatar) || isAppPath(avatar)) return avatar;
+  return getAvatarUrl(avatar);
+};
+
+const STAT_LABELS: Record<string, string> = {
+  fuerza: 'Fuerza',
+  destreza: 'Destreza',
+  constitucion: 'Constitucion',
+  inteligencia: 'Inteligencia',
+  sabiduria: 'Sabiduria',
+  carisma: 'Carisma',
+};
+
+const STAT_KEYS = ['fuerza', 'destreza', 'constitucion', 'inteligencia', 'sabiduria', 'carisma'] as const;
+
+const getStatValue = (personaje: Personaje | null, statKey: string) => {
+  if (!personaje) return '-';
+
+  const desdeFinales = personaje?.statsFinales?.[statKey];
+  if (typeof desdeFinales === 'number') return desdeFinales;
+
+  const desdeBase = personaje?.statsBase?.[statKey];
+  if (typeof desdeBase === 'number') return desdeBase;
+
+  const plano = personaje?.[statKey];
+  if (typeof plano === 'number') return plano;
+
+  return '-';
+};
+
 const getDificultadColor = (dificultad?: string): string => {
   const normalizada = (dificultad ?? '')
     .normalize('NFD')
@@ -221,15 +275,16 @@ function ModoHistoriaCover({
 // ── MODAL CAMPAÑA ─────────────────────────────────────────
 function ModalCampana({
   campana,
-  onClose
+  onClose,
+  onJoinCampana,
+  user
 }: {
   campana: Campana;
   onClose: () => void;
+  onJoinCampana: (campana: Campana, soyMaster: boolean) => void;
+  user: { id?: number; nombre?: string } | null;
 }) {
   const plazasLibres = campana.maxJugadores - campana.jugadores.length;
-  const navigate = useNavigate();
-
-  const { user } = useAuth();
   const soyMaster = typeof user?.id === 'number' && campana.masterId === user.id;
 
   return (
@@ -298,46 +353,7 @@ function ModalCampana({
                 className={`jg-btn-unirse ${soyMaster ? 'jg-btn-master' : ''}`}
                 disabled={!soyMaster && plazasLibres === 0}
                 onClick={() => {
-                  if (soyMaster) {
-                    navigate('/tablero', {
-                      state: {
-                      campanaId: campana.id,
-                      campaaNombre: campana.nombre,
-                      mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
-                      jugadores: campana.jugadores,
-                      esMaster: true, 
-                      jugadorActual: {
-                        id: user?.id || Date.now(),
-                        nombre: user?.nombre || 'Tú',
-                        clase: 'Aventurero',
-                        hp: 20,
-                        hpMax: 20,
-                        conectado: true
-                      }
-                    }
-                  });
-                    return;
-                  }
-
-                  const jugadorRed = {
-                    id: user?.id || Date.now(),
-                    nombre: user?.nombre || 'Tú',
-                    clase: 'Aventurero',
-                    hp: 20,
-                    hpMax: 20,
-                    conectado: true
-                  };
-                  const misJugadores = [...campana.jugadores, jugadorRed];
-                  navigate('/tablero', {
-                    state: {
-                      campanaId: campana.id,
-                      campaaNombre: campana.nombre,
-                      mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
-                      jugadores: misJugadores,
-                      esMaster: false,
-                      jugadorActual: jugadorRed
-                    }
-                  });
+                      onJoinCampana(campana, soyMaster);
                 }}
               >
                 {soyMaster ? '👑 Liderar la campaña' : (plazasLibres > 0 ? '⚔ Unirme a esta Campaña' : 'Campaña Completa')}
@@ -493,8 +509,10 @@ function ModalSuscripcionRequerida({
 // ── COMPONENTE PRINCIPAL ──────────────────────────────────
 export function JoinGame() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [campanas, setCampanas] = useState<Campana[]>([]);
   const [campanaSeleccionada, setCampanaSeleccionada] = useState<Campana | null>(null);
+  const [campanaParaUnirse, setCampanaParaUnirse] = useState<Campana | null>(null);
   const [modoHistoriaSeleccionado, setModoHistoriaSeleccionado] = useState<ModoHistoria | null>(null);
   const [modoBloqueadoSeleccionado, setModoBloqueadoSeleccionado] = useState<{ nombre: string; nivelRequerido: TipoSuscripcion } | null>(null);
   const [vistaActual, setVistaActual] = useState<'campanas' | 'modos-historia'>(leerVistaInicial);
@@ -504,6 +522,20 @@ export function JoinGame() {
   const [cargandoModosHistoria, setCargandoModosHistoria] = useState(false);
   const [errorModosHistoria, setErrorModosHistoria] = useState<string | null>(null);
   const [tipoSuscripcionUsuario, setTipoSuscripcionUsuario] = useState<TipoSuscripcion>(resolverTipoSuscripcionPersistida);
+  const [isCharacterModalOpen, setIsCharacterModalOpen] = useState(false);
+  const [personajes, setPersonajes] = useState<Personaje[]>([]);
+  const [personajesCargando, setPersonajesCargando] = useState(false);
+  const [personajesError, setPersonajesError] = useState<string | null>(null);
+  const [personajeSeleccionado, setPersonajeSeleccionado] = useState<Personaje | null>(null);
+
+  const statsPersonajeSeleccionado = useMemo(
+    () => STAT_KEYS.map(statKey => ({
+      key: statKey,
+      label: STAT_LABELS[statKey],
+      value: getStatValue(personajeSeleccionado, statKey),
+    })),
+    [personajeSeleccionado]
+  );
 
   useEffect(() => {
     const cargarCampanas = async () => {
@@ -575,6 +607,27 @@ export function JoinGame() {
   useEffect(() => {
     sessionStorage.setItem(SUSCRIPCION_JOIN_GAME_STORAGE_KEY, tipoSuscripcionUsuario);
   }, [tipoSuscripcionUsuario]);
+
+  useEffect(() => {
+    if (!isCharacterModalOpen) return;
+    if (personajes.length > 0) return;
+
+    const cargarPersonajes = async () => {
+      setPersonajesCargando(true);
+      setPersonajesError(null);
+
+      try {
+        const data = await getPersonajes();
+        setPersonajes(Array.isArray(data) ? data : []);
+      } catch (e) {
+        setPersonajesError('No se pudieron cargar tus personajes.');
+      } finally {
+        setPersonajesCargando(false);
+      }
+    };
+
+    cargarPersonajes();
+  }, [isCharacterModalOpen, personajes.length]);
 
   useEffect(() => {
     const cargarSuscripcionUsuario = async () => {
@@ -684,6 +737,79 @@ export function JoinGame() {
     navigate(`/story-mode/${modoHistoria.id}`, {
       state: { modoHistoria },
     });
+  };
+
+  const abrirSeleccionPersonaje = (campana: Campana) => {
+    setCampanaParaUnirse(campana);
+    setPersonajeSeleccionado(null);
+    setPersonajesError(null);
+    setIsCharacterModalOpen(true);
+  };
+
+  const cerrarSeleccionPersonaje = () => {
+    setIsCharacterModalOpen(false);
+    setCampanaParaUnirse(null);
+  };
+
+  const crearJugadorBase = (base: { id?: number; nombre?: string; clase?: string; hp?: number; hpMax?: number; avatar?: string }) => ({
+    id: base.id ?? user?.id ?? Date.now(),
+    nombre: base.nombre ?? user?.nombre ?? 'Tu',
+    clase: base.clase ?? 'Aventurero',
+    hp: base.hp ?? base.hpMax ?? 20,
+    hpMax: base.hpMax ?? base.hp ?? 20,
+    conectado: true,
+    avatar: base.avatar,
+  });
+
+  const confirmarUnionConPersonaje = () => {
+    if (!campanaParaUnirse || !personajeSeleccionado) return;
+
+    const jugadorRed = crearJugadorBase({
+      id: personajeSeleccionado.id,
+      nombre: personajeSeleccionado.nombre,
+      clase: (personajeSeleccionado as { clase?: string }).clase,
+      hp: (personajeSeleccionado as { hp?: number }).hp,
+      hpMax: (personajeSeleccionado as { hpMax?: number }).hpMax,
+      avatar: personajeSeleccionado.avatar,
+    });
+
+    const misJugadores = [...campanaParaUnirse.jugadores, jugadorRed];
+    navigate('/tablero', {
+      state: {
+        campanaId: campanaParaUnirse.id,
+        campaaNombre: campanaParaUnirse.nombre,
+        mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
+        jugadores: misJugadores,
+        esMaster: false,
+        jugadorActual: jugadorRed,
+      }
+    });
+
+    cerrarSeleccionPersonaje();
+  };
+
+  const handleJoinCampana = (campana: Campana, soyMaster: boolean) => {
+    setCampanaSeleccionada(null);
+
+    if (soyMaster) {
+      const jugadorMaster = crearJugadorBase({
+        id: user?.id,
+        nombre: user?.nombre,
+      });
+      navigate('/tablero', {
+        state: {
+          campanaId: campana.id,
+          campaaNombre: campana.nombre,
+          mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
+          jugadores: campana.jugadores,
+          esMaster: true,
+          jugadorActual: jugadorMaster,
+        }
+      });
+      return;
+    }
+
+    abrirSeleccionPersonaje(campana);
   };
 
   return (
@@ -867,6 +993,8 @@ export function JoinGame() {
         <ModalCampana
           campana={campanaSeleccionada}
           onClose={() => setCampanaSeleccionada(null)}
+          onJoinCampana={handleJoinCampana}
+          user={user}
         />
       )}
       {modoHistoriaSeleccionado && (
@@ -885,6 +1013,23 @@ export function JoinGame() {
           onIrASuscripciones={handleIrASuscripciones}
         />
       )}
+      <CharacterSelectModal
+        isOpen={isCharacterModalOpen}
+        title="Selecciona a tu personaje"
+        personajes={personajes}
+        loading={personajesCargando}
+        error={personajesError}
+        selected={personajeSeleccionado}
+        onSelect={setPersonajeSeleccionado}
+        onClose={cerrarSeleccionPersonaje}
+        onConfirm={confirmarUnionConPersonaje}
+        confirmLabel="Entrar"
+        stats={statsPersonajeSeleccionado}
+        getCardImage={personaje => resolveAvatarUrl(personaje.avatar)}
+        getPreviewImage={personaje => resolveAvatarPreviewUrl(personaje.avatar)}
+        emptyMessage="No tienes personajes disponibles."
+        previewEmptyMessage="Selecciona un personaje para ver su avatar"
+      />
     </div>
   );
 }

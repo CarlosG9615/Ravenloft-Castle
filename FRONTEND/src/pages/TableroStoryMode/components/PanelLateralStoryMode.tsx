@@ -35,7 +35,7 @@ const ALIADOS_DEMO = [
 
 const resolveAvatarUrl = (avatar: string | undefined | null): string => {
   if (!avatar) return '/images/avatars/default.png';
-  if (/^https?:\/\//i.test(avatar) || /^data:/i.test(avatar)) return avatar;
+  if (/^https?:\/\//i.test(avatar) || /^data:/i.test(avatar) || avatar.startsWith('/')) return avatar;
   return getAvatarUrl(avatar);
 };
 
