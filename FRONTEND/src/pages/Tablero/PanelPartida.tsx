@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { DiceRoller } from './DiceRoller';
+import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import { Comment, Users, Mic } from 'pixelarticons/react'
 import { Dices } from 'lucide-react';
 import './PanelPartida.css';
@@ -15,6 +16,7 @@ interface Jugador {
   hpMax: number;
   color: string;
   conectado: boolean;
+  avatar?: string | null;
   fuerza?: number;
   destreza?: number;
   constitucion?: number;
@@ -70,6 +72,58 @@ const COLORES_CLASES: Record<string, string> = {
   Hechicero: '#8e44ad', Brujo: '#2980b9', Mago: '#3498db',
   Desconocida: '#95a5a6'
 };
+
+const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
+const isDataUrl = (value: string) => /^data:/i.test(value);
+const isAppPath = (value: string) => value.startsWith('/');
+
+const CLOUDINARY_BASE_URL = import.meta.env.VITE_CLOUDINARY_URL as string | undefined;
+
+const buildAvatarCandidates = (avatar?: string | null) => {
+  if (!avatar) return [] as string[];
+  if (isAbsoluteUrl(avatar) || isDataUrl(avatar) || isAppPath(avatar)) return [avatar];
+
+  const normalized = avatar.replace(/\.png$/i, '');
+  const candidates: string[] = [];
+
+  if (normalized.startsWith('avatar_') || normalized.startsWith('carta_')) {
+    if (CLOUDINARY_BASE_URL) {
+      candidates.push(`${CLOUDINARY_BASE_URL}/${normalized}.png`);
+    }
+  } else {
+    candidates.push(getAvatarUrl(normalized));
+    candidates.push(getCartaUrl(normalized));
+    if (CLOUDINARY_BASE_URL) {
+      candidates.push(`${CLOUDINARY_BASE_URL}/${normalized}.png`);
+    }
+  }
+
+  candidates.push('/images/avatar-login.png');
+  return candidates;
+};
+
+function AvatarImage({ avatar, nombre }: { avatar?: string | null; nombre: string }) {
+  const [indice, setIndice] = useState(0);
+  const candidates = buildAvatarCandidates(avatar);
+  const src = candidates[indice] ?? null;
+
+  useEffect(() => {
+    setIndice(0);
+  }, [avatar]);
+
+  if (!src) {
+    return <div className="pp-jugador-avatar-placeholder">{nombre.charAt(0)}</div>;
+  }
+
+  return (
+    <img
+      src={src}
+      alt={nombre}
+      className="pp-jugador-avatar"
+      onError={() => setIndice(prev => (prev + 1 < candidates.length ? prev + 1 : prev))}
+    />
+  );
+}
 
 function hora() {
   return new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
@@ -129,6 +183,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
   const [micActivo, setMicActivo] = useState(false);
   const [usuariosVoz, setUsuariosVoz] = useState<string[]>([]);
   const [jugadoresRed, setJugadoresRed] = useState<any[]>(jugadores || []);
+  const lastSentAvatarRef = useRef<string | null>(null);
 
   useEffect(() => {
     const client = new Client({
@@ -222,6 +277,17 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
   }, [campanaId, jugadorActual]);
 
   useEffect(() => {
+    if (!stompRef.current?.connected || !campanaId || !jugadorActual) return;
+    const avatarActual = jugadorActual?.avatar ?? null;
+    if (avatarActual === lastSentAvatarRef.current) return;
+    lastSentAvatarRef.current = avatarActual;
+    stompRef.current.publish({
+      destination: `/app/campana/${campanaId}/join`,
+      body: JSON.stringify(jugadorActual),
+    });
+  }, [campanaId, jugadorActual]);
+
+  useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
@@ -283,11 +349,28 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     setResultadoActivo(null);
   }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual]);
 
+  const jugadoresBase = Array.isArray(jugadores) ? jugadores : [];
+  const jugadoresBasePorId = new Map(jugadoresBase.map(j => [j?.id?.toString?.(), j]));
+  const jugadoresBasePorNombre = new Map<string, any>();
+  jugadoresBase.forEach(j => {
+    if (j?.nombre) jugadoresBasePorNombre.set(j.nombre, j);
+    if (j?.usuarioNombre) jugadoresBasePorNombre.set(j.usuarioNombre, j);
+  });
+
   const jugadoresAMostrar = (jugadoresRed.length > 0 ? jugadoresRed : (jugadores !== undefined ? jugadores : JUGADORES_DEMO))
     .map((j: any, i: number) => ({
       id: j.id?.toString() || i.toString(),
       nombre: j.nombre || j.usuarioNombre || 'Aventurero',
       clase: j.clase || 'Desconocida',
+      avatar: j.avatar
+        || j.foto
+        || jugadoresBasePorId.get(j.id?.toString?.())?.avatar
+        || jugadoresBasePorNombre.get(j.nombre || j.usuarioNombre)?.avatar
+        || (jugadorActual?.id?.toString?.() === j.id?.toString?.() ? jugadorActual?.avatar : null)
+        || (jugadorActual?.nombre && (jugadorActual.nombre === j.nombre || jugadorActual.nombre === j.usuarioNombre)
+          ? jugadorActual?.avatar
+          : null)
+        || null,
       hp: j.hp || 10,
       hpMax: j.hpMax || 10,
       color: j.color || COLORES_CLASES[j.clase] || '#4a90d9',
@@ -502,6 +585,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
                   <div key={j.id} className={`pp-jugador ${j.conectado ? '' : 'desconectado'}`}>
                     <div className="pp-jugador-cabecera">
                       <span className="pp-jugador-dot" style={{ background: j.conectado ? j.color : '#555' }} />
+                      <AvatarImage avatar={j.avatar} nombre={j.nombre} />
                       <span className="pp-jugador-nombre">{j.nombre}</span>
                       <span className="pp-jugador-clase">{j.clase}</span>
                       {!j.conectado && <span className="pp-jugador-off">desconectado</span>}

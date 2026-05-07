@@ -4,6 +4,7 @@ import { Stage, Layer, Image, Line, Circle, Text, Group, Rect } from 'react-konv
 import { PanelPartida } from './PanelPartida';
 import { obtenerCampanaPorId } from '../../services/campanaService';
 import { getPersonajes } from '../../services/personajeService';
+import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import useImage from 'use-image';
 import './Tablero.css';
 
@@ -25,6 +26,22 @@ const COLORES_TOKEN = {
 const TAMANYO_CELDA = 50;
 const MAPA_ANCHO    = 2400;
 const MAPA_ALTO     = 1600;
+
+const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
+const isDataUrl = (value: string) => /^data:/i.test(value);
+const isAppPath = (value: string) => value.startsWith('/');
+
+const resolveAvatarUrl = (avatar?: string | null): string | null => {
+  if (!avatar) return null;
+  if (isAbsoluteUrl(avatar) || isDataUrl(avatar) || isAppPath(avatar)) return avatar;
+  return getAvatarUrl(avatar);
+};
+
+const resolveCartaUrl = (avatar?: string | null): string | null => {
+  if (!avatar) return null;
+  if (isAbsoluteUrl(avatar) || isDataUrl(avatar) || isAppPath(avatar)) return avatar;
+  return getCartaUrl(avatar);
+};
 
 function MapaFondo({ src, ancho, alto }: { src: string; ancho: number; alto: number }) {
   const [image] = useImage(src);
@@ -57,6 +74,10 @@ export function Tablero() {
   const [mapasDisponibles, setMapasDisponibles] = useState<string[]>([]);
   const [cargandoMapas, setCargandoMapas]       = useState(false);
   const [personaje, setPersonaje]               = useState<any>(null);
+  const avatarSrc = resolveAvatarUrl(personaje?.avatar);
+  const jugadorActualConAvatar = jugadorActual && !jugadorActual.avatar && personaje?.avatar
+    ? { ...jugadorActual, avatar: personaje.avatar }
+    : jugadorActual;
 
   const [dimensiones, setDimensiones] = useState({
     ancho: window.innerWidth - 300,
@@ -385,8 +406,30 @@ export function Tablero() {
 
             {/* CABECERA */}
             <div className="tb-ficha-header">
-              {personaje.avatar
-                ? <img src={personaje.avatar} alt={personaje.nombre} className="tb-ficha-avatar" />
+              {avatarSrc
+                ? (
+                  <img
+                    src={avatarSrc}
+                    alt={personaje.nombre}
+                    className="tb-ficha-avatar"
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      const cartaSrc = resolveCartaUrl(personaje?.avatar);
+                      if (img.dataset.fallback === 'carta') {
+                        img.src = '/images/avatar-login.png';
+                        img.dataset.fallback = 'default';
+                        return;
+                      }
+                      if (cartaSrc && img.src !== cartaSrc) {
+                        img.src = cartaSrc;
+                        img.dataset.fallback = 'carta';
+                        return;
+                      }
+                      img.src = '/images/avatar-login.png';
+                      img.dataset.fallback = 'default';
+                    }}
+                  />
+                )
                 : <div className="tb-ficha-avatar-placeholder">{personaje.nombre.charAt(0)}</div>
               }
               <div>
@@ -551,7 +594,7 @@ export function Tablero() {
         nombreMaster="Tú (Master)"
         jugadores={jugadoresCampaa}
         campanaId={campanaId}
-        jugadorActual={jugadorActual}
+        jugadorActual={jugadorActualConAvatar}
         esMaster={esMaster}
       />
     </div>
