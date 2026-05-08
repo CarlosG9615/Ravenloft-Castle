@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../services/AuthContext';
+import { getMyProfile } from '../../services/authService';
 import './Header.css';
 
 interface NavItem {
@@ -11,7 +12,7 @@ interface NavItem {
 export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isLoggedIn, user, logout } = useAuth();
+  const { isLoggedIn, user, logout, updateUser } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -41,6 +42,20 @@ export function Header() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+      useEffect(() => {
+        if (isLoggedIn) {
+          getMyProfile()
+            .then(perfil => {
+              updateUser({
+                avatar: perfil.avatar,
+                nombre: perfil.nombre,
+                email: perfil.email,
+                rol: perfil.rol,
+              });
+            })
+            .catch(err => console.error('Error cargando perfil en header:', err));
+        }
+      }, [isLoggedIn]);
 
   const handleNavClick = (route: string) => {
     if (privateRoutes.includes(route) && !isLoggedIn) {

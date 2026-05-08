@@ -46,4 +46,15 @@ public class UsuarioController {
         }
         return ResponseEntity.ok(usuarioService.cambiarRolUsuario(id, dto.rol()));
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<UsuarioResponseDTO> obtenerMiPerfil() {
+        return ResponseEntity.ok(usuarioService.obtenerMiPerfil());
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<UsuarioResponseDTO> actualizarMiPerfil(@RequestBody UsuarioUpdateDTO dto) {
+        return ResponseEntity.ok(usuarioService.actualizarMiPerfil(dto));
+    }
+
 }

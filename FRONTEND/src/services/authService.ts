@@ -76,6 +76,7 @@ export const updateProfile = async (data: {
   nombre?: string;
   email?: string;
   password?: string;
+  avatar?: string;
 }) => {
   const response = await fetch(`${API_URL}/api/usuarios/me`, {
     method: 'PUT',
