@@ -3,11 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './UserProfile.css';
 import { useAuth } from '../../services/AuthContext';
-import { updateProfile } from '../../services/authService';
+import { updateProfile, getMyProfile } from '../../services/authService';
 import { BackButton } from '../../components/BackButton/BackButton';
 import { ModalAlert } from '../../components/ModalAlert/ModalAlert';
 import { getUserSuscripciones, cancelarSuscripcion } from '../../services/suscripcionService';
 import type { SuscripcionDTO } from '../../services/suscripcionService';
+
+const AVATARES = [
+  '/images/avatars/caratula.png',
+  '/images/avatars/elfoAvatars.png',
+  '/images/avatars/proPlayer.png',
+  '/images/avatars/gafotas.png',
+  '/images/avatars/vampiro.png',
+  '/images/avatars/principiante.png',
+  '/images/avatars/magoUnisex.png',
+  '/images/avatars/avatarPollito.png',
+  '/images/avatars/chicaFleco.png',
+];
 
 type Tab = 'perfil' | 'editar';
 
@@ -16,8 +28,9 @@ export function UserProfile() {
   const { user, updateUser, logout } = useAuth();
   const [tab, setTab] = useState<Tab>('perfil');
   const [suscripcionActual, setSuscripcionActual] = useState<SuscripcionDTO | null>(null);
+  const [mostrarAvatares, setMostrarAvatares] = useState(false);
+  const [avatarSeleccionado, setAvatarSeleccionado] = useState(user?.avatar ?? '');
 
-  // Formulario editar
   const [nombre, setNombre] = useState(user?.nombre ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
   const [password, setPassword] = useState('');
@@ -32,10 +45,8 @@ export function UserProfile() {
       getUserSuscripciones(user.id)
         .then((suscripciones) => {
           if (suscripciones.length > 0) {
-            // Asumimos que la última de la lista o la que está ACTIVA es la actual
             const activa = suscripciones.find(s => s.estado === 'ACTIVA') || suscripciones[suscripciones.length - 1];
             setSuscripcionActual(activa);
-            // Opcional: Actualizar el contexto de usuario
             if (activa) {
               updateUser({
                 suscripcion: activa.nombre,
@@ -53,8 +64,21 @@ export function UserProfile() {
   };
 
   useEffect(() => {
+    // Cargar perfil actualizado del servidor
+    getMyProfile()
+      .then(perfil => {
+        updateUser({
+          nombre: perfil.nombre,
+          email: perfil.email,
+          avatar: perfil.avatar,
+          rol: perfil.rol,
+        });
+        setAvatarSeleccionado(perfil.avatar ?? '');
+      })
+      .catch(err => console.error('Error cargando perfil:', err));
+
     cargarSuscripciones();
-  }, [user?.id]); // Solo se ejecuta si cambia el ID de usuario
+  }, [user?.id]);
 
   if (!user) {
     navigate('/login');
@@ -115,7 +139,7 @@ export function UserProfile() {
       await cancelarSuscripcion(suscripcionActual!.id);
       setSuccess('Suscripción cancelada correctamente.');
       setError('');
-      cargarSuscripciones(); // refrescamos para mostrar el nuevo estado
+      cargarSuscripciones();
       setTimeout(() => setSuccess(''), 5000);
     } catch (e: any) {
       setError(e.message || 'Error al cancelar la suscripción');
@@ -131,19 +155,54 @@ export function UserProfile() {
     <div className="profile-page">
       <BackButton />
 
-      {/* FONDO */}
       <div className="profile-bg" />
 
       <div className="profile-container">
 
         {/* CABECERA */}
         <div className="profile-header">
-          <div className="profile-avatar-wrap">
-            {user.avatar
-              ? <img src={user.avatar} alt={user.nombre} className="profile-avatar-img" />
+          <div
+            className="profile-avatar-wrap"
+            onClick={() => setMostrarAvatares(!mostrarAvatares)}
+            style={{ cursor: 'pointer', position: 'relative' }}
+          >
+            {avatarSeleccionado
+              ? <img src={avatarSeleccionado} alt={user.nombre} className="profile-avatar-img" />
               : <div className="profile-avatar-placeholder">{getInitials()}</div>
             }
+            <div className="profile-avatar-edit">✏️</div>
+
+            {mostrarAvatares && (
+              <div className="profile-avatar-picker" onClick={e => e.stopPropagation()}>
+                {AVATARES.map(src => (
+                  <img
+                    key={src}
+                    src={src}
+                    alt="avatar"
+                    className={`profile-avatar-opcion ${avatarSeleccionado === src ? 'seleccionado' : ''}`}
+                    onClick={() => setAvatarSeleccionado(src)}
+                  />
+                ))}
+                <button
+                  className="profile-avatar-guardar"
+                  onClick={async () => {
+                    try {
+                      await updateProfile({ avatar: avatarSeleccionado });
+                      updateUser({ avatar: avatarSeleccionado });
+                      setMostrarAvatares(false);
+                      setSuccess('¡Avatar actualizado!');
+                      setTimeout(() => setSuccess(''), 3000);
+                    } catch (err) {
+                      console.error('Error actualizando avatar:', err);
+                    }
+                  }}
+                >
+                  Guardar avatar
+                </button>
+              </div>
+            )}
           </div>
+
           <div className="profile-hero-info">
             <h1 className="profile-username">{user.nombre}</h1>
             <p className="profile-email">{user.email}</p>
@@ -175,6 +234,18 @@ export function UserProfile() {
           {/* ── TAB PERFIL ── */}
           {tab === 'perfil' && (
             <div className="profile-info-grid">
+
+              {success && (
+                <div className="profile-alert profile-alert--success" style={{ gridColumn: '1 / -1' }}>
+                  ✅ {success}
+                </div>
+              )}
+              {error && (
+                <div className="profile-alert profile-alert--error" style={{ gridColumn: '1 / -1' }}>
+                  ⚠ {error}
+                </div>
+              )}
+
               <div className="profile-info-card">
                 <div className="profile-info-label">Nombre de Aventurero</div>
                 <div className="profile-info-value">{user.nombre}</div>
@@ -188,7 +259,6 @@ export function UserProfile() {
                 <div className="profile-info-value">{user.rol ?? 'Aventurero'}</div>
               </div>
 
-              {/* TARJETA DE SUSCRIPCIÓN */}
               <div className="profile-info-card profile-subscription-card">
                 <div className="profile-info-label">Estado de Suscripción</div>
                 <div className="profile-info-value" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
@@ -196,7 +266,6 @@ export function UserProfile() {
                     <span style={{ fontWeight: 'bold', color: 'var(--orange-fire, #f97316)' }}>
                       Plan {suscripcionActual?.nombre || user.suscripcion || 'Aventurero (Gratis)'}
                     </span>
-                    {/* PILL DE ESTADO */}
                     <span style={{
                       fontSize: '0.8rem',
                       padding: '0.2rem 0.6rem',
@@ -210,7 +279,6 @@ export function UserProfile() {
                   </div>
                   <div style={{ fontSize: '0.9rem', color: '#aaa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>{suscripcionActual ? `Miembro desde: ${suscripcionActual.fechaAlta}` : 'No tienes un plan activo'}</span>
-
                     {suscripcionActual && suscripcionActual.estado === 'ACTIVA' && suscripcionActual.tipo !== 'BASICA' && (
                       <button
                         onClick={handleCancelarSuscripcion}
@@ -228,9 +296,6 @@ export function UserProfile() {
                       </button>
                     )}
                   </div>
-
-                  {success && tab === 'perfil' && <div className="profile-alert profile-alert--success" style={{ marginTop: '0.5rem', padding: '0.5rem', fontSize: '0.85rem' }}>✅ {success}</div>}
-                  {error && tab === 'perfil' && <div className="profile-alert profile-alert--error" style={{ marginTop: '0.5rem', padding: '0.5rem', fontSize: '0.85rem' }}>⚠ {error}</div>}
                 </div>
               </div>
 
@@ -329,7 +394,7 @@ export function UserProfile() {
         </div>
       </div>
 
-      <ModalAlert 
+      <ModalAlert
         isOpen={showConfirmModal}
         title="¿VAS A ABANDONAR LA AVENTURA?"
         message="¿Estás seguro de que deseas dar de baja tu suscripción? Perderás los beneficios de este plan."

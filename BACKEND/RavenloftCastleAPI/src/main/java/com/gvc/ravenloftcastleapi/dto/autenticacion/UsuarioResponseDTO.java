@@ -4,5 +4,6 @@ public record UsuarioResponseDTO(
         Long id,
         String nombre,
         String email,
-        String rol
+        String rol,
+        String avatar
 ) {}

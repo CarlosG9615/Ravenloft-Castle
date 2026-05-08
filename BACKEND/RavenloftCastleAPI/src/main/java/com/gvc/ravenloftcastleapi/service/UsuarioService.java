@@ -34,7 +34,8 @@ public class UsuarioService {
                 usuario.getId(),
                 usuario.getNombre(),
                 usuario.getEmail(),
-                usuario.getRole().getNombre()
+                usuario.getRole().getNombre(),
+                usuario.getAvatar()
         );
     }
 
@@ -44,10 +45,35 @@ public class UsuarioService {
                         usuario.getId(),
                         usuario.getNombre(),
                         usuario.getEmail(),
-                        usuario.getRole().getNombre()
+                        usuario.getRole().getNombre(),
+                        usuario.getAvatar()
                 ))
                 .collect(Collectors.toList());
     }
+    public UsuarioResponseDTO obtenerMiPerfil() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado"));
+        return new UsuarioResponseDTO(
+                usuario.getId(),
+                usuario.getNombre(),
+                usuario.getEmail(),
+                usuario.getRole().getNombre(),
+                usuario.getAvatar()
+
+        );
+    }
+
+    @Transactional
+    public UsuarioResponseDTO actualizarMiPerfil(UsuarioUpdateDTO updateDTO) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado"));
+        return actualizarUsuario(usuario.getId(), updateDTO);
+    }
+
 
     @Transactional
     public UsuarioResponseDTO actualizarUsuario(Long id, UsuarioUpdateDTO updateDTO) {
@@ -71,13 +97,18 @@ public class UsuarioService {
             usuario.setPassword(passwordEncoder.encode(updateDTO.password()));
         }
 
+        if (updateDTO.avatar() != null && !updateDTO.avatar().isBlank()) {
+            usuario.setAvatar(updateDTO.avatar());
+        }
+
         Usuario usuarioGuardado = usuarioRepository.save(usuario);
 
         return new UsuarioResponseDTO(
                 usuarioGuardado.getId(),
                 usuarioGuardado.getNombre(),
                 usuarioGuardado.getEmail(),
-                usuarioGuardado.getRole().getNombre()
+                usuarioGuardado.getRole().getNombre(),
+                usuarioGuardado.getAvatar()
         );
     }
 
@@ -125,7 +156,8 @@ public class UsuarioService {
                 usuarioGuardado.getId(),
                 usuarioGuardado.getNombre(),
                 usuarioGuardado.getEmail(),
-                usuarioGuardado.getRole().getNombre()
+                usuarioGuardado.getRole().getNombre(),
+                usuarioGuardado.getAvatar()
         );
     }
 

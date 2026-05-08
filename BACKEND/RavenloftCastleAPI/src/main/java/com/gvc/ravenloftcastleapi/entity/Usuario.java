@@ -37,6 +37,9 @@ public class Usuario implements UserDetails {
     @Column(nullable = false, unique = true, length = 150)
     private String email;
 
+    @Column(length = 255)
+    private String avatar;
+
     @Column()
     private boolean activado = false;
 
