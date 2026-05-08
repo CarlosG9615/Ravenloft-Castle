@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { API_URL, isTokenExpired } from './api';
 import type { ReactNode } from 'react';
 
 
@@ -25,39 +26,114 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserData | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  // Leer síncronamente para evitar el flash isLoggedIn=false en el primer render
+  const [user, setUser] = useState<UserData | null>(() => {
+    const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (!raw) return null;
+    try { return JSON.parse(raw) as UserData; } catch { return null; }
+  });
+  const [token, setToken] = useState<string | null>(
+    () => localStorage.getItem('token') || sessionStorage.getItem('token')
+  );
 
-  // Al montar, recuperar sesión guardada
+  // Limpiar storage en mount si el token ya expiró (cubre recargas con token caduco)
   useEffect(() => {
     const savedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
-    const savedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-    if (savedToken && savedUser) {
-      try {
-        setToken(savedToken);
-        setUser(JSON.parse(savedUser));
-      } catch {
-        sessionStorage.removeItem('token');
-        sessionStorage.removeItem('user');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
+    if (savedToken && isTokenExpired(savedToken)) {
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
     }
   }, []);
 
-  const setUserData = (userData: UserData, userToken: string, rememberMe: boolean = false) => {
+  // Auto-logout cuando cualquier llamada autenticada recibe 401 (token expirado en servidor)
+  useEffect(() => {
+    const handle = () => {
+      setUser(null);
+      setToken(null);
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('rememberedEmail');
+    };
+    window.addEventListener('auth:token-expired', handle);
+    return () => window.removeEventListener('auth:token-expired', handle);
+  }, []);
+
+  // Al montar, recuperar sesión guardada y migrar sessionStorage → localStorage
+  useEffect(() => {
+    const savedTokenLocal = localStorage.getItem('token');
+    const savedTokenSession = sessionStorage.getItem('token');
+    const savedToken = savedTokenLocal || savedTokenSession;
+    const savedUserLocal = localStorage.getItem('user');
+    const savedUserSession = sessionStorage.getItem('user');
+    const savedUser = savedUserLocal || savedUserSession;
+
+    // Migrar datos de sessionStorage a localStorage si todavía no están ahí
+    if (!savedTokenLocal && savedTokenSession) {
+      localStorage.setItem('token', savedTokenSession);
+      sessionStorage.removeItem('token');
+    }
+    if (!savedUserLocal && savedUserSession) {
+      localStorage.setItem('user', savedUserSession);
+      sessionStorage.removeItem('user');
+    }
+
+    if (savedToken && savedUser) {
+      // Estado ya restaurado síncronamente; nada que hacer
+      return;
+    }
+
+    // Si tenemos token pero no user, intentamos recuperar el perfil desde la API
+    if (savedToken && !savedUser) {
+      const fetchProfile = async () => {
+        try {
+          const resp = await fetch(`${API_URL}/api/usuarios/me`, {
+            headers: { Authorization: `Bearer ${savedToken}`, 'Content-Type': 'application/json' },
+          });
+          if (!resp.ok) {
+            // token inválido -> limpiar
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('user');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            return;
+          }
+          const profile = await resp.json();
+          const userData = {
+            id: profile.id,
+            nombre: profile.nombre ?? profile.username ?? profile.email,
+            email: profile.email,
+            avatar: profile.avatar ?? undefined,
+            rol: profile.rol ?? undefined,
+          };
+          setToken(savedToken);
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+        } catch (e) {
+          sessionStorage.removeItem('token');
+          sessionStorage.removeItem('user');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+      };
+      fetchProfile();
+    }
+  }, []);
+
+  const setUserData = (userData: UserData, userToken: string, _rememberMe: boolean = false) => {
     setUser(userData);
     setToken(userToken);
-    const storage = rememberMe ? localStorage : sessionStorage;
-    
-    // Limpiamos ambos por si acaso
+
+    // Siempre persistir en localStorage para sobrevivir recargas y mantener el WebSocket
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('user');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-
-    storage.setItem('token', userToken);
-    storage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('token', userToken);
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   const logout = () => {
@@ -74,19 +150,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     const newUser = { ...user, ...updated };
     setUser(newUser);
-    
-    if (localStorage.getItem('user')) {
-      localStorage.setItem('user', JSON.stringify(newUser));
-    } else {
-      sessionStorage.setItem('user', JSON.stringify(newUser));
-    }
+    localStorage.setItem('user', JSON.stringify(newUser));
   };
 
   return (
     <AuthContext.Provider value={{
       user,
       token,
-      isLoggedIn: !!token && !!user,
+      isLoggedIn: !!token && !!user && !isTokenExpired(token),
       setUserData,
       logout,
       updateUser,

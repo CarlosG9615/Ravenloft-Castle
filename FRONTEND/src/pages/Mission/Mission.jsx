@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { BackButton } from '../../components/BackButton/BackButton';
 import { CharacterSelectModal } from '../../components/CharacterSelectModal/CharacterSelectModal';
 import { API_URL, authHeaders } from '../../services/api';
+import { useAuth } from '../../services/AuthContext';
 import { getPersonajes } from '../../services/personajeService';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import { obtenerNarrativaMision } from './missionNarrative';
@@ -22,6 +23,39 @@ const resolveAvatarPreviewUrl = (avatar) => {
 	if (!avatar) return '/images/avatars/default.png';
 	if (isAbsoluteUrl(avatar) || isDataUrl(avatar) || isAppPath(avatar)) return avatar;
 	return getAvatarUrl(avatar);
+};
+
+// Función para normalizar strings con acentos
+const normalizeString = (str) => {
+	return str
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.toLowerCase();
+};
+
+// Función para calcular color basado en clase
+const getColorForClase = (clase) => {
+	if (!clase) return '#4a90d9';
+	
+	const claseNorm = normalizeString(clase);
+	
+	if (claseNorm.includes('guerrero') || claseNorm.includes('barbaro') || claseNorm.includes('paladin')) {
+		return '#C0392B'; // Rojo
+	}
+	if (claseNorm.includes('mago') || claseNorm.includes('hechicero') || claseNorm.includes('brujo')) {
+		return '#2980B9'; // Azul
+	}
+	if (claseNorm.includes('clerigo') || claseNorm.includes('druida')) {
+		return '#27AE60'; // Verde
+	}
+	if (claseNorm.includes('picaro') || claseNorm.includes('explorador') || claseNorm.includes('bardo')) {
+		return '#8E44AD'; // Púrpura
+	}
+	if (claseNorm.includes('monje')) {
+		return '#E67E22'; // Naranja
+	}
+	
+	return '#4a90d9'; // Default azul
 };
 
 const STAT_LABELS = {
@@ -102,6 +136,7 @@ export function Mission() {
 	const [personajes, setPersonajes] = useState([]);
 	const [personajesCargando, setPersonajesCargando] = useState(false);
 	const [personajesError, setPersonajesError] = useState(null);
+	const [entrandoConPersonajeCargando, setEntrandoConPersonajeCargando] = useState(false);
 	const [personajeSeleccionado, setPersonajeSeleccionado] = useState(null);
 	const [showNivelInsuficienteModal, setShowNivelInsuficienteModal] = useState(false);
 	const [nivelCampanaRequerido, setNivelCampanaRequerido] = useState(1);
@@ -117,6 +152,7 @@ export function Mission() {
 	);
 
 	const misionIdNumero = useMemo(() => Number(misionId), [misionId]);
+	const { user } = useAuth();
 
 	useEffect(() => {
 		if (!Number.isFinite(misionIdNumero) || misionIdNumero <= 0) {
@@ -253,7 +289,61 @@ export function Mission() {
 		},
 	];
 
-	const abrirModalPersonaje = () => {
+	const abrirModalPersonaje = async () => {
+		// Si el usuario ya participa en la mision con un personaje, entrar directamente
+		try {
+			const myUserId = user?.id ?? null;
+
+			if (!myUserId) {
+				setIsCharacterModalOpen(true);
+				return;
+			}
+
+			const resp = await fetch(`${API_URL}/api/misiones/${misionIdNumero}/participantes/jugadores`, {
+				headers: authHeaders(),
+			});
+
+			if (!resp.ok) {
+				setIsCharacterModalOpen(true);
+				return;
+			}
+
+			const jugadores = await resp.json();
+			const yo = Array.isArray(jugadores) ? jugadores.find(j => Number(j.usuarioId) === Number(myUserId)) : null;
+
+			if (yo && yo.personajeId) {
+				const personajeObj = {
+					id: yo.personajeId,
+					nombre: yo.nombrePersonaje,
+					nivel: yo.nivel,
+					avatar: yo.avatar,
+					clase: yo.clase || 'Desconocida',
+					puntosGolpeActual: yo.saludActual || 10,
+					puntosGolpeMax: yo.saludMax || 10,
+					usuario_id: myUserId,
+					usuarioId: myUserId,
+					nombreUsuario: yo.nombreUsuario,
+					color: yo.color || '#4a90d9',
+				};
+
+				navigate('/tablero-story-mode', {
+					state: {
+						modoHistoria,
+						mision,
+						personaje: personajeObj,
+						jugadores: jugadores,
+						jugadorActual: personajeObj,
+					},
+				});
+				return;
+			}
+		} catch (e) {
+			// Si algo falla, abrimos el modal de seleccion como fallback
+			setIsCharacterModalOpen(true);
+			return;
+		}
+
+		// No hay participacion previa: abrir modal
 		setIsCharacterModalOpen(true);
 	};
 
@@ -285,8 +375,12 @@ export function Mission() {
 		});
 	};
 
-	const entrarConPersonaje = () => {
+	const entrarConPersonaje = async () => {
 		if (!personajeSeleccionado) return;
+		if (!Number.isFinite(misionIdNumero) || misionIdNumero <= 0) {
+			setPersonajesError('La mision no es valida para entrar.');
+			return;
+		}
 
 		const nivelPersonaje = Number(personajeSeleccionado?.nivel ?? 0);
 		const nivelRequeridoCampana = Number(modoHistoria?.nivelMinimo ?? state?.modoHistoria?.nivelMinimo ?? 1);
@@ -317,13 +411,72 @@ export function Mission() {
 			return;
 		}
 
-		navigate('/tablero-story-mode', {
-			state: {
-				modoHistoria,
-				mision,
-				personaje: personajeSeleccionado,
-			},
-		});
+		setEntrandoConPersonajeCargando(true);
+		setPersonajesError(null);
+
+		try {
+			const response = await fetch(`${API_URL}/api/misiones/${misionIdNumero}/participantes`, {
+				method: 'POST',
+				headers: authHeaders(),
+				body: JSON.stringify({
+					rol: 'JUGADOR',
+					personajeId: personajeSeleccionado.id,
+				}),
+			});
+
+			// 409 significa que ya estaba registrado; seguimos al tablero igualmente.
+			if (!response.ok && response.status !== 409) {
+				let mensaje = `No se pudo entrar a la mision (${response.status})`;
+				try {
+					const payload = await response.json();
+					mensaje = payload?.mensaje || payload?.message || mensaje;
+				} catch {
+					// Ignore parse error and keep fallback message.
+				}
+				setPersonajesError(mensaje);
+				return;
+			}
+
+			navigate('/tablero-story-mode', {
+				state: {
+					modoHistoria,
+					mision,
+					personaje: (() => {
+						const clase = personajeSeleccionado.clase || 'Desconocida';
+						const p = {
+							...personajeSeleccionado,
+							clase: clase,
+							puntosGolpeActual: personajeSeleccionado.puntosGolpeActual || personajeSeleccionado.hp || 10,
+							puntosGolpeMax: personajeSeleccionado.puntosGolpeMax || personajeSeleccionado.hpMax || 10,
+							usuario_id: user?.id,
+							usuarioId: user?.id,
+							nombreUsuario: user?.nombre,
+							color: personajeSeleccionado.color || getColorForClase(clase),
+						};
+						return p;
+					})(),
+					jugadores: [],
+					jugadorActual: (() => {
+						const clase = personajeSeleccionado.clase || 'Desconocida';
+						const p = {
+							...personajeSeleccionado,
+							clase: clase,
+							puntosGolpeActual: personajeSeleccionado.puntosGolpeActual || personajeSeleccionado.hp || 10,
+							puntosGolpeMax: personajeSeleccionado.puntosGolpeMax || personajeSeleccionado.hpMax || 10,
+							usuario_id: user?.id,
+							usuarioId: user?.id,
+							nombreUsuario: user?.nombre,
+							color: personajeSeleccionado.color || getColorForClase(clase),
+						};
+						return p;
+					})(),
+				},
+			});
+		} catch (e) {
+			setPersonajesError('No se pudo registrar tu participacion en la mision.');
+		} finally {
+			setEntrandoConPersonajeCargando(false);
+		}
 	};
 
 	useEffect(() => {
@@ -375,7 +528,9 @@ export function Mission() {
 				<div className="mision-bg-overlay" />
 			</div>
 
-			<BackButton to={modoHistoriaId ? `/story-mode/${modoHistoriaId}` : '/home'} state={modoHistoria ? { modoHistoria } : undefined} />
+			<div className="mision-nav-buttons">
+				<BackButton to={modoHistoriaId ? `/story-mode/${modoHistoriaId}` : '/home'} state={modoHistoria ? { modoHistoria } : undefined} />
+			</div>
 
 			<div className="mision-layout">
 				<section className="mision-contenido" aria-label="Detalle de mision">
@@ -539,6 +694,7 @@ export function Mission() {
 					</div>
 				</div>
 			)}
+
 		</div>
 	);
 }

@@ -1,4 +1,4 @@
-import { API_URL, publicHeaders, authHeaders } from './api';
+import { API_URL, publicHeaders, authHeaders, fetchWithAuth } from './api';
 
 // LOGIN — guarda token Y datos del usuario
 export const login = async (email: string, password: string, rememberMe: boolean = false) => {
@@ -62,7 +62,7 @@ export const logout = () => {
 
 // OBTENER PERFIL del usuario logueado
 export const getMyProfile = async () => {
-  const response = await fetch(`${API_URL}/api/usuarios/me`, {
+  const response = await fetchWithAuth(`${API_URL}/api/usuarios/me`, {
     method: 'GET',
     headers: authHeaders(),
   });
@@ -77,7 +77,7 @@ export const updateProfile = async (data: {
   email?: string;
   password?: string;
 }) => {
-  const response = await fetch(`${API_URL}/api/usuarios/me`, {
+  const response = await fetchWithAuth(`${API_URL}/api/usuarios/me`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(data),

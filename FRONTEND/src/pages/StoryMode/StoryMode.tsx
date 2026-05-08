@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { BackButton } from '../../components/BackButton/BackButton';
-import { API_URL } from '../../services/api';
+import { API_URL, authHeaders } from '../../services/api';
 import { getModoHistoriaImageCandidates } from '../../utils/imageUtils';
 import './StoryMode.css';
 
@@ -193,9 +193,9 @@ export function StoryMode() {
 			setError(null);
 
 			try {
-				const response = await fetch(`${API_URL}/api/misiones/${modoId}`, {
+				const response = await fetch(`${API_URL}/api/modos-historia/${modoId}`, {
 					signal: controller.signal,
-					headers: { 'Content-Type': 'application/json' },
+					headers: authHeaders(),
 				});
 
 				if (!response.ok) {
@@ -203,7 +203,12 @@ export function StoryMode() {
 				}
 
 				const payload = (await response.json()) as unknown;
-				const resultado = normalizarMisionesRespuesta(payload);
+				
+				// Extraer misiones del objeto ModoHistoria
+				const modoHistoria = payload as Record<string, unknown>;
+				const resultado = Array.isArray(modoHistoria.misiones) 
+					? (modoHistoria.misiones as Mision[])
+					: [];
 
 				const idsEstado = new Set(misionesDesdeEstado.map(mision => mision.id));
 				const resultadoFiltrado = idsEstado.size > 0

@@ -1,28 +1,5 @@
 package com.gvc.ravenloftcastleapi.service;
 
-import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaCreateDTO;
-import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaDetalleDTO;
-import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaUpdateDTO;
-import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaEnemigoUpdateDTO;
-import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaEnemigoResponseDTO;
-import com.gvc.ravenloftcastleapi.dto.mision.MisionResumenDTO;
-import com.gvc.ravenloftcastleapi.dto.personaje.PersonajeResponseDTO;
-import com.gvc.ravenloftcastleapi.dto.enemigo.ModoHistoriaEnemigoDTO;
-import com.gvc.ravenloftcastleapi.dto.enemigo.EnemigoResumenDTO;
-import com.gvc.ravenloftcastleapi.entity.ModoHistoria;
-import com.gvc.ravenloftcastleapi.entity.ModoHistoriaPersonaje;
-import com.gvc.ravenloftcastleapi.entity.ModoHistoriaEnemigo;
-import com.gvc.ravenloftcastleapi.entity.Enemigo;
-import com.gvc.ravenloftcastleapi.entity.Mision;
-import com.gvc.ravenloftcastleapi.entity.Personaje;
-import com.gvc.ravenloftcastleapi.repository.ModoHistoriaRepository;
-import com.gvc.ravenloftcastleapi.repository.EnemigoRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
@@ -30,12 +7,38 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.gvc.ravenloftcastleapi.dto.enemigo.EnemigoResumenDTO;
+import com.gvc.ravenloftcastleapi.dto.enemigo.ModoHistoriaEnemigoDTO;
+import com.gvc.ravenloftcastleapi.dto.mision.MisionResumenDTO;
+import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaCreateDTO;
+import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaDetalleDTO;
+import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaEnemigoResponseDTO;
+import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaEnemigoUpdateDTO;
+import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaUpdateDTO;
+import com.gvc.ravenloftcastleapi.dto.personaje.PersonajeResponseDTO;
+import com.gvc.ravenloftcastleapi.entity.Enemigo;
+import com.gvc.ravenloftcastleapi.entity.Mision;
+import com.gvc.ravenloftcastleapi.entity.ModoHistoria;
+import com.gvc.ravenloftcastleapi.entity.ModoHistoriaEnemigo;
+import com.gvc.ravenloftcastleapi.entity.Personaje;
+import com.gvc.ravenloftcastleapi.repository.EnemigoRepository;
+import com.gvc.ravenloftcastleapi.repository.MisionParticipanteRepository;
+import com.gvc.ravenloftcastleapi.repository.ModoHistoriaRepository;
+
+import lombok.RequiredArgsConstructor;
+
 @Service
 @RequiredArgsConstructor
 public class ModoHistoriaService {
 
     private final ModoHistoriaRepository modoHistoriaRepository;
     private final EnemigoRepository enemigoRepository;
+    private final MisionParticipanteRepository misionParticipanteRepository;
 
     @Transactional
     public ModoHistoriaDetalleDTO crearModoHistoria(ModoHistoriaCreateDTO dto) {
@@ -121,13 +124,9 @@ public class ModoHistoriaService {
 
     @Transactional(readOnly = true)
     public List<PersonajeResponseDTO> listarJugadoresDeModoHistoria(Long modoHistoriaId) {
-        ModoHistoria modoHistoria = modoHistoriaRepository.findById(modoHistoriaId)
-                .orElseThrow(() -> new RuntimeException("CampaÃ±a no encontrada con id: " + modoHistoriaId));
-
-        return Optional.ofNullable(modoHistoria.getPersonajes())
-                .orElse(Collections.emptyList())
+        return misionParticipanteRepository
+                .findPersonajesActivosByModoHistoriaId(modoHistoriaId)
                 .stream()
-                .map(ModoHistoriaPersonaje::getPersonaje)
                 .map(this::mapToPersonajeDTO)
                 .collect(Collectors.toList());
     }
@@ -241,10 +240,9 @@ public class ModoHistoriaService {
                 .nivelAcceso(modoHistoria.getNivelAcceso())
                 .active(modoHistoria.isActive())
                 .master(null) // TODO: Implementar lÃ³gica para obtener el master
-                .personajes(Optional.ofNullable(modoHistoria.getPersonajes())
-                        .orElse(Collections.emptyList())
+                .personajes(misionParticipanteRepository
+                        .findPersonajesActivosByModoHistoriaId(modoHistoria.getId())
                         .stream()
-                        .map(ModoHistoriaPersonaje::getPersonaje)
                         .map(this::mapToPersonajeDTO)
                         .collect(Collectors.toList()))
                 .misiones(Optional.ofNullable(modoHistoria.getMisiones())

@@ -182,13 +182,26 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const [micActivo, setMicActivo] = useState(false);
   const [usuariosVoz, setUsuariosVoz] = useState<string[]>([]);
+  const jugadorPayloadRef = useRef<any>(jugadorActual);
+  jugadorPayloadRef.current = jugadorActual;
+
   const [jugadoresRed, setJugadoresRed] = useState<any[]>(jugadores || []);
   const lastSentAvatarRef = useRef<string | null>(null);
+
+  // Sync prop → state para Story Mode (la prop viene de jugadoresSincronizados vía WS)
+  useEffect(() => {
+    if (jugadores && jugadores.length > 0) {
+      setJugadoresRed(jugadores);
+    }
+  }, [jugadores]);
 
   useEffect(() => {
     const client = new Client({
       webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
       reconnectDelay: 5000,
+      heartbeatIncoming: 10000,
+      heartbeatOutgoing: 10000,
+
       onConnect: () => {
         setConectado(true);
         if (campanaId) {
@@ -226,10 +239,11 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
               if (pc) await pc.addIceCandidate(new RTCIceCandidate(candidate));
             }
           });
-          if (jugadorActual) {
+
+          if (jugadorPayloadRef.current) {
             client.publish({
               destination: `/app/campana/${campanaId}/join`,
-              body: JSON.stringify(jugadorActual),
+              body: JSON.stringify(jugadorPayloadRef.current),
             });
           }
         }
@@ -274,7 +288,8 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
       window.removeEventListener('beforeunload', handleLeave);
       client.deactivate();
     };
-  }, [campanaId, jugadorActual]);
+  // Solo reconectar cuando cambia la campaña o el jugador identificado
+  }, [campanaId, jugadorActual?.id]);
 
   useEffect(() => {
     if (!stompRef.current?.connected || !campanaId || !jugadorActual) return;
@@ -443,6 +458,9 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
       setUsuariosVoz([]);
     }
   };
+
+  // Mostrar TODOS los jugadores (incluyendo al actual para que se vea a sí mismo)
+  const otrosJugadores = jugadoresAMostrar;
 
   return (
     <div className="pp-panel">
@@ -620,7 +638,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
               })
             ) : (
               <p className="tb-vacio" style={{ textAlign: 'center', opacity: 0.5, fontSize: '13px', paddingTop: '20px' }}>
-                Sin jugadores en la partida
+                {campanaId ? 'Esperando otros jugadores...' : 'Sin jugadores en la partida'}
               </p>
             )}
           </div>

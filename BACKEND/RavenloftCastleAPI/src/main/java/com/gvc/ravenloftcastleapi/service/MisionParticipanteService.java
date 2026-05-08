@@ -1,30 +1,35 @@
 package com.gvc.ravenloftcastleapi.service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.gvc.ravenloftcastleapi.dto.mision.MisionParticipanteCreateDTO;
 import com.gvc.ravenloftcastleapi.dto.mision.MisionParticipanteResponseDTO;
 import com.gvc.ravenloftcastleapi.dto.mision.MisionParticipanteUpdateDTO;
-import com.gvc.ravenloftcastleapi.entity.ModoHistoria;
 import com.gvc.ravenloftcastleapi.entity.Mision;
 import com.gvc.ravenloftcastleapi.entity.MisionParticipante;
+import com.gvc.ravenloftcastleapi.entity.ModoHistoria;
+import com.gvc.ravenloftcastleapi.entity.ModoHistoriaPersonaje;
 import com.gvc.ravenloftcastleapi.entity.Personaje;
 import com.gvc.ravenloftcastleapi.entity.Suscripcion;
 import com.gvc.ravenloftcastleapi.entity.Usuario;
 import com.gvc.ravenloftcastleapi.enums.RolParticipante;
 import com.gvc.ravenloftcastleapi.enums.TipoSuscripcion;
-import com.gvc.ravenloftcastleapi.repository.ModoHistoriaPersonajeRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionParticipanteRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionRepository;
+import com.gvc.ravenloftcastleapi.repository.ModoHistoriaPersonajeRepository;
 import com.gvc.ravenloftcastleapi.repository.PersonajeRepository;
 import com.gvc.ravenloftcastleapi.repository.SuscripcionRepository;
 import com.gvc.ravenloftcastleapi.repository.UsuarioRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +41,15 @@ public class MisionParticipanteService {
     private final SuscripcionRepository suscripcionRepository;
     private final PersonajeRepository personajeRepository;
     private final ModoHistoriaPersonajeRepository modoHistoriaPersonajeRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+
+    // Posiciones de spawn iniciales para jugadores, fijas según ordenUnion
+    private static final int[][] SPAWN_POSITIONS = {
+        {12, 18},  // jugador 0 (rojo)
+        {13, 18},  // jugador 1 (azul)
+        {12, 19},  // jugador 2 (amarillo)
+        {13, 19}   // jugador 3 (verde)
+    };
 
     @Transactional
     public MisionParticipanteResponseDTO crear(String email, Long misionId, MisionParticipanteCreateDTO dto) {
@@ -46,14 +60,29 @@ public class MisionParticipanteService {
         Usuario usuarioObjetivo = getUsuarioById(usuarioObjetivoId);
 
         validarSuscripcionActiva(usuarioObjetivoId, mision.getModoHistoria());
+
+        var existenteOpt = participanteRepository.findByMisionIdAndUsuarioId(misionId, usuarioObjetivoId);
+        if (existenteOpt.isPresent()) {
+            return toResponse(existenteOpt.get());
+        }
+
         validarNoDuplicado(misionId, usuarioObjetivoId, null);
 
         Personaje personaje = resolvePersonajeParaRol(
-                dto.rol(),
-                dto.personajeId(),
-                usuarioObjetivoId,
-                mision.getModoHistoria().getId()
+            dto.rol(),
+            dto.personajeId(),
+            usuarioObjetivoId,
+            mision.getModoHistoria().getId()
         );
+
+        List<MisionParticipante> existentes = participanteRepository.findByMisionId(mision.getId());
+        int ordenUnion = existentes.size();
+        int spawnCol = 12;
+        int spawnRow = 19;
+        if (ordenUnion < SPAWN_POSITIONS.length) {
+            spawnCol = SPAWN_POSITIONS[ordenUnion][0];
+            spawnRow = SPAWN_POSITIONS[ordenUnion][1];
+        }
 
         MisionParticipante participante = MisionParticipante.builder()
                 .mision(mision)
@@ -61,6 +90,9 @@ public class MisionParticipanteService {
                 .personaje(personaje)
                 .rol(dto.rol())
                 .fechaInicio(LocalDateTime.now())
+                .tokenCol(spawnCol)
+                .tokenRow(spawnRow)
+                .ordenUnion(ordenUnion)
                 .build();
 
         return toResponse(participanteRepository.save(participante));
@@ -71,10 +103,20 @@ public class MisionParticipanteService {
         Usuario currentUser = getUsuarioByEmail(email);
         validarLecturaMision(misionId, currentUser);
 
-        return participanteRepository.findByMisionId(misionId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        var lista = participanteRepository.findByMisionId(misionId);
+        lista.sort((a, b) -> {
+            if (a.getFechaInicio() == null && b.getFechaInicio() == null) return 0;
+            if (a.getFechaInicio() == null) return 1;
+            if (b.getFechaInicio() == null) return -1;
+            return a.getFechaInicio().compareTo(b.getFechaInicio());
+        });
+
+        java.util.List<MisionParticipanteResponseDTO> salida = new java.util.ArrayList<>();
+        for (int i = 0; i < lista.size(); i++) {
+            salida.add(toResponseWithOrder(lista.get(i), i));
+        }
+
+        return salida;
     }
 
     @Transactional(readOnly = true)
@@ -113,7 +155,59 @@ public class MisionParticipanteService {
         MisionParticipante participante = getParticipanteByIdAndMisionId(participanteId, misionId);
 
         validarGestionParticipante(participante, currentUser);
+
+        Long modoHistoriaId = participante.getMision().getModoHistoria().getId();
+        Long pjId = participante.getPersonaje() != null ? participante.getPersonaje().getId() : null;
+        Long usuarioId = participante.getUsuario().getId();
+        Integer ordenUnion = participante.getOrdenUnion();
+
         participanteRepository.delete(participante);
+        participanteRepository.flush();
+
+        if (ordenUnion != null) {
+            participanteRepository.decrementarOrdenesSuperiores(misionId, ordenUnion);
+        }
+
+        limpiarModoHistoriaPersonajeSiSinPartidas(modoHistoriaId, pjId, usuarioId);
+        broadcastParticipantes(misionId);
+    }
+
+    @Transactional
+    public void eliminarPorPersonaje(String email, Long misionId, Long personajeId) {
+        Usuario currentUser = getUsuarioByEmail(email);
+
+        MisionParticipante participante = participanteRepository.findByMisionIdAndPersonajeId(misionId, personajeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Participante con ese personaje no encontrado en la mision"));
+
+        validarGestionParticipante(participante, currentUser);
+
+        Long modoHistoriaId = participante.getMision().getModoHistoria().getId();
+        Long pjId = participante.getPersonaje() != null ? participante.getPersonaje().getId() : null;
+        Long usuarioId = participante.getUsuario().getId();
+        Integer ordenUnion = participante.getOrdenUnion();
+
+        participanteRepository.delete(participante);
+        participanteRepository.flush();
+
+        if (ordenUnion != null) {
+            participanteRepository.decrementarOrdenesSuperiores(misionId, ordenUnion);
+        }
+
+        limpiarModoHistoriaPersonajeSiSinPartidas(modoHistoriaId, pjId, usuarioId);
+        broadcastParticipantes(misionId);
+    }
+
+    private void limpiarModoHistoriaPersonajeSiSinPartidas(Long modoHistoriaId, Long personajeId, Long usuarioId) {
+        if (personajeId == null) return;
+        if (!participanteRepository.existsByMisionModoHistoriaIdAndUsuarioId(modoHistoriaId, usuarioId)) {
+            modoHistoriaPersonajeRepository.deleteByModoHistoriaIdAndPersonajeId(modoHistoriaId, personajeId);
+        }
+    }
+
+    private void broadcastParticipantes(Long misionId) {
+        List<com.gvc.ravenloftcastleapi.dto.mision.ParticipanteJugadorDTO> lista =
+                participanteRepository.findParticipantesJugadores(misionId);
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/jugadores", lista);
     }
 
     @Transactional(readOnly = true)
@@ -129,6 +223,47 @@ public class MisionParticipanteService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional
+    public List<com.gvc.ravenloftcastleapi.dto.mision.ParticipanteJugadorDTO> listarParticipantesJugadores(String email, Long misionId) {
+        Usuario currentUser = getUsuarioByEmail(email);
+        ensureParticipacionParaLectura(misionId, currentUser);
+
+        return participanteRepository.findParticipantesJugadores(misionId);
+    }
+
+    private void ensureParticipacionParaLectura(Long misionId, Usuario currentUser) {
+        if (isAdmin(currentUser) || participanteRepository.existsByMisionIdAndUsuarioId(misionId, currentUser.getId())) {
+            return;
+        }
+
+        Mision mision = getMisionById(misionId);
+        validarSuscripcionActiva(currentUser.getId(), mision.getModoHistoria());
+
+        List<com.gvc.ravenloftcastleapi.entity.ModoHistoriaPersonaje> personajesUnidos =
+                modoHistoriaPersonajeRepository.findByModoHistoriaIdAndPersonajeUsuarioId(
+                        mision.getModoHistoria().getId(),
+                        currentUser.getId()
+                );
+
+        if (personajesUnidos.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes personaje unido al modo historia de esta mision");
+        }
+
+        Personaje personaje = personajesUnidos.get(0).getPersonaje();
+
+        int ordenUnionNuevo = participanteRepository.findByMisionId(mision.getId()).size();
+        MisionParticipante nuevo = MisionParticipante.builder()
+                .mision(mision)
+                .usuario(currentUser)
+                .personaje(personaje)
+                .rol(RolParticipante.JUGADOR)
+                .fechaInicio(LocalDateTime.now())
+                .ordenUnion(ordenUnionNuevo)
+                .build();
+
+        participanteRepository.save(nuevo);
     }
 
     private Usuario getUsuarioByEmail(String email) {
@@ -202,7 +337,12 @@ public class MisionParticipanteService {
 
         boolean unidoEnModoHistoria = modoHistoriaPersonajeRepository.existsByModoHistoriaIdAndPersonajeId(modoHistoriaId, personajeId);
         if (!unidoEnModoHistoria) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El personaje no esta unido a la modoHistoria de la mision");
+            ModoHistoriaPersonaje relacion = ModoHistoriaPersonaje.builder()
+                    .modoHistoria(ModoHistoria.builder().id(modoHistoriaId).build())
+                    .personaje(personaje)
+                    .fechaUnion(LocalDate.now())
+                    .build();
+            modoHistoriaPersonajeRepository.save(relacion);
         }
 
         return personaje;
@@ -229,6 +369,10 @@ public class MisionParticipanteService {
     }
 
     private MisionParticipanteResponseDTO toResponse(MisionParticipante participante) {
+        return toResponseWithOrder(participante, null);
+    }
+
+    private MisionParticipanteResponseDTO toResponseWithOrder(MisionParticipante participante, Integer ordenUnion) {
         return new MisionParticipanteResponseDTO(
                 participante.getId(),
                 participante.getMision().getId(),
@@ -237,7 +381,8 @@ public class MisionParticipanteService {
                 participante.getRol().name(),
                 participante.getPersonaje() != null ? participante.getPersonaje().getId() : null,
                 participante.getPersonaje() != null ? participante.getPersonaje().getNombre() : null,
-                participante.getFechaInicio() != null ? participante.getFechaInicio().toString() : null
+                participante.getFechaInicio() != null ? participante.getFechaInicio().toString() : null,
+                ordenUnion
         );
     }
 }

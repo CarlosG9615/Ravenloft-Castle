@@ -3,6 +3,7 @@ package com.gvc.ravenloftcastleapi.repository;
 import com.gvc.ravenloftcastleapi.entity.ModoHistoriaPersonaje;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -12,5 +13,8 @@ public interface ModoHistoriaPersonajeRepository extends JpaRepository<ModoHisto
 	boolean existsByModoHistoriaIdAndPersonajeId(Long modoHistoriaId, Long personajeId);
 
     List<ModoHistoriaPersonaje> findByModoHistoriaIdAndPersonajeUsuarioId(Long modoHistoriaId, Long usuarioId);
+
+    @Transactional
+    void deleteByModoHistoriaIdAndPersonajeId(Long modoHistoriaId, Long personajeId);
 }
 

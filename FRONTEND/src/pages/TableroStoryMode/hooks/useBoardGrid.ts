@@ -40,13 +40,10 @@ export function useBoardGrid(mapConfig: MapConfig) {
     return { col, row };
   }, [mapConfig.cellSize, mapConfig.cols, mapConfig.offsetX, mapConfig.offsetY, mapConfig.rows]);
 
-  const cellToPixel = useCallback((col: number, row: number, scale: number): BoardPixel => {
-    const centerX = mapConfig.offsetX + col * mapConfig.cellSize + mapConfig.cellSize / 2;
-    const centerY = mapConfig.offsetY + row * mapConfig.cellSize + mapConfig.cellSize / 2;
-
+  const cellToPixel = useCallback((col: number, row: number): BoardPixel => {
     return {
-      x: centerX * scale,
-      y: centerY * scale,
+      x: mapConfig.offsetX + col * mapConfig.cellSize + mapConfig.cellSize / 2,
+      y: mapConfig.offsetY + row * mapConfig.cellSize + mapConfig.cellSize / 2,
     };
   }, [mapConfig.cellSize, mapConfig.offsetX, mapConfig.offsetY]);
 

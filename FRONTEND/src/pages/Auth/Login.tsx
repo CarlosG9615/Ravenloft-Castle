@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Auth.css';
 import { login } from '../../services/authService';
@@ -9,6 +9,7 @@ import { BackButton } from '../../components/BackButton/BackButton';
 
 export function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setUserData } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -34,7 +35,7 @@ export function Login() {
     }
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -49,7 +50,8 @@ export function Login() {
         localStorage.removeItem('rememberedEmail');
       }
 
-      navigate('/home', { replace: true });
+      const from = (location.state as any)?.from ?? '/home';
+      navigate(from, { replace: true });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -57,7 +59,7 @@ export function Login() {
     }
   };
 
-  const handleForgotSubmit = async (e: React.FormEvent) => {
+  const handleForgotSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     setForgotError('');
     setForgotSuccess('');
