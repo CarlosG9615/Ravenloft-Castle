@@ -1,4 +1,4 @@
-import { API_URL, authHeaders } from './api';
+import { API_URL, authHeaders, fetchWithAuth } from './api';
 
 export interface PersonajeCreatePayload {
   nombre: string;
@@ -42,7 +42,7 @@ export interface PersonajeCreatePayload {
 
 // LISTAR personajes del usuario logueado
 export const getPersonajes = async () => {
-  const response = await fetch(`${API_URL}/api/personajes`, {
+  const response = await fetchWithAuth(`${API_URL}/api/personajes`, {
     headers: authHeaders(),
   });
 
@@ -52,7 +52,7 @@ export const getPersonajes = async () => {
 
 // OBTENER un personaje por id
 export const getPersonaje = async (id: number) => {
-  const response = await fetch(`${API_URL}/api/personajes/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/personajes/${id}`, {
     headers: authHeaders(),
   });
 
@@ -62,7 +62,7 @@ export const getPersonaje = async (id: number) => {
 
 // CREAR personaje
 export const createPersonaje = async (datos: PersonajeCreatePayload) => {
-  const response = await fetch(`${API_URL}/api/personajes`, {
+  const response = await fetchWithAuth(`${API_URL}/api/personajes`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(datos),
@@ -74,7 +74,7 @@ export const createPersonaje = async (datos: PersonajeCreatePayload) => {
 
 // ACTUALIZAR personaje
 export const updatePersonaje = async (id: number, datos: any) => {
-  const response = await fetch(`${API_URL}/api/personajes/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/personajes/${id}`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(datos),
@@ -86,7 +86,7 @@ export const updatePersonaje = async (id: number, datos: any) => {
 
 // ELIMINAR personaje
 export const deletePersonaje = async (id: number) => {
-  const response = await fetch(`${API_URL}/api/personajes/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/personajes/${id}`, {
     method: 'DELETE',
     headers: authHeaders(),
   });

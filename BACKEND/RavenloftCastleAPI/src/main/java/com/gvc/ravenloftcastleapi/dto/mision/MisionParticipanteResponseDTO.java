@@ -9,5 +9,6 @@ public record MisionParticipanteResponseDTO(
         Long personajeId,
         String personajeNombre,
         String fechaInicio
+        , Integer ordenUnion
 ) {}
 

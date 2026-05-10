@@ -15,17 +15,35 @@ export const authHeaders = (isMultipart = false) => {
   const token = getToken();
   const headers = new Headers();
 
-  // 1) Si tenemos token, siempre mandamos Authorization
   if (token) {
     headers.append('Authorization', `Bearer ${token}`);
   }
 
-  // 2) Si es multipart, no mandamos Content-Type para que el browser lo establezca automáticamente
   if (isMultipart) {
     return headers;
   }
 
-  // 3) Si no es multipart, mandamos Content-Type por defecto
   headers.append('Content-Type', 'application/json');
   return headers;
+};
+
+// Decodifica el JWT y comprueba si ha expirado (sin llamada al servidor).
+export const isTokenExpired = (token: string): boolean => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (!payload.exp) return false;
+    return Date.now() / 1000 > payload.exp;
+  } catch {
+    return true; // token malformado → tratarlo como expirado
+  }
+};
+
+// Wrapper de fetch que dispara 'auth:token-expired' cuando el servidor devuelve 401.
+// Usar en lugar de fetch() para todas las llamadas autenticadas.
+export const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<Response> => {
+  const response = await fetch(url, options);
+  if (response.status === 401) {
+    window.dispatchEvent(new CustomEvent('auth:token-expired'));
+  }
+  return response;
 };

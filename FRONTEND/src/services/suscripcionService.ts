@@ -1,4 +1,4 @@
-import { API_URL, authHeaders } from './api';
+import { API_URL, authHeaders, fetchWithAuth } from './api';
 
 export interface SuscripcionDTO {
   id: number;
@@ -17,7 +17,7 @@ export interface SuscripcionCreateDTO {
 }
 
 export const createSuscripcion = async (dto: SuscripcionCreateDTO): Promise<SuscripcionDTO> => {
-  const response = await fetch(`${API_URL}/api/suscripciones`, {
+  const response = await fetchWithAuth(`${API_URL}/api/suscripciones`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(dto),
@@ -32,7 +32,7 @@ export const createSuscripcion = async (dto: SuscripcionCreateDTO): Promise<Susc
 };
 
 export const getUserSuscripciones = async (usuarioId: number): Promise<SuscripcionDTO[]> => {
-  const response = await fetch(`${API_URL}/api/suscripciones/usuario/${usuarioId}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/suscripciones/usuario/${usuarioId}`, {
     method: 'GET',
     headers: authHeaders(),
   });
@@ -46,7 +46,7 @@ export const getUserSuscripciones = async (usuarioId: number): Promise<Suscripci
 };
 
 export const getMySuscripciones = async (): Promise<SuscripcionDTO[]> => {
-  const response = await fetch(`${API_URL}/api/suscripciones`, {
+  const response = await fetchWithAuth(`${API_URL}/api/suscripciones`, {
     method: 'GET',
     headers: authHeaders(),
   });
@@ -60,7 +60,7 @@ export const getMySuscripciones = async (): Promise<SuscripcionDTO[]> => {
 };
 
 export const cancelarSuscripcion = async (id: number): Promise<void> => {
-  const response = await fetch(`${API_URL}/api/suscripciones/${id}/cancelar`, {
+  const response = await fetchWithAuth(`${API_URL}/api/suscripciones/${id}/cancelar`, {
     method: 'PUT',
     headers: authHeaders(),
   });

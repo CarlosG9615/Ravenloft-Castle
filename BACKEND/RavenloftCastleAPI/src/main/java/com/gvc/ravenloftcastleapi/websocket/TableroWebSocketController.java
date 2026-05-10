@@ -1,26 +1,37 @@
 package com.gvc.ravenloftcastleapi.websocket;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.stream.Collectors;
+import com.gvc.ravenloftcastleapi.dto.mision.FinTurnoDTO;
+import com.gvc.ravenloftcastleapi.dto.mision.ParticipanteJugadorDTO;
+import com.gvc.ravenloftcastleapi.dto.mision.TurnoDTO;
+import com.gvc.ravenloftcastleapi.repository.MisionParticipanteRepository;
+import com.gvc.ravenloftcastleapi.service.TurnoService;
 
 @Controller
 public class TableroWebSocketController {
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final MisionParticipanteRepository misionParticipanteRepository;
+    private final TurnoService turnoService;
     // Map of CampaignId -> Map of SessionId -> Player Info
     private final Map<String, Map<String, JugadorWsDTO>> sessionesCampana = new ConcurrentHashMap<>();
 
-    public TableroWebSocketController(SimpMessagingTemplate messagingTemplate) {
+    public TableroWebSocketController(SimpMessagingTemplate messagingTemplate,
+                                      MisionParticipanteRepository misionParticipanteRepository,
+                                      TurnoService turnoService) {
         this.messagingTemplate = messagingTemplate;
+        this.misionParticipanteRepository = misionParticipanteRepository;
+        this.turnoService = turnoService;
     }
 
 
@@ -28,7 +39,6 @@ public class TableroWebSocketController {
     public void joinCampana(@DestinationVariable String campanaId, @Payload JugadorWsDTO jugador) {
         sessionesCampana.putIfAbsent(campanaId, new ConcurrentHashMap<>());
 
-        // Use a unique ID from the user or generate one if not present
         String idKey = jugador.getId() != null ? jugador.getId().toString() : String.valueOf(System.currentTimeMillis());
 
         jugador.setConectado(true);
@@ -45,6 +55,42 @@ public class TableroWebSocketController {
         }
     }
 
+    @MessageMapping("/mision/{misionId}/token-move")
+    public void tokenMove(@DestinationVariable String misionId, @Payload TokenMoveDTO move) {
+        try {
+            misionParticipanteRepository.actualizarPosicionToken(Long.valueOf(misionId), Long.valueOf(move.getUserId()), move.getCol(), move.getRow());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("IDs inválidos para token-move", e);
+        }
+
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/tokens", move);
+    }
+
+    @MessageMapping("/mision/{misionId}/token-request-sync")
+    public void tokenRequestSync(@DestinationVariable String misionId, @Payload TokenSyncRequestDTO request) {
+        try {
+            List<ParticipanteJugadorDTO> participantes = misionParticipanteRepository.findParticipantesJugadores(Long.valueOf(misionId));
+            List<TokenStateDTO> tokenStates = new ArrayList<>();
+            for (ParticipanteJugadorDTO p : participantes) {
+                if (p.tokenCol() != null && p.tokenRow() != null) {
+                    tokenStates.add(new TokenStateDTO(
+                        p.usuarioId().toString(),
+                        p.tokenCol(),
+                        p.tokenRow()
+                    ));
+                }
+            }
+            
+            messagingTemplate.convertAndSendToUser(
+                request.getSessionId(),
+                "/queue/mision/" + misionId + "/token-sync",
+                tokenStates
+            );
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("misionId inválido para token-request-sync", e);
+        }
+    }
+
     private void broadcastJugadores(String campanaId) {
         List<JugadorWsDTO> jugadores = new ArrayList<>(sessionesCampana.getOrDefault(campanaId, new ConcurrentHashMap<>()).values());
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/jugadores", jugadores);
@@ -53,6 +99,38 @@ public class TableroWebSocketController {
     @MessageMapping("/campana/{campanaId}/chat.enviar")
     public void enviarMensajeChat(@DestinationVariable String campanaId, @Payload MensajeChatDTO mensaje) {
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/chat", mensaje);
+    }
+
+    @MessageMapping("/mision/{misionId}/fin-turno")
+    public void finTurno(@DestinationVariable String misionId, @Payload FinTurnoDTO dto) {
+        try {
+            TurnoDTO siguiente = turnoService.calcularSiguiente(Long.valueOf(misionId), dto.personajeId());
+            messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/turno", siguiente);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("misionId inválido para fin-turno", e);
+        }
+    }
+
+    @MessageMapping("/mision/{misionId}/iniciar-ronda")
+    public void iniciarRonda(@DestinationVariable String misionId) {
+        try {
+            TurnoDTO turnoInicial = turnoService.obtenerTurnoInicial(Long.valueOf(misionId));
+            messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/turno", turnoInicial);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("misionId inválido para iniciar-ronda", e);
+        }
+    }
+
+    @MessageMapping("/mision/{misionId}/join")
+    public void joinMision(@DestinationVariable String misionId) {
+        try {
+            TurnoDTO turnoInicial = turnoService.obtenerTurnoInicial(Long.valueOf(misionId));
+            messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/turno", turnoInicial);
+            List<ParticipanteJugadorDTO> participantes = misionParticipanteRepository.findParticipantesJugadores(Long.valueOf(misionId));
+            messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/jugadores", participantes);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("misionId inválido para join mision", e);
+        }
     }
 
     public static class MensajeChatDTO {
@@ -104,6 +182,51 @@ public class TableroWebSocketController {
     @MessageMapping("/campana/{campanaId}/voice")
     public void señalizarVoz(@DestinationVariable String campanaId, @Payload Map<String, Object> señal) {
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/voice", (Object) señal);
+    }
+
+    public static class TokenMoveDTO {
+        private String userId;
+        private int col;
+        private int row;
+
+        public TokenMoveDTO() {
+        }
+
+        public String getUserId() { return userId; }
+        public void setUserId(String userId) { this.userId = userId; }
+        public int getCol() { return col; }
+        public void setCol(int col) { this.col = col; }
+        public int getRow() { return row; }
+        public void setRow(int row) { this.row = row; }
+    }
+
+    public static class TokenSyncRequestDTO {
+        private String sessionId;
+
+        public TokenSyncRequestDTO() {
+        }
+
+        public String getSessionId() { return sessionId; }
+        public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+    }
+
+    public static class TokenStateDTO {
+        private String userId;
+        private int col;
+        private int row;
+
+        public TokenStateDTO(String userId, int col, int row) {
+            this.userId = userId;
+            this.col = col;
+            this.row = row;
+        }
+
+        public String getUserId() { return userId; }
+        public void setUserId(String userId) { this.userId = userId; }
+        public int getCol() { return col; }
+        public void setCol(int col) { this.col = col; }
+        public int getRow() { return row; }
+        public void setRow(int row) { this.row = row; }
     }
 }
 

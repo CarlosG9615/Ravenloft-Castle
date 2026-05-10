@@ -1,6 +1,7 @@
 package com.gvc.ravenloftcastleapi.security;
 
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -18,7 +19,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
@@ -41,6 +42,7 @@ public class SecurityConfig {
                     .requestMatchers("/ws/info").permitAll()
                     .requestMatchers(HttpMethod.GET ,"/api/usuarios/**").permitAll()
                     .requestMatchers(HttpMethod.GET ,"/api/modos-historia/**").permitAll()
+                    .requestMatchers(HttpMethod.GET ,"/api/misiones/*/participantes/**").permitAll()
                     .requestMatchers(HttpMethod.DELETE, "/api/campanas/**").permitAll()
                     .requestMatchers(HttpMethod.PUT, "/api/modos-historia/*/codigo-invitacion").authenticated()
                     .requestMatchers(HttpMethod.POST, "/api/modos-historia/*/codigo-invitacion/generar").authenticated()
@@ -77,7 +79,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174", "http://localhost:5175")); // Allow frontend origin
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:5170", "http://localhost:5171", "http://localhost:5172", 
+            "http://localhost:5173", "http://localhost:5174", "http://localhost:5175",
+            "http://localhost:5176", "http://localhost:5177", "http://localhost:5178", 
+            "http://localhost:5179"
+        ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

@@ -1,10 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Circle, Group, Layer, Rect, Stage, Text, Image as KonvaImage } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import useImage from 'use-image';
 import type { MapConfig } from '../hooks/useBoardGrid';
 import { useBoardGrid } from '../hooks/useBoardGrid';
 import './GameBoard.css';
+
+// Suprimir errores de canvas de use-image (son warnings, no críticos)
+const originalError = console.error;
+const suppressDrawImageErrors = (...args: any[]) => {
+  const errorMsg = String(args[0] || '');
+  // Solo suprimir errores específicos de drawImage que no rompen la funcionalidad
+  if (errorMsg.includes('drawImage') && errorMsg.includes('width or height of 0')) {
+    return;
+  }
+  originalError.apply(console, args);
+};
+console.error = suppressDrawImageErrors as any;
 
 export interface BoardToken {
   id: string;
@@ -20,6 +32,11 @@ interface GameBoardProps {
   mapConfig: MapConfig;
   tokens: BoardToken[];
   onTokenMove?: (id: string, col: number, row: number) => void;
+  jugadores?: any[];
+  turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
+  sendFinTurno?: (personajeId: string | number) => void;
+  jugadorActual?: any;
+  miPersonajeId?: string;
 }
 
 interface Size { width: number; height: number; }
@@ -34,15 +51,32 @@ interface BoardTokenNodeProps {
   radius: number;
   selected: boolean;
   disabled: boolean;
+  draggable: boolean;
+  isCurrentTurn?: boolean;
   onSelect: () => void;
   onPointerDown: (event: KonvaEventObject<MouseEvent | TouchEvent>) => void;
 }
 
-function BoardTokenNode({ token, x, y, radius, selected, disabled, onSelect, onPointerDown }: BoardTokenNodeProps) {
-  const [avatarImage] = useImage(token.avatarUrl ?? '');
+function BoardTokenNode({ token, x, y, radius, selected, disabled, draggable, isCurrentTurn = false, onSelect, onPointerDown }: BoardTokenNodeProps) {
+  // Solo cargar imagen si la URL es válida y no vacía
+  const validAvatarUrl = token.avatarUrl && token.avatarUrl.trim() && /^(https?:\/\/|\/|data:)/.test(token.avatarUrl) ? token.avatarUrl : null;
+  // Solo llamar a useImage si tenemos una URL válida
+  const [avatarImage] = useImage(validAvatarUrl || undefined);
+  const [avatarImageReady, setAvatarImageReady] = useState(false);
+  
+  // Detectar cuando la imagen del avatar está lista
+  useEffect(() => {
+    if (validAvatarUrl && avatarImage && avatarImage.width > 0 && avatarImage.height > 0) {
+      setAvatarImageReady(true);
+    } else {
+      setAvatarImageReady(false);
+    }
+  }, [avatarImage, validAvatarUrl]);
+  
   const avatarZoom = 1.75;
   const avatarVisibleDiameter = radius * 2 - 4;
   const avatarRenderSize = avatarVisibleDiameter * avatarZoom;
+  const activeBorderColor = 'white';
 
   return (
     <Group
@@ -52,7 +86,11 @@ function BoardTokenNode({ token, x, y, radius, selected, disabled, onSelect, onP
       onTap={() => { if (!disabled) onSelect(); }}
       onMouseDown={onPointerDown}
       onTouchStart={onPointerDown}
-      opacity={disabled ? 0.42 : 1}
+      opacity={disabled ? 0.72 : 1}
+      draggable={false}
+      listening
+      // Solo mostrar mano/puntero cuando el token es realmente interactivo para mover.
+      cursor={draggable ? 'grab' : 'default'}
     >
       <Circle
         radius={radius}
@@ -62,16 +100,27 @@ function BoardTokenNode({ token, x, y, radius, selected, disabled, onSelect, onP
         shadowColor="rgba(0, 0, 0, 0.45)"
         shadowBlur={8}
       />
-      {selected && (
+      {selected && !isCurrentTurn && (
         <Circle
           radius={radius + 3}
           fillEnabled={false}
-          stroke="rgba(255, 225, 107, 0.9)"
+          stroke="white"
           strokeWidth={2}
           listening={false}
         />
       )}
-      {avatarImage && (
+      {isCurrentTurn && (
+        <Circle
+          radius={radius + 7}
+          fillEnabled={false}
+          stroke={activeBorderColor}
+          strokeWidth={3}
+          shadowColor={activeBorderColor}
+          shadowBlur={10}
+          listening={false}
+        />
+      )}
+      {avatarImageReady && avatarImage && (
         <Group
           clipFunc={(ctx) => {
             ctx.beginPath();
@@ -89,7 +138,7 @@ function BoardTokenNode({ token, x, y, radius, selected, disabled, onSelect, onP
           />
         </Group>
       )}
-      {!avatarImage && (
+      {!avatarImageReady && (
         <Text
           x={-radius}
           y={-radius + 1}
@@ -108,7 +157,7 @@ function BoardTokenNode({ token, x, y, radius, selected, disabled, onSelect, onP
   );
 }
 
-export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
+export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '' }: GameBoardProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const panStartRef = useRef<{ pointerX: number; pointerY: number; originX: number; originY: number } | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -118,10 +167,8 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
   const [stageSize, setStageSize] = useState<Size>({ width: 1, height: 1 });
   const [mapPan, setMapPan] = useState<PanPoint>({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
-  const [activeTurn, setActiveTurn] = useState<TurnSide>('personajes');
-  const [endedTurnIds, setEndedTurnIds] = useState<Set<string>>(new Set());
+  const [isPointerOnMap, setIsPointerOnMap] = useState(false);
   const [openTurnModalTokenId, setOpenTurnModalTokenId] = useState<string | null>(null);
-  const [showMasterTurnConfirm, setShowMasterTurnConfirm] = useState(false);
   const [selectedTokenId, setSelectedTokenId] = useState<string | null>(tokens[0]?.id ?? null);
   const [tokenCells, setTokenCells] = useState<Record<string, CellPosition>>(() => {
     const initial: Record<string, CellPosition> = {};
@@ -134,9 +181,23 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
   const [animPath, setAnimPath] = useState<CellPosition[]>([]);
   const [animStep, setAnimStep] = useState(0);
   const [rolledMovement, setRolledMovement] = useState<number | null>(null);
+  const [mapImageReady, setMapImageReady] = useState(false);
+
+  // Estados del turno provienen del WebSocket
+  const activeTurn = turnoActual?.fase ?? 'personajes';
+  const currentTurnTokenId = turnoActual?.turnoActualPersonajeId?.toString() ?? null;
 
   const [mapImage] = useImage(mapConfig.imageUrl);
   const { pixelToCell, cellToPixel, getReachableCells } = useBoardGrid(mapConfig);
+
+  // Detectar cuando la imagen del mapa está lista
+  useEffect(() => {
+    if (mapImage && mapImage.width > 0 && mapImage.height > 0) {
+      setMapImageReady(true);
+    } else {
+      setMapImageReady(false);
+    }
+  }, [mapImage]);
 
   useEffect(() => {
     return () => { if (animTimerRef.current) clearTimeout(animTimerRef.current); };
@@ -158,27 +219,65 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
     setTokenCells(next);
   }, [tokens]);
 
+  // Filtrar tokens solo de jugadores conectados para turnos
+  const tokensActivos = useMemo(() => {
+    return tokens.filter((token) => {
+      if (jugadores.length === 0) return true; // Si no hay info de jugadores, mostrar todos
+      // Buscar si existe un jugador conectado para este token
+      return jugadores.some((j) =>
+        j && (
+          j.id?.toString() === token.id ||
+          j.usuario_id?.toString() === token.id ||
+          (j.nombre && token.initials === j.nombre.slice(0, 2).toUpperCase())
+        ) &&
+        j.conectado !== false
+      );
+    });
+  }, [tokens, jugadores]);
+
+  // Derivar turnos agotados desde el estado sincronizado para que ambos clientes vean lo mismo.
+  const endedTurnIds = useMemo(() => {
+    const ended = new Set<string>();
+    const orderedTurnTokens = tokensActivos.length > 0 ? tokensActivos : tokens;
+
+    if (activeTurn === 'master') {
+      orderedTurnTokens.forEach((t) => ended.add(t.id));
+      return ended;
+    }
+
+    if (activeTurn !== 'personajes' || !currentTurnTokenId) return ended;
+
+    const currentIndex = orderedTurnTokens.findIndex((t) => t.id === currentTurnTokenId);
+    if (currentIndex <= 0) return ended;
+
+    for (let i = 0; i < currentIndex; i++) {
+      ended.add(orderedTurnTokens[i].id);
+    }
+
+    return ended;
+  }, [tokens, tokensActivos, activeTurn, currentTurnTokenId]);
+
   useEffect(() => {
     if (tokens.length > 0 && !tokens.some((t) => t.id === selectedTokenId)) {
       setSelectedTokenId(tokens[0].id);
     }
-  }, [tokens, selectedTokenId]);
+    // Si hay un token actualmente en turno, seleccionarlo automáticamente
+    if (currentTurnTokenId) {
+      setSelectedTokenId(currentTurnTokenId);
+    }
+  }, [tokens, selectedTokenId, currentTurnTokenId]);
 
-  // Tirada de 2d6 automática al inicio de cada turno de personaje.
-  // Depende solo de endedTurnIds y activeTurn — NO de tokens,
-  // para evitar re-tirar cuando cambian las posiciones tras un movimiento.
+  // Tirada de 2d6 automática al inicio de cada turno de personaje
   useEffect(() => {
     if (activeTurn !== 'personajes') { setRolledMovement(null); return; }
-    // Determinamos el personaje activo sin depender de la referencia de tokens
-    const currentId = tokens.find((t) => !endedTurnIds.has(t.id))?.id ?? null;
-    if (currentId !== null) {
+    // Si es el turno de este jugador, haz la tirada
+    if (currentTurnTokenId === jugadorActual?.id?.toString() || currentTurnTokenId === jugadorActual?.personajeId?.toString()) {
       const roll = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
       setRolledMovement(roll);
     } else {
       setRolledMovement(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endedTurnIds, activeTurn]); // tokens excluido intencionadamente: los IDs son estables
+  }, [currentTurnTokenId, activeTurn, jugadorActual]);
 
   const fitScale = Math.min(stageSize.width / mapConfig.naturalWidth, stageSize.height / mapConfig.naturalHeight);
   const renderScale = fitScale * 0.85;
@@ -190,9 +289,8 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
   const cellSide = mapConfig.cellSize * renderScale;
   const tokenRadius = Math.max(9, mapConfig.cellSize * renderScale * 0.32);
 
-  const currentTurnToken = tokens.find((t) => !endedTurnIds.has(t.id)) ?? null;
-  const currentTurnTokenId = currentTurnToken?.id ?? null;
-  const allTurnsEnded = tokens.length > 0 && endedTurnIds.size === tokens.length;
+  const currentTurnToken = tokens.find((t) => t.id === currentTurnTokenId) ?? null;
+  const allTurnsEnded = activeTurn === 'master';
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -224,6 +322,13 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
     }
     return last;
   };
+
+  const isPointerInsideMap = (x: number, y: number): boolean => (
+    x >= mapOriginX &&
+    x <= mapOriginX + mapRenderWidth &&
+    y >= mapOriginY &&
+    y <= mapOriginY + mapRenderHeight
+  );
 
   // ── Overlay cells: all traversed cells with step numbers ─────────────────
 
@@ -272,6 +377,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
     if (className !== 'Stage' && className !== 'Image') return;
     const pointer = event.target.getStage()?.getPointerPosition();
     if (!pointer) return;
+    if (!isPointerInsideMap(pointer.x, pointer.y)) return;
     panStartRef.current = { pointerX: pointer.x, pointerY: pointer.y, originX: mapPan.x, originY: mapPan.y };
     setIsPanning(true);
   };
@@ -279,6 +385,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
   const handleStagePointerMove = (event: KonvaEventObject<MouseEvent | TouchEvent>) => {
     const pointer = event.target.getStage()?.getPointerPosition();
     if (!pointer) return;
+    setIsPointerOnMap(isPointerInsideMap(pointer.x, pointer.y));
 
     if (draggingRef.current) {
       const { originCell, tokenId } = draggingRef.current;
@@ -329,10 +436,8 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
   // ── Turn management ───────────────────────────────────────────────────────
 
   const resetCharacterTurns = () => {
-    setEndedTurnIds(new Set());
+    // Reset solo limpia la UI local; el servidor maneja el turno actual
     setOpenTurnModalTokenId(null);
-    setShowMasterTurnConfirm(false);
-    setActiveTurn('personajes');
     if (tokens.length > 0) setSelectedTokenId(tokens[0].id);
   };
 
@@ -342,49 +447,48 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
       resetCharacterTurns();
       return;
     }
-    if (!allTurnsEnded) { setShowMasterTurnConfirm(true); return; }
-    setShowMasterTurnConfirm(false);
+    // El flujo a turno de master lo controla el servidor cuando todos agotan turno.
+    if (!allTurnsEnded) return;
     setOpenTurnModalTokenId(null);
-    setActiveTurn('master');
   };
 
   const handleAvatarClick = (tokenId: string) => {
     setSelectedTokenId(tokenId);
-    setShowMasterTurnConfirm(false);
     setOpenTurnModalTokenId((prev) => (prev === tokenId ? null : tokenId));
   };
 
   const finalizeTurn = (tokenId: string) => {
     if (activeTurn !== 'personajes') return;
-    if (currentTurnTokenId !== tokenId) return;
-    const nextEnded = new Set(endedTurnIds);
-    nextEnded.add(tokenId);
-    setEndedTurnIds(nextEnded);
+    if (currentTurnTokenId !== tokenId.toString()) return;
     setOpenTurnModalTokenId(null);
-    setShowMasterTurnConfirm(false);
-    const nextToken = tokens.find((t) => !nextEnded.has(t.id)) ?? null;
-    if (!nextToken) { setActiveTurn('master'); return; }
-    setSelectedTokenId(nextToken.id);
+    // Enviar al servidor para que calcule el siguiente turno
+    sendFinTurno?.(tokenId);
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div ref={wrapperRef} className="gb-stage-wrap" style={{ cursor: isPanning ? 'grabbing' : 'grab' }}>
+    <div ref={wrapperRef} className="gb-stage-wrap">
       <div className="gb-top-tab">
         <h3 className="gb-top-title">Ravenloft Castle</h3>
 
         <div className="gb-top-avatars" aria-label="Personajes en partida">
           {tokens.map((token) => {
-            const ended = endedTurnIds.has(token.id);
             const isCurrent = token.id === currentTurnTokenId;
+            const ended = endedTurnIds.has(token.id);
             const showModal = openTurnModalTokenId === token.id;
             return (
               <div key={`top-${token.id}`} className="gb-top-avatar-wrap">
                 <button
                   type="button"
-                  className={`gb-top-avatar ${selectedTokenId === token.id ? 'active' : ''} ${ended ? 'ended' : ''} ${isCurrent && activeTurn === 'personajes' ? 'current' : ''}`}
-                  style={{ borderColor: token.color, backgroundImage: token.avatarUrl ? `url(${token.avatarUrl})` : undefined }}
+                  className={`gb-top-avatar ${selectedTokenId === token.id ? 'active' : ''} ${isCurrent && activeTurn === 'personajes' ? 'current' : ''} ${ended ? 'ended' : ''}`}
+                  style={{
+                    borderColor: token.color,
+                    backgroundImage: token.avatarUrl ? `url(${token.avatarUrl})` : undefined,
+                    boxShadow: isCurrent && activeTurn === 'personajes'
+                      ? '0 0 0 3px white, 0 0 10px rgba(255,255,255,0.6)'
+                      : (selectedTokenId === token.id ? `0 0 0 2px ${token.color}55` : undefined)
+                  }}
                   title={token.initials}
                   onClick={() => handleAvatarClick(token.id)}
                 >
@@ -393,9 +497,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
                 {showModal && (
                   <div className="gb-turn-modal" role="dialog" aria-label="Finalizar turno">
                     {activeTurn === 'master' && <p className="gb-turn-modal-text">Ahora mismo el master está resolviendo sus jugadas.</p>}
-                    {activeTurn === 'personajes' && ended && <p className="gb-turn-modal-text">Este personaje ya terminó su turno.</p>}
-                    {activeTurn === 'personajes' && !ended && !isCurrent && <p className="gb-turn-modal-text">Todavía no le toca. Espera su turno.</p>}
-                    {activeTurn === 'personajes' && isCurrent && !ended && (
+                    {activeTurn === 'personajes' && isCurrent && token.id === miPersonajeId && (
                       <>
                         <p className="gb-turn-modal-text">¿Quieres finalizar el turno de este personaje?</p>
                         <button type="button" className="gb-turn-finalize-btn" onClick={() => finalizeTurn(token.id)}>
@@ -403,6 +505,10 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
                         </button>
                       </>
                     )}
+                    {activeTurn === 'personajes' && isCurrent && token.id !== miPersonajeId && (
+                      <p className="gb-turn-modal-text">Esperando a que {token.initials} finalice su turno...</p>
+                    )}
+                    {activeTurn === 'personajes' && !isCurrent && <p className="gb-turn-modal-text">Todavía no le toca. Espera su turno.</p>}
                   </div>
                 )}
               </div>
@@ -419,22 +525,23 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
         )}
 
         <div className="gb-turn-tabs">
-          <button type="button" className={`gb-turn-btn ${activeTurn === 'personajes' ? 'active' : ''}`} onClick={() => handleTurnTab('personajes')}>
+          <button
+            type="button"
+            className={`gb-turn-btn ${activeTurn === 'personajes' ? 'active' : ''} ${activeTurn === 'master' ? 'disabled' : ''}`}
+            onClick={() => handleTurnTab('personajes')}
+            disabled={activeTurn === 'master'}
+          >
             Turno de personajes
           </button>
-          <button type="button" className={`gb-turn-btn ${activeTurn === 'master' ? 'active' : ''}`} onClick={() => handleTurnTab('master')}>
+          <button
+            type="button"
+            className={`gb-turn-btn ${activeTurn === 'master' ? 'active' : ''}`}
+            onClick={() => handleTurnTab('master')}
+            disabled={activeTurn !== 'master'}
+          >
             Turno del master
           </button>
         </div>
-
-        {showMasterTurnConfirm && (
-          <div className="gb-master-confirm" role="dialog" aria-label="Confirmar turno del master">
-            <p className="gb-master-confirm-text">¿Seguro que queréis pasar al turno del master? Todavía quedan turnos pendientes...</p>
-            <button type="button" className="gb-master-confirm-btn" onClick={() => { setShowMasterTurnConfirm(false); setOpenTurnModalTokenId(null); setActiveTurn('master'); }}>
-              Confirmar
-            </button>
-          </div>
-        )}
 
         {activeTurn === 'master' && (
           <div className="gb-master-box">
@@ -450,7 +557,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
       <Stage
         width={stageSize.width}
         height={stageSize.height}
-        className="gb-stage"
+        className={`gb-stage ${isPanning || dragOriginCell !== null ? 'grabbing' : ''} ${!isPanning && dragOriginCell === null && isPointerOnMap ? 'map-hover' : ''}`}
         onMouseDown={handleStagePointerDown}
         onTouchStart={handleStagePointerDown}
         onMouseMove={handleStagePointerMove}
@@ -462,7 +569,9 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
         {/* Layer 1: mapa */}
         <Layer listening={false}>
           <Group x={mapOriginX} y={mapOriginY} scaleX={renderScale} scaleY={renderScale}>
-            <KonvaImage image={mapImage ?? undefined} x={0} y={0} width={mapConfig.naturalWidth} height={mapConfig.naturalHeight} />
+            {mapImageReady && mapImage && (
+              <KonvaImage image={mapImage} x={0} y={0} width={mapConfig.naturalWidth} height={mapConfig.naturalHeight} />
+            )}
           </Group>
         </Layer>
 
@@ -471,9 +580,9 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
           {tokens.map((token) => {
             const tokenCell = tokenCells[token.id];
             if (!tokenCell) return null;
-            const tokenPixel = cellToPixel(tokenCell.col, tokenCell.row, renderScale);
-            const tokenX = mapOriginX + tokenPixel.x;
-            const tokenY = mapOriginY + tokenPixel.y;
+            const tokenPixel = cellToPixel(tokenCell.col, tokenCell.row);
+            const tokenX = mapOriginX + tokenPixel.x * renderScale;
+            const tokenY = mapOriginY + tokenPixel.y * renderScale;
             const ended = endedTurnIds.has(token.id);
             const canDrag = activeTurn === 'personajes' && token.id === currentTurnTokenId && !ended && animatingTokenId === null;
 
@@ -486,6 +595,8 @@ export function GameBoard({ mapConfig, tokens, onTokenMove }: GameBoardProps) {
                 radius={tokenRadius}
                 selected={selectedTokenId === token.id}
                 disabled={ended || activeTurn === 'master'}
+                draggable={canDrag}
+                isCurrentTurn={token.id === currentTurnTokenId && activeTurn === 'personajes'}
                 onSelect={() => { if (animatingTokenId === null) setSelectedTokenId(token.id); }}
                 onPointerDown={(event) => {
                   event.cancelBubble = true;

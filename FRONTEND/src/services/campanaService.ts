@@ -1,4 +1,4 @@
-import { API_URL, authHeaders } from './api';
+import { API_URL, authHeaders, fetchWithAuth } from './api';
 
 export interface CampanaRequest {
   nombre: string;
@@ -32,7 +32,7 @@ export interface CampanaResponse {
 }
 
 export const crearCampana = async (request: CampanaRequest): Promise<CampanaResponse> => {
-  const response = await fetch(`${API_URL}/api/campanas`, {
+  const response = await fetchWithAuth(`${API_URL}/api/campanas`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(request),
@@ -44,7 +44,7 @@ export const crearCampana = async (request: CampanaRequest): Promise<CampanaResp
 };
 
 export const obtenerMisCampanas = async (): Promise<CampanaResponse[]> => {
-  const response = await fetch(`${API_URL}/api/campanas/mis-campanas`, {
+  const response = await fetchWithAuth(`${API_URL}/api/campanas/mis-campanas`, {
     method: 'GET',
     headers: authHeaders(),
   });
@@ -55,7 +55,7 @@ export const obtenerMisCampanas = async (): Promise<CampanaResponse[]> => {
 };
 
 export const obtenerCampanasActivas = async (): Promise<CampanaResponse[]> => {
-  const response = await fetch(`${API_URL}/api/campanas`, {
+  const response = await fetchWithAuth(`${API_URL}/api/campanas`, {
     method: 'GET',
     headers: authHeaders(),
   });
@@ -66,7 +66,7 @@ export const obtenerCampanasActivas = async (): Promise<CampanaResponse[]> => {
 };
 
 export const eliminarCampana = async (id: number): Promise<void> => {
-  const response = await fetch(`${API_URL}/api/campanas/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/campanas/${id}`, {
     method: 'DELETE',
     headers: authHeaders(),
   });
@@ -76,7 +76,7 @@ export const eliminarCampana = async (id: number): Promise<void> => {
 };
 
 export const obtenerCampanaPorId = async (id: number): Promise<CampanaResponse> => {
-  const response = await fetch(`${API_URL}/api/campanas/${id}`, {
+  const response = await fetchWithAuth(`${API_URL}/api/campanas/${id}`, {
     method: 'GET',
     headers: authHeaders(),
   });

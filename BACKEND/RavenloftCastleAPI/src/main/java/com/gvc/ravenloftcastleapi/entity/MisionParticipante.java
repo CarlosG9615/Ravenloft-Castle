@@ -1,10 +1,26 @@
 package com.gvc.ravenloftcastleapi.entity;
 
-import com.gvc.ravenloftcastleapi.enums.RolParticipante;
-import jakarta.persistence.*;
-import lombok.*;
-
 import java.time.LocalDateTime;
+
+import com.gvc.ravenloftcastleapi.enums.RolParticipante;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "mision_participante", uniqueConstraints = {@UniqueConstraint(columnNames = {"mision_id", "usuario_id"})})
@@ -38,4 +54,13 @@ public class MisionParticipante {
 
     @Column(name = "fecha_inicio")
     private LocalDateTime fechaInicio;
+
+    @Column(name = "token_col")
+    private Integer tokenCol;
+
+    @Column(name = "token_row")
+    private Integer tokenRow;
+
+    @Column(name = "orden_union")
+    private Integer ordenUnion;
 }

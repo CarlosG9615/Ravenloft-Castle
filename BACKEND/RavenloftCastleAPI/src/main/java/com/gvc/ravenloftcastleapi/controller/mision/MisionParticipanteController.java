@@ -47,6 +47,11 @@ public class MisionParticipanteController {
         return ResponseEntity.ok(misionParticipanteService.listarPorMision(getCurrentUserEmail(), misionId));
     }
 
+    @GetMapping("/jugadores")
+    public ResponseEntity<List<com.gvc.ravenloftcastleapi.dto.mision.ParticipanteJugadorDTO>> listJugadores(@PathVariable Long misionId) {
+        return ResponseEntity.ok(misionParticipanteService.listarParticipantesJugadores(getCurrentUserEmail(), misionId));
+    }
+
     @GetMapping("/{participanteId}")
     public ResponseEntity<MisionParticipanteResponseDTO> getById(
             @PathVariable Long misionId,
@@ -70,6 +75,15 @@ public class MisionParticipanteController {
             @PathVariable Long participanteId
     ) {
         misionParticipanteService.eliminar(getCurrentUserEmail(), misionId, participanteId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/by-personaje/{personajeId}")
+    public ResponseEntity<Void> deleteByPersonaje(
+            @PathVariable Long misionId,
+            @PathVariable Long personajeId
+    ) {
+        misionParticipanteService.eliminarPorPersonaje(getCurrentUserEmail(), misionId, personajeId);
         return ResponseEntity.noContent().build();
     }
 }
