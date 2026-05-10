@@ -51,6 +51,7 @@ interface Props {
   participantes?: ParticipanteInfo[];
   abierto: boolean;
   onToggle: () => void;
+  onAbandonarConfirmado?: (nombrePersonaje: string) => void;
 }
 
 const ORDER_COLORS = ['#C0392B', '#2980B9', '#F39C12', '#27AE60'];
@@ -70,6 +71,7 @@ export function PanelLateralStoryMode({
   participantes = [],
   abierto,
   onToggle,
+  onAbandonarConfirmado,
 }: Props) {
   const navigate = useNavigate();
   const [showAbandonarMisionModal, setShowAbandonarMisionModal] = useState(false);
@@ -140,6 +142,7 @@ export function PanelLateralStoryMode({
         return;
       }
 
+      onAbandonarConfirmado?.(personaje?.nombre ?? jugadorActual?.nombre ?? 'Personaje');
       navigate(-1);
     } finally {
       setAbandonandoMision(false);

@@ -80,6 +80,7 @@ interface Props {
   turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
   sendFinTurno?: (personajeId: string | number) => void;
   onParticipantesLoaded?: (participantes: ParticipanteDTO[]) => void;
+  movimientoRoll?: number | null;
 }
 
 const COLORES_CLASES: Record<string, string> = {
@@ -149,6 +150,7 @@ export function TableroCentroStoryMode({
   turnoActual = null,
   sendFinTurno,
   onParticipantesLoaded,
+  movimientoRoll = null,
 }: Props) {
   const [participantes, setParticipantes] = useState<ParticipanteDTO[]>([]);
 
@@ -341,6 +343,7 @@ export function TableroCentroStoryMode({
         sendFinTurno={sendFinTurno}
         jugadorActual={jugadorActual}
         miPersonajeId={jugadorActual?.personajeId?.toString() ?? jugadorActual?.id?.toString()}
+        movimientoRoll={movimientoRoll}
       />
     </div>
   );

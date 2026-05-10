@@ -37,6 +37,7 @@ interface GameBoardProps {
   sendFinTurno?: (personajeId: string | number) => void;
   jugadorActual?: any;
   miPersonajeId?: string;
+  movimientoRoll?: number | null;
 }
 
 interface Size { width: number; height: number; }
@@ -61,7 +62,7 @@ function BoardTokenNode({ token, x, y, radius, selected, disabled, draggable, is
   // Solo cargar imagen si la URL es válida y no vacía
   const validAvatarUrl = token.avatarUrl && token.avatarUrl.trim() && /^(https?:\/\/|\/|data:)/.test(token.avatarUrl) ? token.avatarUrl : null;
   // Solo llamar a useImage si tenemos una URL válida
-  const [avatarImage] = useImage(validAvatarUrl || undefined);
+  const [avatarImage] = useImage(validAvatarUrl || '');
   const [avatarImageReady, setAvatarImageReady] = useState(false);
   
   // Detectar cuando la imagen del avatar está lista
@@ -157,7 +158,7 @@ function BoardTokenNode({ token, x, y, radius, selected, disabled, draggable, is
   );
 }
 
-export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '' }: GameBoardProps) {
+export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '', movimientoRoll = null }: GameBoardProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const panStartRef = useRef<{ pointerX: number; pointerY: number; originX: number; originY: number } | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -270,14 +271,13 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   // Tirada de 2d6 automática al inicio de cada turno de personaje
   useEffect(() => {
     if (activeTurn !== 'personajes') { setRolledMovement(null); return; }
-    // Si es el turno de este jugador, haz la tirada
     if (currentTurnTokenId === jugadorActual?.id?.toString() || currentTurnTokenId === jugadorActual?.personajeId?.toString()) {
-      const roll = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
-      setRolledMovement(roll);
+      // Usa el resultado del dado elegido por el jugador; null = aún no ha tirado
+      setRolledMovement(movimientoRoll ?? null);
     } else {
       setRolledMovement(null);
     }
-  }, [currentTurnTokenId, activeTurn, jugadorActual]);
+  }, [currentTurnTokenId, activeTurn, jugadorActual, movimientoRoll]);
 
   const fitScale = Math.min(stageSize.width / mapConfig.naturalWidth, stageSize.height / mapConfig.naturalHeight);
   const renderScale = fitScale * 0.85;
@@ -291,6 +291,9 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
 
   const currentTurnToken = tokens.find((t) => t.id === currentTurnTokenId) ?? null;
   const allTurnsEnded = activeTurn === 'master';
+  const isCurrentTurnTokenMine = Boolean(
+    currentTurnTokenId && (currentTurnTokenId === miPersonajeId || currentTurnTokenId === jugadorActual?.id?.toString())
+  );
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -454,6 +457,9 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
 
   const handleAvatarClick = (tokenId: string) => {
     setSelectedTokenId(tokenId);
+    if (activeTurn === 'personajes' && tokenId === currentTurnTokenId && !isCurrentTurnTokenMine) {
+      return;
+    }
     setOpenTurnModalTokenId((prev) => (prev === tokenId ? null : tokenId));
   };
 
@@ -476,7 +482,8 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
           {tokens.map((token) => {
             const isCurrent = token.id === currentTurnTokenId;
             const ended = endedTurnIds.has(token.id);
-            const showModal = openTurnModalTokenId === token.id;
+            const isFixedWaitingModal = activeTurn === 'personajes' && isCurrent && !isCurrentTurnTokenMine;
+            const showModal = openTurnModalTokenId === token.id || isFixedWaitingModal;
             return (
               <div key={`top-${token.id}`} className="gb-top-avatar-wrap">
                 <button
@@ -486,7 +493,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
                     borderColor: token.color,
                     backgroundImage: token.avatarUrl ? `url(${token.avatarUrl})` : undefined,
                     boxShadow: isCurrent && activeTurn === 'personajes'
-                      ? '0 0 0 3px white, 0 0 10px rgba(255,255,255,0.6)'
+                      ? '0 0 0 3px rgba(123, 36, 35, 0.95), 0 0 10px rgba(123, 36, 35, 0.55)'
                       : (selectedTokenId === token.id ? `0 0 0 2px ${token.color}55` : undefined)
                   }}
                   title={token.initials}
@@ -506,7 +513,10 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
                       </>
                     )}
                     {activeTurn === 'personajes' && isCurrent && token.id !== miPersonajeId && (
-                      <p className="gb-turn-modal-text">Esperando a que {token.initials} finalice su turno...</p>
+                      <div className="gb-turn-modal-waiting">
+                        <p className="gb-turn-modal-text">Esperando a que finalice su turno...</p>
+                        <div className="gb-turn-waiting-loader" aria-label="Esperando fin de turno" />
+                      </div>
                     )}
                     {activeTurn === 'personajes' && !isCurrent && <p className="gb-turn-modal-text">Todavía no le toca. Espera su turno.</p>}
                   </div>
@@ -535,7 +545,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
           </button>
           <button
             type="button"
-            className={`gb-turn-btn ${activeTurn === 'master' ? 'active' : ''}`}
+            className={`gb-turn-btn ${activeTurn === 'master' ? 'active master' : ''}`}
             onClick={() => handleTurnTab('master')}
             disabled={activeTurn !== 'master'}
           >

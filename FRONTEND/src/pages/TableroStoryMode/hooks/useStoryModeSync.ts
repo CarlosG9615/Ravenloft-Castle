@@ -13,6 +13,12 @@ interface JugadorSync {
   avatar?: string | null;
   nivel?: number | null;
   personajeId?: string | number;
+  fuerza?: number;
+  destreza?: number;
+  constitucion?: number;
+  inteligencia?: number;
+  sabiduria?: number;
+  carisma?: number;
 }
 
 interface TokenMove {
@@ -100,6 +106,21 @@ export function useStoryModeSync(
     });
   }, [misionId]);
 
+  const sendChatMessage = useCallback((mensaje: { autor: string; colorAutor?: string; texto: string; tipo?: string }) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/campana/${misionId}/chat.enviar`,
+      body: JSON.stringify({
+        autor: mensaje.autor,
+        colorAutor: mensaje.colorAutor ?? '#8b0000',
+        texto: mensaje.texto,
+        tipo: mensaje.tipo ?? 'sistema',
+        timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+      }),
+    });
+  }, [misionId]);
+
   useEffect(() => {
     if (!misionId || !jugadorActual) {
       return;
@@ -135,6 +156,8 @@ export function useStoryModeSync(
                     // ParticipanteJugadorDTO usa nombrePersonaje/usuarioId; normalizar
                     id: p.usuarioId ?? p.id,
                     nombre: p.nombrePersonaje ?? p.nombre,
+                    hp: p.saludActual ?? p.hp,
+                    hpMax: p.saludMax ?? p.hpMax,
                     ordenUnion: orden,
                     color: getColorForOrden(orden),
                   };
@@ -227,5 +250,5 @@ export function useStoryModeSync(
   // Solo reconectar cuando cambia la misión o el jugador, no por valores derivados
   }, [misionId, jugadorId, jugadorPersonajeId]);
 
-  return { jugadoresSincronizados, conectado, tokenMoves, sendTokenMove, turnoActual, sendFinTurno, sendIniciarRonda };
+  return { jugadoresSincronizados, conectado, tokenMoves, sendTokenMove, turnoActual, sendFinTurno, sendIniciarRonda, sendChatMessage };
 }

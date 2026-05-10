@@ -37,6 +37,7 @@ interface MensajeChat {
     resultado: number;
     modificador: number;
     total: number;
+    imagenes?: string[];
   };
 }
 
@@ -155,9 +156,13 @@ interface Props {
   campanaId?: number | string;
   jugadorActual?: any;
   esMaster?: boolean;
+  dicesComponent?: React.ComponentType<any>;
+  turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
+  onMovimientoRollResult?: (resultado: number) => void;
+  movimientoYaLanzado?: boolean;
 }
 
-export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b', panelSuperior, jugadores, campanaId, jugadorActual, esMaster = false }: Props) {
+export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b', panelSuperior, jugadores, campanaId, jugadorActual, esMaster: _esMaster = false, dicesComponent: CustomDicePanel, turnoActual, onMovimientoRollResult, movimientoYaLanzado = false }: Props) {
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'dados' | 'voz'>('chat');
   const [mensajes, setMensajes] = useState<MensajeChat[]>([
     {
@@ -187,11 +192,60 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
 
   const [jugadoresRed, setJugadoresRed] = useState<any[]>(jugadores || []);
   const lastSentAvatarRef = useRef<string | null>(null);
+  const prevJugadoresRef = useRef<Map<string, string>>(new Map());
+  const jugadoresInitializedRef = useRef(false);
 
-  // Sync prop → state para Story Mode (la prop viene de jugadoresSincronizados vía WS)
+  // Sync prop → state para Story Mode; detecta entradas y salidas de jugadores
   useEffect(() => {
-    if (jugadores && jugadores.length > 0) {
+    if (!jugadores || jugadores.length === 0) return;
+
+    if (!jugadoresInitializedRef.current) {
+      jugadoresInitializedRef.current = true;
+      prevJugadoresRef.current = new Map(
+        jugadores.map((j: any) => [String(j.id ?? j.usuarioId ?? j.personajeId), j.nombre ?? j.nombrePersonaje ?? '?'])
+      );
       setJugadoresRed(jugadores);
+      return;
+    }
+
+    const prevMap = prevJugadoresRef.current;
+    const currentMap = new Map(
+      jugadores.map((j: any) => [String(j.id ?? j.usuarioId ?? j.personajeId), j.nombre ?? j.nombrePersonaje ?? '?'])
+    );
+
+    const nuevos: MensajeChat[] = [];
+
+    currentMap.forEach((nombre, id) => {
+      if (!prevMap.has(id)) {
+        nuevos.push({
+          id: 'join-' + id + '-' + Date.now(),
+          autor: 'Sistema',
+          colorAutor: '#8b0000',
+          texto: `${nombre} se unió a la partida`,
+          tipo: 'sistema',
+          timestamp: hora(),
+        });
+      }
+    });
+
+    prevMap.forEach((nombre, id) => {
+      if (!currentMap.has(id)) {
+        nuevos.push({
+          id: 'leave-' + id + '-' + Date.now(),
+          autor: 'Sistema',
+          colorAutor: '#8b0000',
+          texto: `${nombre} salió de la partida`,
+          tipo: 'sistema',
+          timestamp: hora(),
+        });
+      }
+    });
+
+    prevJugadoresRef.current = currentMap;
+    setJugadoresRed(jugadores);
+
+    if (nuevos.length > 0) {
+      setMensajes(prev => [...prev, ...nuevos]);
     }
   }, [jugadores]);
 
@@ -247,25 +301,9 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
             });
           }
         }
-        setMensajes(prev => [...prev, {
-          id: 'connected-' + Date.now(),
-          autor: 'Sistema',
-          colorAutor: '#8b0000',
-          texto: 'Conectado a la partida en tiempo real.',
-          tipo: 'sistema',
-          timestamp: hora(),
-        }]);
       },
       onDisconnect: () => {
         setConectado(false);
-        setMensajes(prev => [...prev, {
-          id: 'disconnected-' + Date.now(),
-          autor: 'Sistema',
-          colorAutor: '#8b0000',
-          texto: 'Desconectado del servidor.',
-          tipo: 'sistema',
-          timestamp: hora(),
-        }]);
       },
       onStompError: () => setConectado(false),
     });
@@ -333,7 +371,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     }
   };
 
-  const lanzarDado = (caras: number, label: string) => {
+  const lanzarDado = (_caras: number, label: string) => {
     setDadoActivo(label);
     setResultadoActivo(0);
   };
@@ -360,9 +398,39 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     } else {
       setMensajes(prev => [...prev, msg]);
     }
+    // Si es Story Mode y es un dado de movimiento, sincronizar con el tablero
+    if (CustomDicePanel && (dadoActivo === 'd6' || dadoActivo === 'd12')) {
+      onMovimientoRollResult?.(resultadoReal);
+    }
     setDadoActivo(null);
     setResultadoActivo(null);
-  }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual]);
+  }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual, CustomDicePanel, onMovimientoRollResult]);
+
+  const handleAtaqueAnimacionFin = useCallback((imagenesResultado: string[]) => {
+    if (!CustomDicePanel || dadoActivo === null) return;
+    const dado = dadoActivo.replace(/^ataque-/, '');
+    const autorNombre = jugadorActual?.nombre || nombreMaster;
+    const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    const msg: MensajeChat = {
+      id: Date.now().toString(),
+      autor: autorNombre,
+      colorAutor: autorColor,
+      texto: '',
+      tipo: 'tirada',
+      timestamp: hora(),
+      tirada: { dado, resultado: 0, modificador: 0, total: 0, imagenes: imagenesResultado },
+    };
+    if (stompRef.current?.connected && campanaId) {
+      stompRef.current.publish({
+        destination: `/app/campana/${campanaId}/chat.enviar`,
+        body: JSON.stringify(msg),
+      });
+    } else {
+      setMensajes(prev => [...prev, msg]);
+    }
+    setDadoActivo(null);
+    setResultadoActivo(null);
+  }, [dadoActivo, nombreMaster, colorMaster, campanaId, jugadorActual]);
 
   const jugadoresBase = Array.isArray(jugadores) ? jugadores : [];
   const jugadoresBasePorId = new Map(jugadoresBase.map(j => [j?.id?.toString?.(), j]));
@@ -459,13 +527,11 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     }
   };
 
-  // Mostrar TODOS los jugadores (incluyendo al actual para que se vea a sí mismo)
-  const otrosJugadores = jugadoresAMostrar;
-
   return (
     <div className="pp-panel">
+      {/* DiceRoller solo actúa sobre dados normales; los de ataque los gestiona StoryModeDicePanel */}
       <DiceRoller
-        dado={dadoActivo}
+        dado={dadoActivo?.startsWith('ataque-') ? null : dadoActivo}
         resultado={resultadoActivo}
         onAnimacionFin={handleAnimacionFin}
       />
@@ -518,28 +584,45 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
                       <span className="pp-msg-autor" style={{ color: msg.colorAutor }}>{msg.autor}</span>
                       <span className="pp-msg-hora">{msg.timestamp}</span>
                     </div>
-                    <div className="pp-tirada-resultado">
-                      <span className="pp-tirada-dado">{msg.tirada.dado}</span>
-                      <div className="pp-tirada-desglose">
-                        <span className="pp-tirada-num">{msg.tirada.resultado}</span>
-                        {msg.tirada.modificador !== 0 && (
-                          <>
-                            <span className="pp-tirada-mod">
-                              {msg.tirada.modificador > 0 ? '+' : ''}{msg.tirada.modificador}
-                            </span>
-                            <span className="pp-tirada-igual">=</span>
-                            <span className={`pp-tirada-total ${msg.tirada.total >= 15 ? 'critico' : msg.tirada.total <= 3 ? 'pifia' : ''}`}>
+                    {msg.tirada.imagenes ? (
+                      <div className="pp-tirada-ataque">
+                        <span className="pp-tirada-dado">{msg.tirada.dado}</span>
+                        <div className="pp-tirada-caras">
+                          {msg.tirada.imagenes.map((cara, i) => (
+                            <img
+                              key={i}
+                              src={`/images/dadosModHistoria/${cara}.png`}
+                              alt={cara}
+                              className="pp-tirada-cara-img"
+                              title={cara}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="pp-tirada-resultado">
+                        <span className="pp-tirada-dado">{msg.tirada.dado}</span>
+                        <div className="pp-tirada-desglose">
+                          <span className="pp-tirada-num">{msg.tirada.resultado}</span>
+                          {msg.tirada.modificador !== 0 && (
+                            <>
+                              <span className="pp-tirada-mod">
+                                {msg.tirada.modificador > 0 ? '+' : ''}{msg.tirada.modificador}
+                              </span>
+                              <span className="pp-tirada-igual">=</span>
+                              <span className={`pp-tirada-total ${msg.tirada.total >= 15 ? 'critico' : msg.tirada.total <= 3 ? 'pifia' : ''}`}>
+                                {msg.tirada.total}
+                              </span>
+                            </>
+                          )}
+                          {msg.tirada.modificador === 0 && (
+                            <span className={`pp-tirada-total ${msg.tirada.total >= 18 ? 'critico' : msg.tirada.total <= 2 ? 'pifia' : ''}`}>
                               {msg.tirada.total}
                             </span>
-                          </>
-                        )}
-                        {msg.tirada.modificador === 0 && (
-                          <span className={`pp-tirada-total ${msg.tirada.total >= 18 ? 'critico' : msg.tirada.total <= 2 ? 'pifia' : ''}`}>
-                            {msg.tirada.total}
-                          </span>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </>
                 )}
               </div>
@@ -647,33 +730,50 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
 
       {/* ── DADOS ── */}
       {pestana === 'dados' && (
-        <div className="pp-seccion pp-dados-wrap">
-          <p className="pp-dados-hint">Haz clic en un dado para lanzarlo</p>
-          <div className="pp-dados-grid">
-            {DADOS.map(({ caras, label }) => (
-              <button
-                key={label}
-                className={`pp-dado-btn ${dadoActivo === label ? 'animando' : ''}`}
-                onClick={() => lanzarDado(caras, label)}
-                disabled={dadoActivo !== null}
-              >
-                <span className="pp-dado-icono">{dadoActivo === label ? '💫' : '⬡'}</span>
-                <span className="pp-dado-label">{label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="pp-modificador-wrap">
-            <label className="pp-mod-label">Modificador</label>
-            <div className="pp-mod-controles">
-              <button className="pp-mod-btn" onClick={() => setModificador(m => m - 1)}>−</button>
-              <span className="pp-mod-valor">{modificador >= 0 ? `+${modificador}` : modificador}</span>
-              <button className="pp-mod-btn" onClick={() => setModificador(m => m + 1)}>+</button>
+        <>
+          {CustomDicePanel ? (
+            <CustomDicePanel
+              dadoActivo={dadoActivo}
+              resultadoActivo={resultadoActivo}
+              onLanzarDado={lanzarDado}
+              modificador={modificador}
+              setModificador={setModificador}
+              onAnimacionFin={handleAnimacionFin}
+              onAtaqueAnimacionFin={handleAtaqueAnimacionFin}
+              turnoActual={turnoActual}
+              jugadorActual={jugadorActual}
+              movimientoYaLanzado={movimientoYaLanzado}
+            />
+          ) : (
+            <div className="pp-seccion pp-dados-wrap">
+              <p className="pp-dados-hint">Haz clic en un dado para lanzarlo</p>
+              <div className="pp-dados-grid">
+                {DADOS.map(({ caras, label }) => (
+                  <button
+                    key={label}
+                    className={`pp-dado-btn ${dadoActivo === label ? 'animando' : ''}`}
+                    onClick={() => lanzarDado(caras, label)}
+                    disabled={dadoActivo !== null}
+                  >
+                    <span className="pp-dado-icono">{dadoActivo === label ? '💫' : '⬡'}</span>
+                    <span className="pp-dado-label">{label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="pp-modificador-wrap">
+                <label className="pp-mod-label">Modificador</label>
+                <div className="pp-mod-controles">
+                  <button className="pp-mod-btn" onClick={() => setModificador(m => m - 1)}>−</button>
+                  <span className="pp-mod-valor">{modificador >= 0 ? `+${modificador}` : modificador}</span>
+                  <button className="pp-mod-btn" onClick={() => setModificador(m => m + 1)}>+</button>
+                </div>
+              </div>
+              <p className="pp-dados-hint" style={{ marginTop: 12 }}>
+                El resultado aparecerá en el chat
+              </p>
             </div>
-          </div>
-          <p className="pp-dados-hint" style={{ marginTop: 12 }}>
-            El resultado aparecerá en el chat
-          </p>
-        </div>
+          )}
+        </>
       )}
 
       {/* ── VOZ ── */}
