@@ -20,7 +20,7 @@ export function TableroStoryMode() {
   const [participantes, setParticipantes] = useState<{ personajeId: number; nombrePersonaje: string; nombreUsuario: string; ordenUnion?: number }[]>([]);
 
   // Sincronizar jugadores por misión vía WebSocket
-  const { jugadoresSincronizados, conectado, tokenMoves, sendTokenMove, turnoActual, sendFinTurno } = useStoryModeSync(
+  const { jugadoresSincronizados, conectado, tokenMoves, sendTokenMove, turnoActual, sendFinTurno, sendChatMessage } = useStoryModeSync(
     mision?.id,
     jugadorActual,
     jugadores
@@ -38,6 +38,9 @@ export function TableroStoryMode() {
         participantes={participantes}
         abierto={panelAbierto}
         onToggle={() => setPanelAbierto(!panelAbierto)}
+        onAbandonarConfirmado={(nombrePersonaje) => {
+          sendChatMessage({ autor: 'Sistema', texto: `${nombrePersonaje} abandonó la misión` });
+        }}
       />
 
       <TableroCentroStoryMode

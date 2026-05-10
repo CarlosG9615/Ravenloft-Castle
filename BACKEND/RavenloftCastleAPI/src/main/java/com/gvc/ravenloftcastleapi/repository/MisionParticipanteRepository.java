@@ -56,7 +56,13 @@ public interface MisionParticipanteRepository extends JpaRepository<MisionPartic
             p.avatar,
             mp.tokenCol,
             mp.tokenRow,
-            mp.ordenUnion
+            mp.ordenUnion,
+            p.fuerza,
+            p.destreza,
+            p.constitucion,
+            p.inteligencia,
+            p.sabiduria,
+            p.carisma
         )
         FROM MisionParticipante mp
         JOIN Usuario u ON u.id = mp.usuario.id

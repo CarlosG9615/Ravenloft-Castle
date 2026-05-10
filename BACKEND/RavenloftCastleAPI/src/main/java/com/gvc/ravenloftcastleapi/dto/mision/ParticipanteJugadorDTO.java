@@ -12,6 +12,12 @@ public record ParticipanteJugadorDTO(
         String avatar,
         Integer tokenCol,
         Integer tokenRow,
-        Integer ordenUnion
+        Integer ordenUnion,
+        Integer fuerza,
+        Integer destreza,
+        Integer constitucion,
+        Integer inteligencia,
+        Integer sabiduria,
+        Integer carisma
 ) {
 }
