@@ -157,9 +157,12 @@ interface Props {
   jugadorActual?: any;
   esMaster?: boolean;
   dicesComponent?: React.ComponentType<any>;
+  turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
+  onMovimientoRollResult?: (resultado: number) => void;
+  movimientoYaLanzado?: boolean;
 }
 
-export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b', panelSuperior, jugadores, campanaId, jugadorActual, esMaster: _esMaster = false, dicesComponent: CustomDicePanel }: Props) {
+export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b', panelSuperior, jugadores, campanaId, jugadorActual, esMaster: _esMaster = false, dicesComponent: CustomDicePanel, turnoActual, onMovimientoRollResult, movimientoYaLanzado = false }: Props) {
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'dados' | 'voz'>('chat');
   const [mensajes, setMensajes] = useState<MensajeChat[]>([
     {
@@ -395,9 +398,13 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     } else {
       setMensajes(prev => [...prev, msg]);
     }
+    // Si es Story Mode y es un dado de movimiento, sincronizar con el tablero
+    if (CustomDicePanel && (dadoActivo === 'd6' || dadoActivo === 'd12')) {
+      onMovimientoRollResult?.(resultadoReal);
+    }
     setDadoActivo(null);
     setResultadoActivo(null);
-  }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual]);
+  }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual, CustomDicePanel, onMovimientoRollResult]);
 
   const handleAtaqueAnimacionFin = useCallback((imagenesResultado: string[]) => {
     if (!CustomDicePanel || dadoActivo === null) return;
@@ -733,6 +740,9 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
               setModificador={setModificador}
               onAnimacionFin={handleAnimacionFin}
               onAtaqueAnimacionFin={handleAtaqueAnimacionFin}
+              turnoActual={turnoActual}
+              jugadorActual={jugadorActual}
+              movimientoYaLanzado={movimientoYaLanzado}
             />
           ) : (
             <div className="pp-seccion pp-dados-wrap">

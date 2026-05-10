@@ -5,6 +5,9 @@ interface StoryModeDicePanelProps {
   resultadoActivo: number | null;
   onLanzarDado: (caras: number, label: string) => void;
   onAtaqueAnimacionFin?: (imagenes: string[]) => void;
+  turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
+  jugadorActual?: any;
+  movimientoYaLanzado?: boolean;
 }
 
 const DADOS_MOVIMIENTO = [
@@ -22,7 +25,14 @@ export function StoryModeDicePanel({
   dadoActivo,
   onLanzarDado,
   onAtaqueAnimacionFin,
+  turnoActual,
+  jugadorActual,
+  movimientoYaLanzado = false,
 }: StoryModeDicePanelProps) {
+  const isMyTurn =
+    turnoActual?.fase === 'personajes' &&
+    (turnoActual?.turnoActualPersonajeId?.toString() === jugadorActual?.personajeId?.toString() ||
+     turnoActual?.turnoActualPersonajeId?.toString() === jugadorActual?.id?.toString());
   const dadoAtaque = dadoActivo?.startsWith('ataque-')
     ? DADOS_ATAQUE.find(d => 'ataque-' + d.label === dadoActivo) ?? null
     : null;
@@ -37,7 +47,7 @@ export function StoryModeDicePanel({
               key={label}
               className={`pp-dado-btn ${dadoActivo === label ? 'animando' : ''}`}
               onClick={() => onLanzarDado(caras, label)}
-              disabled={dadoActivo !== null}
+              disabled={dadoActivo !== null || !isMyTurn || movimientoYaLanzado}
             >
               <span className="pp-dado-icono">{dadoActivo === label ? '💫' : '⬡'}</span>
               <span className="pp-dado-label">{label}</span>
@@ -47,12 +57,19 @@ export function StoryModeDicePanel({
 
         <h3 className="pp-story-dados-title">Dados de Ataque y Defensa</h3>
         <div className="pp-dados-grid">
-          {DADOS_ATAQUE.map(({ caras, label, imagen }) => (
+          {DADOS_ATAQUE.map(({ caras, label, imagen, cantidadResultados }) => (
             <button
               key={'ataque-' + label}
               className={`pp-dado-btn pp-dado-imagen-btn ${dadoActivo === ('ataque-' + label) ? 'animando' : ''}`}
-              onClick={() => onLanzarDado(caras, 'ataque-' + label)}
-              disabled={dadoActivo !== null}
+              onClick={() => {
+                for (let i = 0; i < cantidadResultados; i++) {
+                  setTimeout(() => {
+                    new Audio('/public/sounds/diceroll/dado.wav').play().catch(() => {});
+                  }, i * 350);
+                }
+                onLanzarDado(caras, 'ataque-' + label);
+              }}
+              disabled={dadoActivo !== null || !isMyTurn}
             >
               <img src={imagen} alt={label} className="pp-dado-imagen" />
             </button>

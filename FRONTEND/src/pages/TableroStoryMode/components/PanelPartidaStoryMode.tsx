@@ -9,21 +9,27 @@ interface Props {
   campanaId?: number | string;
   colorMaster?: string;
   esMaster?: boolean;
+  turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
+  onMovimientoRollResult?: (resultado: number) => void;
+  movimientoYaLanzado?: boolean;
 }
 
-export function PanelPartidaStoryMode({ 
+export function PanelPartidaStoryMode({
   nombreMaster = 'Personaje StoryMode',
   jugadores,
   jugadorActual,
   campanaId,
   colorMaster = '#c0392b',
   esMaster = false,
+  turnoActual,
+  onMovimientoRollResult,
+  movimientoYaLanzado = false,
 }: Props) {
   const location = useLocation();
   const isStoryModeRoute = location.pathname.includes('tablero-story-mode') || location.pathname.includes('story-mode');
 
   return (
-    <PanelPartida 
+    <PanelPartida
       nombreMaster={nombreMaster}
       colorMaster={colorMaster}
       jugadores={jugadores}
@@ -31,6 +37,9 @@ export function PanelPartidaStoryMode({
       campanaId={campanaId}
       esMaster={esMaster}
       dicesComponent={isStoryModeRoute ? StoryModeDicePanel : undefined}
+      turnoActual={turnoActual}
+      onMovimientoRollResult={onMovimientoRollResult}
+      movimientoYaLanzado={movimientoYaLanzado}
     />
   );
 }

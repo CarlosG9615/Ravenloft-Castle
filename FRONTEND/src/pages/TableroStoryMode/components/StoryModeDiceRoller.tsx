@@ -91,9 +91,6 @@ export function StoryModeDiceRoller({ cantidadResultados, onFin }: Props) {
   });
 
   useEffect(() => {
-    const sound = new Audio('/sounds/diceroll/dado.wav');
-    sound.play().catch(() => {});
-
     let id1: number, id2: number;
     id1 = requestAnimationFrame(() => {
       id2 = requestAnimationFrame(() => setAterrizados(true));

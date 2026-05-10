@@ -37,6 +37,7 @@ interface GameBoardProps {
   sendFinTurno?: (personajeId: string | number) => void;
   jugadorActual?: any;
   miPersonajeId?: string;
+  movimientoRoll?: number | null;
 }
 
 interface Size { width: number; height: number; }
@@ -157,7 +158,7 @@ function BoardTokenNode({ token, x, y, radius, selected, disabled, draggable, is
   );
 }
 
-export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '' }: GameBoardProps) {
+export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '', movimientoRoll = null }: GameBoardProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const panStartRef = useRef<{ pointerX: number; pointerY: number; originX: number; originY: number } | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -270,14 +271,13 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   // Tirada de 2d6 automática al inicio de cada turno de personaje
   useEffect(() => {
     if (activeTurn !== 'personajes') { setRolledMovement(null); return; }
-    // Si es el turno de este jugador, haz la tirada
     if (currentTurnTokenId === jugadorActual?.id?.toString() || currentTurnTokenId === jugadorActual?.personajeId?.toString()) {
-      const roll = Math.floor(Math.random() * 6) + 1 + Math.floor(Math.random() * 6) + 1;
-      setRolledMovement(roll);
+      // Usa el resultado del dado elegido por el jugador; null = aún no ha tirado
+      setRolledMovement(movimientoRoll ?? null);
     } else {
       setRolledMovement(null);
     }
-  }, [currentTurnTokenId, activeTurn, jugadorActual]);
+  }, [currentTurnTokenId, activeTurn, jugadorActual, movimientoRoll]);
 
   const fitScale = Math.min(stageSize.width / mapConfig.naturalWidth, stageSize.height / mapConfig.naturalHeight);
   const renderScale = fitScale * 0.85;

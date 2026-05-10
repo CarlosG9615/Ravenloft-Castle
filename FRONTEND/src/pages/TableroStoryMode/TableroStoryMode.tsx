@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { PanelLateralStoryMode } from './components/PanelLateralStoryMode';
 import { PanelPartidaStoryMode } from './components/PanelPartidaStoryMode';
@@ -18,14 +18,19 @@ export function TableroStoryMode() {
 
   const [panelAbierto, setPanelAbierto] = useState(true);
   const [participantes, setParticipantes] = useState<{ personajeId: number; nombrePersonaje: string; nombreUsuario: string; ordenUnion?: number }[]>([]);
+  const [movimientoRoll, setMovimientoRoll] = useState<number | null>(null);
 
-  // Sincronizar jugadores por misión vía WebSocket
   const { jugadoresSincronizados, conectado, tokenMoves, sendTokenMove, turnoActual, sendFinTurno, sendChatMessage } = useStoryModeSync(
     mision?.id,
     jugadorActual,
     jugadores
   );
   void conectado;
+
+  // Resetear el dado de movimiento al cambiar de turno
+  useEffect(() => {
+    setMovimientoRoll(null);
+  }, [turnoActual?.turnoActualPersonajeId]);
 
   return (
     <div className="tb-page tsm-page">
@@ -53,6 +58,7 @@ export function TableroStoryMode() {
         turnoActual={turnoActual}
         sendFinTurno={sendFinTurno}
         onParticipantesLoaded={setParticipantes}
+        movimientoRoll={movimientoRoll}
       />
 
       <PanelPartidaStoryMode
@@ -60,6 +66,9 @@ export function TableroStoryMode() {
         jugadores={jugadoresSincronizados}
         jugadorActual={jugadorActual}
         campanaId={mision?.id}
+        turnoActual={turnoActual}
+        onMovimientoRollResult={setMovimientoRoll}
+        movimientoYaLanzado={movimientoRoll !== null}
       />
     </div>
   );
