@@ -157,6 +157,20 @@ public class TableroWebSocketController {
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/tokens", state);
     }
 
+    @MessageMapping("/campana/{campanaId}/token-delete")
+    public void campanaTokenDelete(@DestinationVariable String campanaId, @Payload CampanaTokenDeleteDTO delete) {
+        if (delete.getTokenId() == null || delete.getTokenId().isBlank()) {
+            return;
+        }
+
+        Map<String, CampanaTokenStateDTO> tokens = tokensCampana.get(campanaId);
+        if (tokens != null) {
+            tokens.remove(delete.getTokenId());
+        }
+
+        messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/token-delete", delete);
+    }
+
     @MessageMapping("/campana/{campanaId}/token-request-sync")
     public void campanaTokenRequestSync(@DestinationVariable String campanaId, @Payload TokenSyncRequestDTO request) {
         List<CampanaTokenStateDTO> tokenStates = new ArrayList<>(
@@ -288,6 +302,16 @@ public class TableroWebSocketController {
         public void setCol(int col) { this.col = col; }
         public int getRow() { return row; }
         public void setRow(int row) { this.row = row; }
+        public String getMapaUrl() { return mapaUrl; }
+        public void setMapaUrl(String mapaUrl) { this.mapaUrl = mapaUrl; }
+    }
+
+    public static class CampanaTokenDeleteDTO {
+        private String tokenId;
+        private String mapaUrl;
+
+        public String getTokenId() { return tokenId; }
+        public void setTokenId(String tokenId) { this.tokenId = tokenId; }
         public String getMapaUrl() { return mapaUrl; }
         public void setMapaUrl(String mapaUrl) { this.mapaUrl = mapaUrl; }
     }
