@@ -12,6 +12,9 @@ interface Props {
   turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
   onMovimientoRollResult?: (resultado: number) => void;
   movimientoYaLanzado?: boolean;
+  onAtaqueRollResult?: (cantidadResultados: number) => void;
+  ataqueYaLanzado?: boolean;
+  chatSince?: string | null;
 }
 
 export function PanelPartidaStoryMode({
@@ -24,6 +27,9 @@ export function PanelPartidaStoryMode({
   turnoActual,
   onMovimientoRollResult,
   movimientoYaLanzado = false,
+  onAtaqueRollResult,
+  ataqueYaLanzado = false,
+  chatSince,
 }: Props) {
   const location = useLocation();
   const isStoryModeRoute = location.pathname.includes('tablero-story-mode') || location.pathname.includes('story-mode');
@@ -40,6 +46,9 @@ export function PanelPartidaStoryMode({
       turnoActual={turnoActual}
       onMovimientoRollResult={onMovimientoRollResult}
       movimientoYaLanzado={movimientoYaLanzado}
+      onAtaqueRollResult={onAtaqueRollResult}
+      ataqueYaLanzado={ataqueYaLanzado}
+      chatSince={chatSince}
     />
   );
 }

@@ -160,20 +160,15 @@ interface Props {
   turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
   onMovimientoRollResult?: (resultado: number) => void;
   movimientoYaLanzado?: boolean;
+  onAtaqueRollResult?: (cantidadResultados: number) => void;
+  ataqueYaLanzado?: boolean;
+  /** ISO-8601 — si se pasa, el historial se filtra desde esta fecha (re-entrada tras abandono). */
+  chatSince?: string | null;
 }
 
-export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b', panelSuperior, jugadores, campanaId, jugadorActual, esMaster: _esMaster = false, dicesComponent: CustomDicePanel, turnoActual, onMovimientoRollResult, movimientoYaLanzado = false }: Props) {
+export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b', panelSuperior, jugadores, campanaId, jugadorActual, esMaster: _esMaster = false, dicesComponent: CustomDicePanel, turnoActual, onMovimientoRollResult, movimientoYaLanzado = false, onAtaqueRollResult, ataqueYaLanzado = false, chatSince }: Props) {
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'dados' | 'voz'>('chat');
-  const [mensajes, setMensajes] = useState<MensajeChat[]>([
-    {
-      id: '0',
-      autor: 'Sistema',
-      colorAutor: '#8b0000',
-      texto: 'La partida ha comenzado. ¡Que empiece la aventura!',
-      tipo: 'sistema',
-      timestamp: hora(),
-    },
-  ]);
+  const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [inputChat, setInputChat] = useState('');
   const [modificador, setModificador] = useState(0);
   const [conectado, setConectado] = useState(false);
@@ -259,6 +254,37 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
       onConnect: () => {
         setConectado(true);
         if (campanaId) {
+          // Cargar historial persistido; si chatSince está definido sólo se cargan mensajes posteriores
+          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+          const sinceParam = chatSince ? `?since=${encodeURIComponent(chatSince)}` : '';
+          fetch(`http://localhost:8080/api/misiones/${campanaId}/chat${sinceParam}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          })
+            .then(r => (r.ok ? r.json() : []))
+            .then((items: any[]) => {
+              const historial: MensajeChat[] = Array.isArray(items)
+                ? items.map((m: any) => ({ ...m, id: m.id || (Date.now().toString() + Math.random()) }))
+                : [];
+              setMensajes(historial.length > 0 ? historial : [{
+                id: '0',
+                autor: 'Sistema',
+                colorAutor: '#8b0000',
+                texto: 'La partida ha comenzado. ¡Que empiece la aventura!',
+                tipo: 'sistema' as const,
+                timestamp: hora(),
+              }]);
+            })
+            .catch(() => {
+              setMensajes([{
+                id: '0',
+                autor: 'Sistema',
+                colorAutor: '#8b0000',
+                texto: 'La partida ha comenzado. ¡Que empiece la aventura!',
+                tipo: 'sistema' as const,
+                timestamp: hora(),
+              }]);
+            });
+
           client.subscribe(`/topic/campana/${campanaId}/chat`, (frame) => {
             const msg = JSON.parse(frame.body);
             setMensajes(prev => [...prev, {
@@ -351,9 +377,13 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     if (!texto || !stompRef.current?.connected || !campanaId) return;
     const autorNombre = jugadorActual?.nombre || nombreMaster;
     const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
+    const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
     stompRef.current.publish({
       destination: `/app/campana/${campanaId}/chat.enviar`,
       body: JSON.stringify({
+        personajeId,
+        usuarioId,
         autor: autorNombre,
         colorAutor: autorColor,
         texto,
@@ -380,6 +410,8 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     if (dadoActivo === null) return;
     const autorNombre = jugadorActual?.nombre || nombreMaster;
     const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
+    const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
     const total = resultadoReal + modificador;
     const msg: MensajeChat = {
       id: Date.now().toString(),
@@ -393,7 +425,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     if (stompRef.current?.connected && campanaId) {
       stompRef.current.publish({
         destination: `/app/campana/${campanaId}/chat.enviar`,
-        body: JSON.stringify(msg),
+        body: JSON.stringify({ ...msg, personajeId, usuarioId }),
       });
     } else {
       setMensajes(prev => [...prev, msg]);
@@ -411,6 +443,8 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     const dado = dadoActivo.replace(/^ataque-/, '');
     const autorNombre = jugadorActual?.nombre || nombreMaster;
     const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
+    const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
     const msg: MensajeChat = {
       id: Date.now().toString(),
       autor: autorNombre,
@@ -423,14 +457,15 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     if (stompRef.current?.connected && campanaId) {
       stompRef.current.publish({
         destination: `/app/campana/${campanaId}/chat.enviar`,
-        body: JSON.stringify(msg),
+        body: JSON.stringify({ ...msg, personajeId, usuarioId }),
       });
     } else {
       setMensajes(prev => [...prev, msg]);
     }
+    onAtaqueRollResult?.(imagenesResultado.length);
     setDadoActivo(null);
     setResultadoActivo(null);
-  }, [dadoActivo, nombreMaster, colorMaster, campanaId, jugadorActual]);
+  }, [dadoActivo, nombreMaster, colorMaster, campanaId, jugadorActual, onAtaqueRollResult]);
 
   const jugadoresBase = Array.isArray(jugadores) ? jugadores : [];
   const jugadoresBasePorId = new Map(jugadoresBase.map(j => [j?.id?.toString?.(), j]));
@@ -743,6 +778,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
               turnoActual={turnoActual}
               jugadorActual={jugadorActual}
               movimientoYaLanzado={movimientoYaLanzado}
+              ataqueYaLanzado={ataqueYaLanzado}
             />
           ) : (
             <div className="pp-seccion pp-dados-wrap">

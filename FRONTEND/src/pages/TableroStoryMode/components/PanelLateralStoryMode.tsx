@@ -143,6 +143,7 @@ export function PanelLateralStoryMode({
       }
 
       onAbandonarConfirmado?.(personaje?.nombre ?? jugadorActual?.nombre ?? 'Personaje');
+      sessionStorage.removeItem('tsm_session');
       navigate(-1);
     } finally {
       setAbandonandoMision(false);

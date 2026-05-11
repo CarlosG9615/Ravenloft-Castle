@@ -62,7 +62,9 @@ public interface MisionParticipanteRepository extends JpaRepository<MisionPartic
             p.constitucion,
             p.inteligencia,
             p.sabiduria,
-            p.carisma
+            p.carisma,
+            mp.movimientoRoll,
+            mp.ataqueRoll
         )
         FROM MisionParticipante mp
         JOIN Usuario u ON u.id = mp.usuario.id
@@ -88,11 +90,52 @@ public interface MisionParticipanteRepository extends JpaRepository<MisionPartic
     @Query("""
         UPDATE MisionParticipante mp
         SET mp.tokenCol = :col, mp.tokenRow = :row
-        WHERE mp.mision.id = :misionId AND mp.usuario.id = :usuarioId
+        WHERE mp.mision.id = :misionId AND mp.personaje.id = :personajeId
     """)
-    void actualizarPosicionToken(@Param("misionId") Long misionId, 
-                                 @Param("usuarioId") Long usuarioId, 
-                                 @Param("col") int col, 
+    void actualizarPosicionToken(@Param("misionId") Long misionId,
+                                 @Param("personajeId") Long personajeId,
+                                 @Param("col") int col,
                                  @Param("row") int row);
+
+    @Modifying(clearAutomatically = true)
+    @Transactional
+    @Query("""
+        UPDATE MisionParticipante mp
+        SET mp.movimientoRoll = :valor
+        WHERE mp.mision.id = :misionId AND mp.personaje.id = :personajeId
+    """)
+    void actualizarMovimientoRoll(@Param("misionId") Long misionId,
+                                  @Param("personajeId") Long personajeId,
+                                  @Param("valor") Integer valor);
+
+    @Modifying(clearAutomatically = true)
+    @Transactional
+    @Query("""
+        UPDATE MisionParticipante mp
+        SET mp.ataqueRoll = :valor
+        WHERE mp.mision.id = :misionId AND mp.personaje.id = :personajeId
+    """)
+    void actualizarAtaqueRoll(@Param("misionId") Long misionId,
+                              @Param("personajeId") Long personajeId,
+                              @Param("valor") Integer valor);
+
+    @Modifying(clearAutomatically = true)
+    @Transactional
+    @Query("""
+        UPDATE MisionParticipante mp
+        SET mp.movimientoRoll = null, mp.ataqueRoll = null
+        WHERE mp.mision.id = :misionId AND mp.personaje.id = :personajeId
+    """)
+    void limpiarDadosParticipante(@Param("misionId") Long misionId,
+                                  @Param("personajeId") Long personajeId);
+
+    @Modifying(clearAutomatically = true)
+    @Transactional
+    @Query("""
+        UPDATE MisionParticipante mp
+        SET mp.movimientoRoll = null, mp.ataqueRoll = null
+        WHERE mp.mision.id = :misionId
+    """)
+    void limpiarTodosLosDados(@Param("misionId") Long misionId);
 }
 

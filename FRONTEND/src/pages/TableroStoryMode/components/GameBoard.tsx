@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Circle, Group, Layer, Rect, Stage, Text, Image as KonvaImage } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import useImage from 'use-image';
@@ -38,12 +38,97 @@ interface GameBoardProps {
   jugadorActual?: any;
   miPersonajeId?: string;
   movimientoRoll?: number | null;
+  onMovimientoUsed?: (steps: number) => void;
 }
 
 interface Size { width: number; height: number; }
 interface PanPoint { x: number; y: number; }
 type CellPosition = { col: number; row: number };
 type TurnSide = 'personajes' | 'master';
+
+type DoorType = 'normal' | 'secret' | 'double';
+
+interface Door {
+  trigger: { col: number; row: number };
+  target: { col: number; row: number };
+  type: DoorType;
+  roomId: string;
+  linkedDoorId?: string;
+}
+
+interface Room {
+  id: string;
+  colStart: number;
+  rowStart: number;
+  colEnd: number;
+  rowEnd: number;
+  extraCells?: { colStart: number; rowStart: number; colEnd: number; rowEnd: number }[];
+  revealed: boolean;
+}
+
+const ROOMS: Room[] = [
+  { id: 'sala1',  colStart: 9, rowStart: 14, colEnd: 11, rowEnd: 18, revealed: false },
+  { id: 'sala2',  colStart: 14, rowStart: 14, colEnd: 17, rowEnd: 18, revealed: false },
+  { id: 'sala3',  colStart:  5, rowStart: 10, colEnd:  8, rowEnd: 18, revealed: false },
+  { id: 'sala4a', colStart: 18, rowStart: 15, colEnd: 19, rowEnd: 18, revealed: false },
+  { id: 'sala4b', colStart: 17, rowStart: 10, colEnd: 19, rowEnd: 14, revealed: false },
+  { id: 'sala5',  colStart: 20, rowStart: 10, colEnd: 23, rowEnd: 13, revealed: false },
+  { id: 'sala6',  colStart: 20, rowStart: 14, colEnd: 23, rowEnd: 18, revealed: false },
+  { id: 'sala7',  colStart:  1, rowStart: 10, colEnd:  4, rowEnd: 18, revealed: false },
+  { id: 'sala8',  colStart: 10, rowStart:  7, colEnd: 15, rowEnd: 12, revealed: false },
+  { id: 'sala9',  colStart:  1, rowStart:  5, colEnd:  4, rowEnd:  8, revealed: false },
+  { id: 'sala10', colStart:  1, rowStart:  1, colEnd:  4, rowEnd:  4, revealed: false },
+  { id: 'sala11', colStart:  5, rowStart:  5, colEnd:  8, rowEnd:  8, revealed: false },
+  { id: 'sala12', colStart:  5, rowStart:  1, colEnd:  8, rowEnd:  4, revealed: false },
+  { id: 'sala13', colStart:  9, rowStart:  1, colEnd: 11, rowEnd:  5, revealed: false },
+  { id: 'sala14', colStart: 14, rowStart:  1, colEnd: 16, rowEnd:  5, revealed: false },
+  { id: 'sala15', colStart: 17, rowStart:  1, colEnd: 19, rowEnd:  4, revealed: false },
+  { id: 'sala16', colStart: 17, rowStart:  5, colEnd: 18, rowEnd:  8, revealed: false },
+  { id: 'sala17', colStart: 19, rowStart:  5, colEnd: 23, rowEnd:  8, revealed: false },
+  { id: 'sala18', colStart: 20, rowStart:  1, colEnd: 23, rowEnd:  4, revealed: false },
+];
+
+const DOORS: Door[] = [
+  { trigger: { col: 10, row: 19 }, target: { col: 10, row: 18 }, type: 'normal', roomId: 'sala1' },
+  { trigger: { col: 16, row: 19 }, target: { col: 16, row: 18 }, type: 'normal', roomId: 'sala2' },
+  { trigger: { col:  6, row: 19 }, target: { col:  6, row: 18 }, type: 'normal', roomId: 'sala3' },
+  { trigger: { col:  6, row:  9 }, target: { col:  6, row: 10 }, type: 'normal', roomId: 'sala3' },
+  { trigger: { col: 19, row: 19 }, target: { col: 19, row: 18 }, type: 'normal', roomId: 'sala4a' },
+  { trigger: { col: 19, row: 15 }, target: { col: 19, row: 14 }, type: 'normal', roomId: 'sala4b' },
+  { trigger: { col: 17, row:  9 }, target: { col: 17, row: 10 }, type: 'normal', roomId: 'sala4b' },
+  { trigger: { col: 20, row:  9 }, target: { col: 20, row: 10 }, type: 'normal', roomId: 'sala5' },
+  { trigger: { col: 22, row: 19 }, target: { col: 22, row: 18 }, type: 'secret', roomId: 'sala6' },
+  { trigger: { col:  1, row: 19 }, target: { col:  1, row: 18 }, type: 'secret', roomId: 'sala7' },
+  { trigger: { col:  4, row: 10 }, target: { col:  4, row:  9 }, type: 'secret', roomId: 'sala7' },
+  { trigger: { col: 12, row: 13 }, target: { col: 12, row: 12 }, type: 'normal', roomId: 'sala8' },
+  { trigger: { col: 12, row:  6 }, target: { col: 12, row:  6 }, type: 'double', roomId: 'sala8', linkedDoorId: 'door_sala8_n2' },
+  { trigger: { col: 13, row:  6 }, target: { col: 13, row:  6 }, type: 'double', roomId: 'sala8', linkedDoorId: 'door_sala8_n1' },
+  { trigger: { col:  2, row:  9 }, target: { col:  2, row:  8 }, type: 'normal', roomId: 'sala9' },
+  { trigger: { col:  2, row:  5 }, target: { col:  2, row:  4 }, type: 'normal', roomId: 'sala10' },
+  { trigger: { col:  3, row:  0 }, target: { col:  3, row:  1 }, type: 'normal', roomId: 'sala10' },
+  { trigger: { col:  6, row:  9 }, target: { col:  6, row:  8 }, type: 'normal', roomId: 'sala11' },
+  { trigger: { col:  6, row:  5 }, target: { col:  6, row:  4 }, type: 'normal', roomId: 'sala12' },
+  { trigger: { col:  6, row:  0 }, target: { col:  6, row:  1 }, type: 'normal', roomId: 'sala12' },
+  { trigger: { col: 10, row:  6 }, target: { col: 10, row:  5 }, type: 'normal', roomId: 'sala13' },
+  { trigger: { col:  9, row:  0 }, target: { col:  9, row:  1 }, type: 'secret', roomId: 'sala13' },
+  { trigger: { col: 15, row:  6 }, target: { col: 15, row:  5 }, type: 'normal', roomId: 'sala14' },
+  { trigger: { col: 15, row:  0 }, target: { col: 15, row:  1 }, type: 'normal', roomId: 'sala14' },
+  { trigger: { col: 18, row:  0 }, target: { col: 18, row:  1 }, type: 'double', roomId: 'sala15', linkedDoorId: 'door_sala15_2' },
+  { trigger: { col: 19, row:  0 }, target: { col: 19, row:  1 }, type: 'double', roomId: 'sala15', linkedDoorId: 'door_sala15_1' },
+  { trigger: { col: 18, row:  5 }, target: { col: 18, row:  4 }, type: 'normal', roomId: 'sala16' },
+  { trigger: { col: 16, row:  7 }, target: { col: 17, row:  7 }, type: 'normal', roomId: 'sala16' },
+  { trigger: { col: 21, row:  9 }, target: { col: 21, row:  8 }, type: 'normal', roomId: 'sala17' },
+  { trigger: { col: 21, row:  5 }, target: { col: 21, row:  4 }, type: 'normal', roomId: 'sala18' },
+  { trigger: { col: 21, row:  0 }, target: { col: 21, row:  1 }, type: 'normal', roomId: 'sala18' },
+];
+
+const ALWAYS_WALKABLE = new Set<string>([
+  '12,13','12,14','12,15','12,16','12,17','12,18','12,19',
+  '12,17','13,17',
+  '12,18','13,18',
+  '9,19','10,19','11,19','12,19','13,19',
+  '9,13','10,13','11,13','12,13','13,13','14,13',
+]);
 
 interface BoardTokenNodeProps {
   token: BoardToken;
@@ -158,11 +243,58 @@ function BoardTokenNode({ token, x, y, radius, selected, disabled, draggable, is
   );
 }
 
-export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '', movimientoRoll = null }: GameBoardProps) {
+interface StoryModeDoorModalProps {
+  door: Door;
+  onOpen: () => void;
+  onOpenDouble: () => void;
+  onCancel: () => void;
+}
+
+function StoryModeDoorModal({ door, onOpen, onOpenDouble, onCancel }: StoryModeDoorModalProps) {
+  if (!door) return null;
+
+  return (
+    <div className={`gb-door-modal ${door.type === 'secret' ? 'secret' : ''} ${door.type === 'double' ? 'double' : ''}`} role="dialog" aria-modal="true" aria-label="Puerta encontrada">
+      {door.type === 'normal' && (
+        <>
+          <h3 className="gb-door-modal-title">🚪 Puerta encontrada</h3>
+          <p className="gb-door-modal-text">¿Quieres abrir esta sala?</p>
+          <div className="gb-door-modal-actions">
+            <button type="button" className="gb-door-modal-btn primary" onClick={onOpen}>Abrir sala</button>
+            <button type="button" className="gb-door-modal-btn" onClick={onCancel}>Cancelar</button>
+          </div>
+        </>
+      )}
+
+      {door.type === 'secret' && (
+        <>
+          <h3 className="gb-door-modal-title">🔍 Buscar puerta secreta</h3>
+          <p className="gb-door-modal-text">El personaje busca una entrada oculta...</p>
+          <div className="gb-door-modal-actions">
+            <button type="button" className="gb-door-modal-btn primary" onClick={onOpen}>Buscar puerta secreta</button>
+            <button type="button" className="gb-door-modal-btn" onClick={onCancel}>Cancelar</button>
+          </div>
+        </>
+      )}
+
+      {door.type === 'double' && (
+        <>
+          <h3 className="gb-door-modal-title">🚪🚪 Puerta doble</h3>
+          <p className="gb-door-modal-text">Esta puerta requiere dos personajes para abrirse. Al abrirla se habilita también la puerta contigua.</p>
+          <div className="gb-door-modal-actions">
+            <button type="button" className="gb-door-modal-btn primary" onClick={onOpenDouble}>Abrir puerta doble</button>
+            <button type="button" className="gb-door-modal-btn" onClick={onCancel}>Cancelar</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '', movimientoRoll = null, onMovimientoUsed }: GameBoardProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const panStartRef = useRef<{ pointerX: number; pointerY: number; originX: number; originY: number } | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Drag state in ref for reliable access in Stage event handlers (avoids stale closures)
   const draggingRef = useRef<{ tokenId: string; originCell: CellPosition; currentCell: CellPosition } | null>(null);
 
   const [stageSize, setStageSize] = useState<Size>({ width: 1, height: 1 });
@@ -182,16 +314,127 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   const [animPath, setAnimPath] = useState<CellPosition[]>([]);
   const [animStep, setAnimStep] = useState(0);
   const [rolledMovement, setRolledMovement] = useState<number | null>(null);
+  const [stepsUsed, setStepsUsed] = useState(0);
   const [mapImageReady, setMapImageReady] = useState(false);
+  const isHistoria1 = mapConfig.imageUrl.includes('tableroModHistoria1');
+  const activeDoors = isHistoria1 ? DOORS : [];
+  const [rooms, setRooms] = useState<Room[]>(isHistoria1 ? ROOMS : []);
+  const [pendingDoor, setPendingDoor] = useState<Door | null>(null);
 
-  // Estados del turno provienen del WebSocket
   const activeTurn = turnoActual?.fase ?? 'personajes';
   const currentTurnTokenId = turnoActual?.turnoActualPersonajeId?.toString() ?? null;
 
   const [mapImage] = useImage(mapConfig.imageUrl);
-  const { pixelToCell, cellToPixel, getReachableCells } = useBoardGrid(mapConfig);
+  const isCellBlocked = useCallback((col: number, row: number): boolean => {
+    if (ALWAYS_WALKABLE.has(`${col},${row}`)) return false;
 
-  // Detectar cuando la imagen del mapa está lista
+    for (const room of rooms) {
+      const inside =
+        col >= room.colStart && col <= room.colEnd &&
+        row >= room.rowStart && row <= room.rowEnd;
+      if (!inside) continue;
+
+      const isDoor = activeDoors.some(d =>
+        (d.trigger.col === col && d.trigger.row === row) ||
+        (d.target.col === col && d.target.row === row)
+      );
+      if (isDoor) return false;
+
+      if (!room.revealed) return true;
+
+      return false;
+    }
+
+    return false;
+  }, [rooms]);
+
+  const isMovementBlocked = useCallback((
+    fromCol: number,
+    fromRow: number,
+    toCol: number,
+    toRow: number
+  ): boolean => {
+    if (isCellBlocked(toCol, toRow)) return true;
+
+    for (const room of rooms) {
+      const fromInside =
+        fromCol >= room.colStart && fromCol <= room.colEnd &&
+        fromRow >= room.rowStart && fromRow <= room.rowEnd;
+      const toInside =
+        toCol >= room.colStart && toCol <= room.colEnd &&
+        toRow >= room.rowStart && toRow <= room.rowEnd;
+
+      // No puede moverse dentro de sala no revelada
+      if (fromInside && toInside && !room.revealed) return true;
+
+      // Intenta salir de sala revelada (dentro → fuera)
+      if (fromInside && !toInside && room.revealed) {
+        const isDoorExit = activeDoors.some(d =>
+          d.roomId === room.id && (
+            (d.trigger.col === toCol && d.trigger.row === toRow) ||
+            (d.target.col === toCol && d.target.row === toRow) ||
+            (d.trigger.col === fromCol && d.trigger.row === fromRow) ||
+            (d.target.col === fromCol && d.target.row === fromRow)
+          )
+        );
+        const isCrossingDoor = activeDoors.some(d =>
+          (d.trigger.col === fromCol && d.trigger.row === fromRow &&
+           d.target.col === toCol   && d.target.row === toRow) ||
+          (d.target.col  === fromCol && d.target.row  === fromRow &&
+           d.trigger.col === toCol   && d.trigger.row === toRow)
+        );
+        if (!isDoorExit && !isCrossingDoor) return true;
+      }
+
+      // Intenta entrar a sala revelada (fuera → dentro)
+      if (!fromInside && toInside && room.revealed) {
+        const isDoorEntry = activeDoors.some(d =>
+          d.roomId === room.id && (
+            (d.trigger.col === fromCol && d.trigger.row === fromRow) ||
+            (d.target.col === fromCol && d.target.row === fromRow) ||
+            (d.trigger.col === toCol && d.trigger.row === toRow) ||
+            (d.target.col === toCol && d.target.row === toRow)
+          )
+        );
+        const isCrossingDoor = activeDoors.some(d =>
+          (d.trigger.col === fromCol && d.trigger.row === fromRow &&
+           d.target.col === toCol   && d.target.row === toRow) ||
+          (d.target.col  === fromCol && d.target.row  === fromRow &&
+           d.trigger.col === toCol   && d.trigger.row === toRow)
+        );
+        if (!isDoorEntry && !isCrossingDoor) return true;
+      }
+
+      // Intenta entrar a sala no revelada (fuera → dentro)
+      if (!fromInside && toInside && !room.revealed) {
+        const isTriggerEntry = activeDoors.some(d =>
+          d.roomId === room.id &&
+          d.trigger.col === toCol && d.trigger.row === toRow
+        );
+        if (!isTriggerEntry) return true;
+      }
+
+      // Intenta salir de sala no revelada (dentro → fuera)
+      if (fromInside && !toInside && !room.revealed) {
+        const isTriggerExit = activeDoors.some(d =>
+          d.roomId === room.id &&
+          d.trigger.col === fromCol && d.trigger.row === fromRow
+        );
+        const isCrossingDoor = activeDoors.some(d =>
+          (d.trigger.col === fromCol && d.trigger.row === fromRow &&
+           d.target.col === toCol   && d.target.row === toRow) ||
+          (d.target.col  === fromCol && d.target.row  === fromRow &&
+           d.trigger.col === toCol   && d.trigger.row === toRow)
+        );
+        if (!isTriggerExit && !isCrossingDoor) return true;
+      }
+    }
+
+    return false;
+  }, [isCellBlocked, rooms]);
+
+  const { pixelToCell, cellToPixel, getReachableCells } = useBoardGrid(mapConfig, isMovementBlocked);
+
   useEffect(() => {
     if (mapImage && mapImage.width > 0 && mapImage.height > 0) {
       setMapImageReady(true);
@@ -199,6 +442,11 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
       setMapImageReady(false);
     }
   }, [mapImage]);
+
+  const openRoomDouble = useCallback((door: Door) => {
+    setRooms(prev => prev.map((room) => (room.id === door.roomId ? { ...room, revealed: true } : room)));
+    setPendingDoor(null);
+  }, []);
 
   useEffect(() => {
     return () => { if (animTimerRef.current) clearTimeout(animTimerRef.current); };
@@ -220,11 +468,9 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     setTokenCells(next);
   }, [tokens]);
 
-  // Filtrar tokens solo de jugadores conectados para turnos
   const tokensActivos = useMemo(() => {
     return tokens.filter((token) => {
-      if (jugadores.length === 0) return true; // Si no hay info de jugadores, mostrar todos
-      // Buscar si existe un jugador conectado para este token
+      if (jugadores.length === 0) return true;
       return jugadores.some((j) =>
         j && (
           j.id?.toString() === token.id ||
@@ -236,7 +482,6 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     });
   }, [tokens, jugadores]);
 
-  // Derivar turnos agotados desde el estado sincronizado para que ambos clientes vean lo mismo.
   const endedTurnIds = useMemo(() => {
     const ended = new Set<string>();
     const orderedTurnTokens = tokensActivos.length > 0 ? tokensActivos : tokens;
@@ -268,16 +513,18 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     }
   }, [tokens, selectedTokenId, currentTurnTokenId]);
 
-  // Tirada de 2d6 automática al inicio de cada turno de personaje
   useEffect(() => {
-    if (activeTurn !== 'personajes') { setRolledMovement(null); return; }
+    if (activeTurn !== 'personajes') { setRolledMovement(null); setStepsUsed(0); return; }
     if (currentTurnTokenId === jugadorActual?.id?.toString() || currentTurnTokenId === jugadorActual?.personajeId?.toString()) {
-      // Usa el resultado del dado elegido por el jugador; null = aún no ha tirado
       setRolledMovement(movimientoRoll ?? null);
+      setStepsUsed(0);
     } else {
       setRolledMovement(null);
+      setStepsUsed(0);
     }
   }, [currentTurnTokenId, activeTurn, jugadorActual, movimientoRoll]);
+
+  const remainingMovement = rolledMovement !== null ? Math.max(0, rolledMovement - stepsUsed) : null;
 
   const fitScale = Math.min(stageSize.width / mapConfig.naturalWidth, stageSize.height / mapConfig.naturalHeight);
   const renderScale = fitScale * 0.85;
@@ -289,13 +536,10 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   const cellSide = mapConfig.cellSize * renderScale;
   const tokenRadius = Math.max(9, mapConfig.cellSize * renderScale * 0.32);
 
-  const currentTurnToken = tokens.find((t) => t.id === currentTurnTokenId) ?? null;
   const allTurnsEnded = activeTurn === 'master';
   const isCurrentTurnTokenMine = Boolean(
     currentTurnTokenId && (currentTurnTokenId === miPersonajeId || currentTurnTokenId === jugadorActual?.id?.toString())
   );
-
-  // ── Helpers ──────────────────────────────────────────────────────────────
 
   const buildPath = (from: CellPosition, to: CellPosition): CellPosition[] => {
     const path: CellPosition[] = [from];
@@ -318,10 +562,13 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   const clampToReachable = (origin: CellPosition, target: CellPosition, reachableSet: Set<string>, occupiedKeys: Set<string>): CellPosition => {
     const path = buildPath(origin, target);
     let last = origin;
+    let previous = origin;
     for (const cell of path.slice(1)) {
       const key = `${cell.col},${cell.row}`;
       if (!reachableSet.has(key)) break;
-      if (!occupiedKeys.has(key)) last = cell; // can pass through occupied but not land on them
+      if (isMovementBlocked(previous.col, previous.row, cell.col, cell.row)) break;
+      if (!occupiedKeys.has(key)) last = cell;
+      previous = cell;
     }
     return last;
   };
@@ -333,19 +580,15 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     y <= mapOriginY + mapRenderHeight
   );
 
-  // ── Overlay cells: all traversed cells with step numbers ─────────────────
-
   type OverlayEntry = { cell: CellPosition; step: number };
   let overlayCells: OverlayEntry[] = [];
 
   if (dragCurrentCell && dragOriginCell) {
     const path = buildPath(dragOriginCell, dragCurrentCell);
-    overlayCells = path.slice(1).map((cell, i) => ({ cell, step: i + 1 }));
+    overlayCells = path.slice(1).map((cell, i) => ({ cell, step: stepsUsed + i + 1 }));
   } else if (animatingTokenId && animPath.length > 0 && animStep > 0) {
-    overlayCells = animPath.slice(1, animStep + 1).map((cell, i) => ({ cell, step: i + 1 }));
+    overlayCells = animPath.slice(1, animStep + 1).map((cell, i) => ({ cell, step: stepsUsed + i + 1 }));
   }
-
-  // ── Animation ─────────────────────────────────────────────────────────────
 
   const startAnimation = (tokenId: string, path: CellPosition[]) => {
     if (animTimerRef.current) clearTimeout(animTimerRef.current);
@@ -362,6 +605,19 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
         setAnimatingTokenId(null);
         setAnimPath([]);
         setAnimStep(0);
+        const stepsJustUsed = path.length - 1;
+        setStepsUsed(prev => prev + stepsJustUsed);
+        onMovimientoUsed?.(stepsJustUsed);
+        const door = activeDoors.find(d =>
+          d.trigger.col === to.col && d.trigger.row === to.row
+        );
+        if (door) {
+          const room = rooms.find(r => r.id === door.roomId);
+          if (room && !room.revealed) {
+            setPendingDoor(door);
+            return;
+          }
+        }
         onTokenMove?.(tokenId, to.col, to.row);
         return;
       }
@@ -371,8 +627,6 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     };
     advance();
   };
-
-  // ── Stage event handlers ──────────────────────────────────────────────────
 
   const handleStagePointerDown = (event: KonvaEventObject<MouseEvent | TouchEvent>) => {
     if (draggingRef.current) return;
@@ -399,8 +653,11 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
       const raw = pixelToCell(localX, localY, renderScale);
       if (!raw) return;
       const constrained = constrainToAxis(originCell, raw);
-      // Compute reachable from origin using the rolled movement (avoids stale closure issue)
-      const localReachable = getReachableCells(originCell.col, originCell.row, rolledMovement ?? 0);
+      const localReachable = getReachableCells(
+        originCell.col,
+        originCell.row,
+        remainingMovement ?? 0
+      );
       const occupiedKeys = new Set<string>(
         tokens
           .filter(t => t.id !== tokenId)
@@ -436,10 +693,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     setIsPanning(false);
   };
 
-  // ── Turn management ───────────────────────────────────────────────────────
-
   const resetCharacterTurns = () => {
-    // Reset solo limpia la UI local; el servidor maneja el turno actual
     setOpenTurnModalTokenId(null);
     if (tokens.length > 0) setSelectedTokenId(tokens[0].id);
   };
@@ -450,7 +704,6 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
       resetCharacterTurns();
       return;
     }
-    // El flujo a turno de master lo controla el servidor cuando todos agotan turno.
     if (!allTurnsEnded) return;
     setOpenTurnModalTokenId(null);
   };
@@ -467,11 +720,8 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     if (activeTurn !== 'personajes') return;
     if (currentTurnTokenId !== tokenId.toString()) return;
     setOpenTurnModalTokenId(null);
-    // Enviar al servidor para que calcule el siguiente turno
     sendFinTurno?.(tokenId);
   };
-
-  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div ref={wrapperRef} className="gb-stage-wrap">
@@ -493,7 +743,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
                     borderColor: token.color,
                     backgroundImage: token.avatarUrl ? `url(${token.avatarUrl})` : undefined,
                     boxShadow: isCurrent && activeTurn === 'personajes'
-                      ? '0 0 0 3px rgba(123, 36, 35, 0.95), 0 0 10px rgba(123, 36, 35, 0.55)'
+                      ? '0 0 0 3px rgba(255, 255, 255, 0.95), 0 0 10px rgba(255, 255, 255, 0.45)'
                       : (selectedTokenId === token.id ? `0 0 0 2px ${token.color}55` : undefined)
                   }}
                   title={token.initials}
@@ -526,10 +776,10 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
           })}
         </div>
 
-        {activeTurn === 'personajes' && rolledMovement !== null && (
+        {activeTurn === 'personajes' && remainingMovement !== null && (
           <div className="gb-movement-roll">
             <span className="gb-movement-dice">🎲🎲</span>
-            <span className="gb-movement-valor">{rolledMovement}</span>
+            <span className="gb-movement-valor">{remainingMovement}</span>
             <span className="gb-movement-label">casillas de movimiento</span>
           </div>
         )}
@@ -594,7 +844,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
             const tokenX = mapOriginX + tokenPixel.x * renderScale;
             const tokenY = mapOriginY + tokenPixel.y * renderScale;
             const ended = endedTurnIds.has(token.id);
-            const canDrag = activeTurn === 'personajes' && token.id === currentTurnTokenId && !ended && animatingTokenId === null;
+            const canDrag = activeTurn === 'personajes' && token.id === currentTurnTokenId && !ended && animatingTokenId === null && remainingMovement !== null && remainingMovement > 0;
 
             return (
               <BoardTokenNode
@@ -663,6 +913,24 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
           })}
         </Layer>
       </Stage>
+
+      {pendingDoor && (
+        <StoryModeDoorModal
+          door={pendingDoor}
+          onOpen={() => {
+            setRooms(prev => prev.map((room) => (
+              room.id === pendingDoor.roomId || (pendingDoor.roomId === 'sala4b' && room.id === 'sala4a')
+                ? { ...room, revealed: true }
+                : room
+            )));
+            setPendingDoor(null);
+          }}
+          onOpenDouble={() => openRoomDouble(pendingDoor)}
+          onCancel={() => {
+            setPendingDoor(null);
+          }}
+        />
+      )}
     </div>
   );
 }
