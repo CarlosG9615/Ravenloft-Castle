@@ -25,6 +25,8 @@ public class TableroWebSocketController {
     private final TurnoService turnoService;
     // Map of CampaignId -> Map of SessionId -> Player Info
     private final Map<String, Map<String, JugadorWsDTO>> sessionesCampana = new ConcurrentHashMap<>();
+    // Map of CampaignId -> Map of TokenId -> Token State
+    private final Map<String, Map<String, CampanaTokenStateDTO>> tokensCampana = new ConcurrentHashMap<>();
 
     public TableroWebSocketController(SimpMessagingTemplate messagingTemplate,
                                       MisionParticipanteRepository misionParticipanteRepository,
@@ -133,6 +135,39 @@ public class TableroWebSocketController {
         }
     }
 
+    @MessageMapping("/campana/{campanaId}/token-move")
+    public void campanaTokenMove(@DestinationVariable String campanaId, @Payload CampanaTokenMoveDTO move) {
+        tokensCampana.putIfAbsent(campanaId, new ConcurrentHashMap<>());
+        if (move.getTokenId() == null || move.getTokenId().isBlank()) {
+            return;
+        }
+
+        CampanaTokenStateDTO state = new CampanaTokenStateDTO(
+            move.getTokenId(),
+            move.getOwnerId(),
+            move.getTipo(),
+            move.getNombre(),
+            move.getColor(),
+            move.getCol(),
+            move.getRow(),
+            move.getMapaUrl()
+        );
+
+        tokensCampana.get(campanaId).put(move.getTokenId(), state);
+        messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/tokens", state);
+    }
+
+    @MessageMapping("/campana/{campanaId}/token-request-sync")
+    public void campanaTokenRequestSync(@DestinationVariable String campanaId, @Payload TokenSyncRequestDTO request) {
+        List<CampanaTokenStateDTO> tokenStates = new ArrayList<>(
+            tokensCampana.getOrDefault(campanaId, new ConcurrentHashMap<>()).values()
+        );
+        messagingTemplate.convertAndSend(
+            "/topic/campana/" + campanaId + "/token-sync",
+            tokenStates
+        );
+    }
+
     public static class MensajeChatDTO {
         private String id;
         private String autor;
@@ -228,5 +263,71 @@ public class TableroWebSocketController {
         public int getRow() { return row; }
         public void setRow(int row) { this.row = row; }
     }
-}
 
+    public static class CampanaTokenMoveDTO {
+        private String tokenId;
+        private String ownerId;
+        private String tipo;
+        private String nombre;
+        private String color;
+        private int col;
+        private int row;
+        private String mapaUrl;
+
+        public String getTokenId() { return tokenId; }
+        public void setTokenId(String tokenId) { this.tokenId = tokenId; }
+        public String getOwnerId() { return ownerId; }
+        public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
+        public String getTipo() { return tipo; }
+        public void setTipo(String tipo) { this.tipo = tipo; }
+        public String getNombre() { return nombre; }
+        public void setNombre(String nombre) { this.nombre = nombre; }
+        public String getColor() { return color; }
+        public void setColor(String color) { this.color = color; }
+        public int getCol() { return col; }
+        public void setCol(int col) { this.col = col; }
+        public int getRow() { return row; }
+        public void setRow(int row) { this.row = row; }
+        public String getMapaUrl() { return mapaUrl; }
+        public void setMapaUrl(String mapaUrl) { this.mapaUrl = mapaUrl; }
+    }
+
+    public static class CampanaTokenStateDTO {
+        private String tokenId;
+        private String ownerId;
+        private String tipo;
+        private String nombre;
+        private String color;
+        private int col;
+        private int row;
+        private String mapaUrl;
+
+        public CampanaTokenStateDTO(String tokenId, String ownerId, String tipo, String nombre, String color, int col, int row, String mapaUrl) {
+            this.tokenId = tokenId;
+            this.ownerId = ownerId;
+            this.tipo = tipo;
+            this.nombre = nombre;
+            this.color = color;
+            this.col = col;
+            this.row = row;
+            this.mapaUrl = mapaUrl;
+        }
+
+        public String getTokenId() { return tokenId; }
+        public void setTokenId(String tokenId) { this.tokenId = tokenId; }
+        public String getOwnerId() { return ownerId; }
+        public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
+        public String getTipo() { return tipo; }
+        public void setTipo(String tipo) { this.tipo = tipo; }
+        public String getNombre() { return nombre; }
+        public void setNombre(String nombre) { this.nombre = nombre; }
+        public String getColor() { return color; }
+        public void setColor(String color) { this.color = color; }
+        public int getCol() { return col; }
+        public void setCol(int col) { this.col = col; }
+        public int getRow() { return row; }
+        public void setRow(int row) { this.row = row; }
+        public String getMapaUrl() { return mapaUrl; }
+        public void setMapaUrl(String mapaUrl) { this.mapaUrl = mapaUrl; }
+    }
+}

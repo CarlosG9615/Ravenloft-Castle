@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './JoinGame.css';
 import { API_URL } from '../../services/api';
@@ -510,7 +510,6 @@ function ModalSuscripcionRequerida({
 export function JoinGame() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const location = useLocation();
   const [campanas, setCampanas] = useState<Campana[]>([]);
   const [campanaSeleccionada, setCampanaSeleccionada] = useState<Campana | null>(null);
   const [campanaParaUnirse, setCampanaParaUnirse] = useState<Campana | null>(null);
@@ -603,7 +602,7 @@ export function JoinGame() {
     cargarModosHistoria();
 
     return () => controller.abort();
-  }, [location.key]);
+  }, []);
 
   useEffect(() => {
     sessionStorage.setItem(SUSCRIPCION_JOIN_GAME_STORAGE_KEY, tipoSuscripcionUsuario);
