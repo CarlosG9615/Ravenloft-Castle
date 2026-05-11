@@ -6,6 +6,8 @@ import { obtenerCampanaPorId } from '../../services/campanaService';
 import { getPersonajes } from '../../services/personajeService';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import useImage from 'use-image';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import './Tablero.css';
 
 interface Token {
@@ -15,6 +17,23 @@ interface Token {
   color: string;
   nombre: string;
   tipo: 'jugador' | 'enemigo' | 'npc';
+  ownerId?: string | number | null;
+}
+
+interface TokenMovePayload {
+  tokenId: string;
+  ownerId?: string | number | null;
+  tipo: 'jugador' | 'enemigo' | 'npc';
+  nombre?: string;
+  color?: string;
+  col: number;
+  row: number;
+  mapaUrl?: string | null;
+}
+
+interface TokenDeletePayload {
+  tokenId: string;
+  mapaUrl?: string | null;
 }
 
 const COLORES_TOKEN = {
@@ -62,14 +81,15 @@ export function Tablero() {
   const navigate = useNavigate();
   const stageRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
+  const stompRef = useRef<Client | null>(null);
+  const syncRequestedRef = useRef(false);
+  const sentTokenIdsRef = useRef<Set<string>>(new Set());
   const mapaUrl         = (location.state as any)?.mapaUrl        ?? '/images/mapas/bosque/caminoForestal.jpg';
   const campaaNombre    = (location.state as any)?.campaaNombre   ?? 'Campaña';
   const campanaId       = (location.state as any)?.campanaId;
   const jugadorActual   = (location.state as any)?.jugadorActual;
   const jugadoresCampaa = (location.state as any)?.jugadores      ?? [];
   const esMaster        = (location.state as any)?.esMaster       ?? false;
-
   const [mapaActualUrl, setMapaActualUrl]       = useState<string>(mapaUrl);
   const [mapasDisponibles, setMapasDisponibles] = useState<string[]>([]);
   const [cargandoMapas, setCargandoMapas]       = useState(false);
@@ -113,6 +133,91 @@ export function Tablero() {
   const [tokenNombre, setTokenNombre]             = useState('');
   const [mostrarCuadricula, setMostrarCuadricula] = useState(true);
   const [panelAbierto, setPanelAbierto]           = useState(true);
+
+  const currentPlayerId = jugadorActualConAvatar?.id ?? jugadorActualConAvatar?.personajeId ?? personaje?.id ?? null;
+
+  const toGrid = (x: number, y: number) => ({
+    col: Math.round((x - TAMANYO_CELDA / 2) / TAMANYO_CELDA),
+    row: Math.round((y - TAMANYO_CELDA / 2) / TAMANYO_CELDA),
+  });
+
+  const fromGrid = (col: number, row: number) => ({
+    x: col * TAMANYO_CELDA + TAMANYO_CELDA / 2,
+    y: row * TAMANYO_CELDA + TAMANYO_CELDA / 2,
+  });
+
+  const canMoverToken = (token: Token) => {
+    if (esMaster) return token.tipo !== 'jugador';
+    return token.tipo === 'jugador' && currentPlayerId !== null && String(token.ownerId) === String(currentPlayerId);
+  };
+
+  const publishTokenMove = (token: Token, x: number, y: number) => {
+    if (!campanaId || !stompRef.current?.connected) return;
+    const { col, row } = toGrid(x, y);
+    const payload: TokenMovePayload = {
+      tokenId: token.id,
+      ownerId: token.ownerId ?? null,
+      tipo: token.tipo,
+      nombre: token.nombre,
+      color: token.color,
+      col,
+      row,
+      mapaUrl: mapaActualUrl,
+    };
+    stompRef.current.publish({
+      destination: `/app/campana/${campanaId}/token-move`,
+      body: JSON.stringify(payload),
+    });
+  };
+
+  const publishTokenDelete = (token: Token) => {
+    if (!campanaId || !stompRef.current?.connected) return;
+    const payload: TokenDeletePayload = {
+      tokenId: token.id,
+      mapaUrl: mapaActualUrl,
+    };
+    stompRef.current.publish({
+      destination: `/app/campana/${campanaId}/token-delete`,
+      body: JSON.stringify(payload),
+    });
+  };
+
+  const applyTokenMove = (move: TokenMovePayload) => {
+    const mapKey = move.mapaUrl || mapaActualUrl;
+    const position = fromGrid(move.col, move.row);
+    setTokensPorMapa(prev => {
+      const actualTokens = prev[mapKey] || [];
+      const idx = actualTokens.findIndex(t => t.id === move.tokenId);
+      if (idx >= 0) {
+        const updated = actualTokens.map(t => t.id === move.tokenId
+          ? { ...t, x: position.x, y: position.y, ownerId: move.ownerId ?? t.ownerId, color: move.color || t.color, nombre: move.nombre || t.nombre, tipo: move.tipo }
+          : t
+        );
+        return { ...prev, [mapKey]: updated };
+      }
+      const nuevo: Token = {
+        id: move.tokenId,
+        x: position.x,
+        y: position.y,
+        color: move.color || COLORES_TOKEN[move.tipo],
+        nombre: move.nombre || move.tipo.charAt(0).toUpperCase(),
+        tipo: move.tipo,
+        ownerId: move.ownerId ?? null,
+      };
+      return { ...prev, [mapKey]: [...actualTokens, nuevo] };
+    });
+  };
+
+  const applyTokenDelete = (payload: TokenDeletePayload) => {
+    const mapKey = payload.mapaUrl || mapaActualUrl;
+    setTokensPorMapa(prev => {
+      const actualTokens = prev[mapKey] || [];
+      const updated = actualTokens.filter(t => t.id !== payload.tokenId);
+      if (updated.length === actualTokens.length) return prev;
+      return { ...prev, [mapKey]: updated };
+    });
+    sentTokenIdsRef.current.delete(payload.tokenId);
+  };
 
   const snapToGrid = (val: number) => Math.round(val / TAMANYO_CELDA) * TAMANYO_CELDA + TAMANYO_CELDA / 2;
 
@@ -175,6 +280,7 @@ export function Tablero() {
         setAnimPath([]);
         setAnimStep(0);
         moverToken(tokenId, to.x, to.y);
+        commitTokenMove(tokenId, to.x, to.y);
         return;
       }
       moverToken(tokenId, path[step].x, path[step].y);
@@ -260,6 +366,7 @@ export function Tablero() {
 
   const handleStageClick = (e: any) => {
     if (herramienta !== 'token') return;
+    if (!esMaster) return;
     if (e.target !== e.target.getStage() && e.target.getClassName() !== 'Image') return;
     const stage   = stageRef.current;
     const pointer = stage.getPointerPosition();
@@ -272,16 +379,28 @@ export function Tablero() {
       color: COLORES_TOKEN[tipoToken],
       nombre: tokenNombre || tipoToken.charAt(0).toUpperCase(),
       tipo: tipoToken,
+      ownerId: null,
     };
     setTokens(prev => [...prev, nuevo]);
+    publishTokenMove(nuevo, nuevo.x, nuevo.y);
   };
 
   const moverToken = (id: string, x: number, y: number) =>
     setTokens(prev => prev.map(t => t.id === id ? { ...t, x, y } : t));
 
-  const borrarToken = (id: string) => {
-    if (herramienta === 'borrar')
-      setTokens(prev => prev.filter(t => t.id !== id));
+  const commitTokenMove = (tokenId: string, x: number, y: number) => {
+    const token = tokens.find(t => t.id === tokenId);
+    if (!token) return;
+    publishTokenMove(token, x, y);
+  };
+
+  const borrarToken = (id: string, opciones?: { forzar?: boolean }) => {
+    if (!opciones?.forzar && herramienta !== 'borrar') return;
+    const token = tokens.find(t => t.id === id);
+    if (!token) return;
+    if (!esMaster) return;
+    setTokens(prev => prev.filter(t => t.id !== id));
+    publishTokenDelete(token);
   };
 
   const resetearVista = () => {
@@ -291,6 +410,123 @@ export function Tablero() {
 
   const nombreMapa = (url: string) =>
     url.split('/').pop()?.replace(/\.(jpg|jpeg|png|webp)$/i, '') ?? url;
+
+  useEffect(() => {
+    if (!campanaId) return;
+
+    const client = new Client({
+      webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
+      reconnectDelay: 5000,
+      heartbeatIncoming: 10000,
+      heartbeatOutgoing: 10000,
+      onConnect: () => {
+        client.subscribe(`/topic/campana/${campanaId}/tokens`, (frame) => {
+          try {
+            const payload = JSON.parse(frame.body);
+            if (Array.isArray(payload)) {
+              payload.forEach((move) => applyTokenMove(move));
+            } else {
+              applyTokenMove(payload as TokenMovePayload);
+            }
+          } catch (e) {
+            console.error('Error parseando tokens:', e);
+          }
+        });
+
+        client.subscribe(`/topic/campana/${campanaId}/token-sync`, (frame) => {
+          try {
+            const payload = JSON.parse(frame.body);
+            if (Array.isArray(payload)) {
+              payload.forEach((move) => applyTokenMove(move));
+            }
+          } catch (e) {
+            console.error('Error sincronizando tokens:', e);
+          }
+        });
+
+        client.subscribe(`/topic/campana/${campanaId}/token-delete`, (frame) => {
+          try {
+            const payload = JSON.parse(frame.body) as TokenDeletePayload;
+            applyTokenDelete(payload);
+          } catch (e) {
+            console.error('Error borrando token:', e);
+          }
+        });
+
+        if (!syncRequestedRef.current) {
+          syncRequestedRef.current = true;
+          const sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+          client.publish({
+            destination: `/app/campana/${campanaId}/token-request-sync`,
+            body: JSON.stringify({ sessionId }),
+          });
+        }
+      },
+    });
+
+    client.activate();
+    stompRef.current = client;
+
+    return () => {
+      client.deactivate();
+      stompRef.current = null;
+      syncRequestedRef.current = false;
+    };
+  }, [campanaId, mapaActualUrl]);
+
+  useEffect(() => {
+    if (!jugadoresCampaa || jugadoresCampaa.length === 0) return;
+    setTokens(prev => {
+      const existing = new Map(prev.map(t => [String(t.ownerId ?? t.id), t]));
+      const nuevos: Token[] = [];
+      jugadoresCampaa.forEach((j: any) => {
+        const ownerId = j.id ?? j.usuarioId ?? j.personajeId ?? j.personaje?.id ?? null;
+        if (ownerId === null || ownerId === undefined) return;
+        const key = String(ownerId);
+        if (existing.has(key)) return;
+        const base = existing.get(key);
+        if (base) return;
+        nuevos.push({
+          id: `player-${key}`,
+          ownerId,
+          x: TAMANYO_CELDA / 2 + (nuevos.length * TAMANYO_CELDA),
+          y: TAMANYO_CELDA / 2 + (nuevos.length * TAMANYO_CELDA),
+          color: COLORES_TOKEN.jugador,
+          nombre: j.nombre || j.usuarioNombre || 'Jugador',
+          tipo: 'jugador',
+        });
+      });
+      return nuevos.length > 0 ? [...prev, ...nuevos] : prev;
+    });
+  }, [jugadoresCampaa, mapaActualUrl]);
+
+  useEffect(() => {
+    if (!currentPlayerId || esMaster) return;
+    setTokens(prev => {
+      const exists = prev.some(t => t.tipo === 'jugador' && String(t.ownerId) === String(currentPlayerId));
+      if (exists) return prev;
+      const token: Token = {
+        id: `player-${currentPlayerId}`,
+        ownerId: currentPlayerId,
+        x: TAMANYO_CELDA / 2,
+        y: TAMANYO_CELDA / 2,
+        color: COLORES_TOKEN.jugador,
+        nombre: jugadorActualConAvatar?.nombre || personaje?.nombre || 'Jugador',
+        tipo: 'jugador',
+      };
+      return [...prev, token];
+    });
+  }, [currentPlayerId, esMaster, jugadorActualConAvatar?.nombre, personaje?.nombre]);
+
+  useEffect(() => {
+    if (!stompRef.current?.connected || !campanaId) return;
+    tokens.forEach((token) => {
+      if (token.tipo === 'jugador' && !esMaster && String(token.ownerId) !== String(currentPlayerId)) return;
+      if (sentTokenIdsRef.current.has(token.id)) return;
+      sentTokenIdsRef.current.add(token.id);
+      publishTokenMove(token, token.x, token.y);
+    });
+  }, [tokens, campanaId, esMaster, currentPlayerId]);
 
   return (
     <div className="tb-page" ref={containerRef}>
@@ -354,7 +590,7 @@ export function Tablero() {
                   <div key={t.id} className="tb-token-item">
                     <span className="tb-token-dot" style={{ background: t.color }} />
                     <span className="tb-token-nombre">{t.nombre}</span>
-                    <button className="tb-token-borrar" onClick={() => setTokens(prev => prev.filter(x => x.id !== t.id))}>✕</button>
+                    <button className="tb-token-borrar" onClick={() => borrarToken(t.id, { forzar: true })}>✕</button>
                   </div>
                 ))}
                 {tokens.length === 0 && <p className="tb-vacio">Sin tokens</p>}
@@ -554,6 +790,7 @@ export function Tablero() {
                 draggable={false}
                 onPointerDown={e => {
                   if (herramienta !== 'mover') return;
+                  if (!canMoverToken(token)) return;
                   e.cancelBubble = true;
                   if (!animatingTokenId) {
                     const origin = { x: token.x, y: token.y };

@@ -55,11 +55,11 @@ interface Props {
 }
 
 const ORDER_COLORS = ['#C0392B', '#2980B9', '#F39C12', '#27AE60'];
+
 const resolveAvatarUrl = (avatar: string | undefined | null): string => {
   if (!avatar) return '/images/avatars/default.png';
   if (/^https?:\/\//i.test(avatar) || /^data:/i.test(avatar) || avatar.startsWith('/')) return avatar;
-  if (!avatar.endsWith('.png')) return getAvatarUrl(avatar);
-  return avatar;
+  return getAvatarUrl(avatar);
 };
 
 export function PanelLateralStoryMode({

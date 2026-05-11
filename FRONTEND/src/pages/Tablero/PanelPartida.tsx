@@ -162,11 +162,25 @@ interface Props {
   movimientoYaLanzado?: boolean;
   onAtaqueRollResult?: (cantidadResultados: number) => void;
   ataqueYaLanzado?: boolean;
-  /** ISO-8601 — si se pasa, el historial se filtra desde esta fecha (re-entrada tras abandono). */
   chatSince?: string | null;
 }
 
-export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b', panelSuperior, jugadores, campanaId, jugadorActual, esMaster: _esMaster = false, dicesComponent: CustomDicePanel, turnoActual, onMovimientoRollResult, movimientoYaLanzado = false, onAtaqueRollResult, ataqueYaLanzado = false, chatSince }: Props) {
+export function PanelPartida({
+  nombreMaster = 'Tú (Master)',
+  colorMaster = '#c0392b',
+  panelSuperior,
+  jugadores,
+  campanaId,
+  jugadorActual,
+  esMaster: _esMaster = false,
+  dicesComponent: CustomDicePanel,
+  turnoActual,
+  onMovimientoRollResult,
+  movimientoYaLanzado = false,
+  onAtaqueRollResult,
+  ataqueYaLanzado = false,
+  chatSince,
+}: Props) {
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'dados' | 'voz'>('chat');
   const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [inputChat, setInputChat] = useState('');
@@ -182,75 +196,13 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const [micActivo, setMicActivo] = useState(false);
   const [usuariosVoz, setUsuariosVoz] = useState<string[]>([]);
-  const jugadorPayloadRef = useRef<any>(jugadorActual);
-  jugadorPayloadRef.current = jugadorActual;
-
   const [jugadoresRed, setJugadoresRed] = useState<any[]>(jugadores || []);
   const lastSentAvatarRef = useRef<string | null>(null);
-  const prevJugadoresRef = useRef<Map<string, string>>(new Map());
-  const jugadoresInitializedRef = useRef(false);
-
-  // Sync prop → state para Story Mode; detecta entradas y salidas de jugadores
-  useEffect(() => {
-    if (!jugadores || jugadores.length === 0) return;
-
-    if (!jugadoresInitializedRef.current) {
-      jugadoresInitializedRef.current = true;
-      prevJugadoresRef.current = new Map(
-        jugadores.map((j: any) => [String(j.id ?? j.usuarioId ?? j.personajeId), j.nombre ?? j.nombrePersonaje ?? '?'])
-      );
-      setJugadoresRed(jugadores);
-      return;
-    }
-
-    const prevMap = prevJugadoresRef.current;
-    const currentMap = new Map(
-      jugadores.map((j: any) => [String(j.id ?? j.usuarioId ?? j.personajeId), j.nombre ?? j.nombrePersonaje ?? '?'])
-    );
-
-    const nuevos: MensajeChat[] = [];
-
-    currentMap.forEach((nombre, id) => {
-      if (!prevMap.has(id)) {
-        nuevos.push({
-          id: 'join-' + id + '-' + Date.now(),
-          autor: 'Sistema',
-          colorAutor: '#8b0000',
-          texto: `${nombre} se unió a la partida`,
-          tipo: 'sistema',
-          timestamp: hora(),
-        });
-      }
-    });
-
-    prevMap.forEach((nombre, id) => {
-      if (!currentMap.has(id)) {
-        nuevos.push({
-          id: 'leave-' + id + '-' + Date.now(),
-          autor: 'Sistema',
-          colorAutor: '#8b0000',
-          texto: `${nombre} salió de la partida`,
-          tipo: 'sistema',
-          timestamp: hora(),
-        });
-      }
-    });
-
-    prevJugadoresRef.current = currentMap;
-    setJugadoresRed(jugadores);
-
-    if (nuevos.length > 0) {
-      setMensajes(prev => [...prev, ...nuevos]);
-    }
-  }, [jugadores]);
 
   useEffect(() => {
     const client = new Client({
       webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
       reconnectDelay: 5000,
-      heartbeatIncoming: 10000,
-      heartbeatOutgoing: 10000,
-
       onConnect: () => {
         setConectado(true);
         if (campanaId) {
@@ -319,17 +271,32 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
               if (pc) await pc.addIceCandidate(new RTCIceCandidate(candidate));
             }
           });
-
-          if (jugadorPayloadRef.current) {
+          if (jugadorActual) {
             client.publish({
               destination: `/app/campana/${campanaId}/join`,
-              body: JSON.stringify(jugadorPayloadRef.current),
+              body: JSON.stringify(jugadorActual),
             });
           }
         }
+        setMensajes(prev => [...prev, {
+          id: 'connected-' + Date.now(),
+          autor: 'Sistema',
+          colorAutor: '#8b0000',
+          texto: 'Conectado a la partida en tiempo real.',
+          tipo: 'sistema',
+          timestamp: hora(),
+        }]);
       },
       onDisconnect: () => {
         setConectado(false);
+        setMensajes(prev => [...prev, {
+          id: 'disconnected-' + Date.now(),
+          autor: 'Sistema',
+          colorAutor: '#8b0000',
+          texto: 'Desconectado del servidor.',
+          tipo: 'sistema',
+          timestamp: hora(),
+        }]);
       },
       onStompError: () => setConectado(false),
     });
@@ -352,8 +319,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
       window.removeEventListener('beforeunload', handleLeave);
       client.deactivate();
     };
-  // Solo reconectar cuando cambia la campaña o el jugador identificado
-  }, [campanaId, jugadorActual?.id]);
+  }, [campanaId, jugadorActual]);
 
   useEffect(() => {
     if (!stompRef.current?.connected || !campanaId || !jugadorActual) return;
@@ -430,10 +396,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     } else {
       setMensajes(prev => [...prev, msg]);
     }
-    // Si es Story Mode y es un dado de movimiento, sincronizar con el tablero
-    if (CustomDicePanel && (dadoActivo === 'd6' || dadoActivo === 'd12')) {
-      onMovimientoRollResult?.(resultadoReal);
-    }
+    onMovimientoRollResult?.(resultadoReal);
     setDadoActivo(null);
     setResultadoActivo(null);
   }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual, CustomDicePanel, onMovimientoRollResult]);
@@ -564,9 +527,8 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
 
   return (
     <div className="pp-panel">
-      {/* DiceRoller solo actúa sobre dados normales; los de ataque los gestiona StoryModeDicePanel */}
       <DiceRoller
-        dado={dadoActivo?.startsWith('ataque-') ? null : dadoActivo}
+        dado={dadoActivo}
         resultado={resultadoActivo}
         onAnimacionFin={handleAnimacionFin}
       />
@@ -619,45 +581,28 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
                       <span className="pp-msg-autor" style={{ color: msg.colorAutor }}>{msg.autor}</span>
                       <span className="pp-msg-hora">{msg.timestamp}</span>
                     </div>
-                    {msg.tirada.imagenes ? (
-                      <div className="pp-tirada-ataque">
-                        <span className="pp-tirada-dado">{msg.tirada.dado}</span>
-                        <div className="pp-tirada-caras">
-                          {msg.tirada.imagenes.map((cara, i) => (
-                            <img
-                              key={i}
-                              src={`/images/dadosModHistoria/${cara}.png`}
-                              alt={cara}
-                              className="pp-tirada-cara-img"
-                              title={cara}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="pp-tirada-resultado">
-                        <span className="pp-tirada-dado">{msg.tirada.dado}</span>
-                        <div className="pp-tirada-desglose">
-                          <span className="pp-tirada-num">{msg.tirada.resultado}</span>
-                          {msg.tirada.modificador !== 0 && (
-                            <>
-                              <span className="pp-tirada-mod">
-                                {msg.tirada.modificador > 0 ? '+' : ''}{msg.tirada.modificador}
-                              </span>
-                              <span className="pp-tirada-igual">=</span>
-                              <span className={`pp-tirada-total ${msg.tirada.total >= 15 ? 'critico' : msg.tirada.total <= 3 ? 'pifia' : ''}`}>
-                                {msg.tirada.total}
-                              </span>
-                            </>
-                          )}
-                          {msg.tirada.modificador === 0 && (
-                            <span className={`pp-tirada-total ${msg.tirada.total >= 18 ? 'critico' : msg.tirada.total <= 2 ? 'pifia' : ''}`}>
+                    <div className="pp-tirada-resultado">
+                      <span className="pp-tirada-dado">{msg.tirada.dado}</span>
+                      <div className="pp-tirada-desglose">
+                        <span className="pp-tirada-num">{msg.tirada.resultado}</span>
+                        {msg.tirada.modificador !== 0 && (
+                          <>
+                            <span className="pp-tirada-mod">
+                              {msg.tirada.modificador > 0 ? '+' : ''}{msg.tirada.modificador}
+                            </span>
+                            <span className="pp-tirada-igual">=</span>
+                            <span className={`pp-tirada-total ${msg.tirada.total >= 15 ? 'critico' : msg.tirada.total <= 3 ? 'pifia' : ''}`}>
                               {msg.tirada.total}
                             </span>
-                          )}
-                        </div>
+                          </>
+                        )}
+                        {msg.tirada.modificador === 0 && (
+                          <span className={`pp-tirada-total ${msg.tirada.total >= 18 ? 'critico' : msg.tirada.total <= 2 ? 'pifia' : ''}`}>
+                            {msg.tirada.total}
+                          </span>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </>
                 )}
               </div>
@@ -756,7 +701,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
               })
             ) : (
               <p className="tb-vacio" style={{ textAlign: 'center', opacity: 0.5, fontSize: '13px', paddingTop: '20px' }}>
-                {campanaId ? 'Esperando otros jugadores...' : 'Sin jugadores en la partida'}
+                Sin jugadores en la partida
               </p>
             )}
           </div>
