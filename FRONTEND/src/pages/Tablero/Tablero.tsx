@@ -31,6 +31,11 @@ interface TokenMovePayload {
   mapaUrl?: string | null;
 }
 
+interface TokenDeletePayload {
+  tokenId: string;
+  mapaUrl?: string | null;
+}
+
 const COLORES_TOKEN = {
   jugador: '#4a90d9',
   enemigo: '#e74c3c',
@@ -165,6 +170,18 @@ export function Tablero() {
     });
   };
 
+  const publishTokenDelete = (token: Token) => {
+    if (!campanaId || !stompRef.current?.connected) return;
+    const payload: TokenDeletePayload = {
+      tokenId: token.id,
+      mapaUrl: mapaActualUrl,
+    };
+    stompRef.current.publish({
+      destination: `/app/campana/${campanaId}/token-delete`,
+      body: JSON.stringify(payload),
+    });
+  };
+
   const applyTokenMove = (move: TokenMovePayload) => {
     const mapKey = move.mapaUrl || mapaActualUrl;
     const position = fromGrid(move.col, move.row);
@@ -189,6 +206,17 @@ export function Tablero() {
       };
       return { ...prev, [mapKey]: [...actualTokens, nuevo] };
     });
+  };
+
+  const applyTokenDelete = (payload: TokenDeletePayload) => {
+    const mapKey = payload.mapaUrl || mapaActualUrl;
+    setTokensPorMapa(prev => {
+      const actualTokens = prev[mapKey] || [];
+      const updated = actualTokens.filter(t => t.id !== payload.tokenId);
+      if (updated.length === actualTokens.length) return prev;
+      return { ...prev, [mapKey]: updated };
+    });
+    sentTokenIdsRef.current.delete(payload.tokenId);
   };
 
   const snapToGrid = (val: number) => Math.round(val / TAMANYO_CELDA) * TAMANYO_CELDA + TAMANYO_CELDA / 2;
@@ -366,12 +394,13 @@ export function Tablero() {
     publishTokenMove(token, x, y);
   };
 
-  const borrarToken = (id: string) => {
-    if (herramienta !== 'borrar') return;
+  const borrarToken = (id: string, opciones?: { forzar?: boolean }) => {
+    if (!opciones?.forzar && herramienta !== 'borrar') return;
     const token = tokens.find(t => t.id === id);
     if (!token) return;
-    if (!esMaster || token.tipo === 'jugador') return;
+    if (!esMaster) return;
     setTokens(prev => prev.filter(t => t.id !== id));
+    publishTokenDelete(token);
   };
 
   const resetearVista = () => {
@@ -412,6 +441,15 @@ export function Tablero() {
             }
           } catch (e) {
             console.error('Error sincronizando tokens:', e);
+          }
+        });
+
+        client.subscribe(`/topic/campana/${campanaId}/token-delete`, (frame) => {
+          try {
+            const payload = JSON.parse(frame.body) as TokenDeletePayload;
+            applyTokenDelete(payload);
+          } catch (e) {
+            console.error('Error borrando token:', e);
           }
         });
 
@@ -552,7 +590,7 @@ export function Tablero() {
                   <div key={t.id} className="tb-token-item">
                     <span className="tb-token-dot" style={{ background: t.color }} />
                     <span className="tb-token-nombre">{t.nombre}</span>
-                    <button className="tb-token-borrar" onClick={() => setTokens(prev => prev.filter(x => x.id !== t.id))}>✕</button>
+                    <button className="tb-token-borrar" onClick={() => borrarToken(t.id, { forzar: true })}>✕</button>
                   </div>
                 ))}
                 {tokens.length === 0 && <p className="tb-vacio">Sin tokens</p>}
