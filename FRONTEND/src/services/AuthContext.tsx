@@ -12,6 +12,7 @@ export interface UserData {
   suscripcion?: string;
   fechaAltaSuscripcion?: string;
   suscripcionActiva?: boolean;
+  fechaRegistro?: string;
 }
 
 interface AuthContextType {

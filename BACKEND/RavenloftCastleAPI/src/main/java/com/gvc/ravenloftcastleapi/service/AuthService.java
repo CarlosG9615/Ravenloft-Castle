@@ -74,7 +74,8 @@ public class AuthService {
                 guardado.getNombre(),
                 guardado.getEmail(),
                 guardado.getRole().getNombre(),
-                guardado.getAvatar()
+                guardado.getAvatar(),
+                guardado.getFechaRegistro()
         );
     }
 

@@ -43,4 +43,12 @@ public class CampanaController {
         return ResponseEntity.ok(campanaService.obtenerCampana(id));
     }
 
+    @PostMapping("/{id}/unirse")
+    public ResponseEntity<Void> unirseACampana(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long personajeId) {
+        campanaService.unirseACampana(id, personajeId);
+        return ResponseEntity.ok().build();
+    }
+
 }

@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './JoinGame.css';
 import { API_URL } from '../../services/api';
-import { obtenerCampanasActivas } from '../../services/campanaService';
+import { obtenerCampanasActivas, unirseACampana } from '../../services/campanaService';
 import { getPersonajes } from '../../services/personajeService';
 import { getMySuscripciones, getUserSuscripciones } from '../../services/suscripcionService';
 import { getAvatarUrl, getCampanaUrl, getCartaUrl, getModoHistoriaImageCandidates } from '../../utils/imageUtils';
 import { useAuth } from '../../services/AuthContext';
 import { CharacterSelectModal } from '../../components/CharacterSelectModal/CharacterSelectModal';
+
 
 // ── TIPOS ─────────────────────────────────────────────────
 interface Jugador {
@@ -761,8 +762,15 @@ export function JoinGame() {
     avatar: base.avatar,
   });
 
-  const confirmarUnionConPersonaje = () => {
+  const confirmarUnionConPersonaje = async () => {
     if (!campanaParaUnirse || !personajeSeleccionado) return;
+
+     try {
+   
+    await unirseACampana(campanaParaUnirse.id, personajeSeleccionado.id);
+  } catch (err) {
+    console.error('Error al unirse a la campaña:', err);
+  }
 
     const jugadorRed = crearJugadorBase({
       id: personajeSeleccionado.id,
@@ -1025,8 +1033,8 @@ export function JoinGame() {
         onConfirm={confirmarUnionConPersonaje}
         confirmLabel="Entrar"
         stats={statsPersonajeSeleccionado}
-        getCardImage={personaje => resolveAvatarUrl(personaje.avatar)}
-        getPreviewImage={personaje => resolveAvatarPreviewUrl(personaje.avatar)}
+        getCardImage={(personaje: Personaje) => resolveAvatarUrl(personaje.avatar)}
+        getPreviewImage={(personaje: Personaje) => resolveAvatarPreviewUrl(personaje.avatar)}
         emptyMessage="No tienes personajes disponibles."
         previewEmptyMessage="Selecciona un personaje para ver su avatar"
       />

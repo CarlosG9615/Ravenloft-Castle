@@ -7,30 +7,30 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(139, 0, 0, 0.15);
-  border: 1px solid rgba(139, 0, 0, 0.4);
+  background: transparent;
+  border: none;
   border-radius: 24px;
-  padding: 5px 12px 5px 5px;
+  padding: 5px 8px 5px 5px;
   cursor: pointer;
   transition: all 0.2s ease;
   color: var(--text-primary, #fff);
 }
 
 .user-menu-trigger:hover {
-  background: rgba(139, 0, 0, 0.3);
-  border-color: rgba(200, 0, 0, 0.6);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .user-avatar {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   overflow: hidden;
-  background: rgba(139, 0, 0, 0.5);
+  background: rgba(20, 4, 4, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .user-avatar img {
@@ -47,8 +47,8 @@
 
 .user-name {
   font-family: 'Metal Mania', cursive;
-  font-size: 14px;
-  color: var(--text-primary, #fff);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -56,8 +56,8 @@
 }
 
 .dropdown-arrow {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
   transition: transform 0.2s ease;
   display: inline-block;
 }
@@ -71,13 +71,14 @@
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: 310px;
-  background: linear-gradient(180deg, rgba(52, 9, 9, 0.98), rgba(24, 4, 4, 0.98));
-  border: 1px solid rgba(255, 107, 53, 0.18);
+  width: 300px;
+  background: rgba(5, 1, 1, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.72), 0 0 22px rgba(139, 0, 0, 0.18);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
   z-index: 1000;
   overflow: hidden;
+  backdrop-filter: blur(20px);
   animation: dropdownFadeIn 0.15s ease;
 }
 
@@ -95,8 +96,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 20px 18px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .dropdown-avatar {
@@ -104,13 +106,12 @@
   height: 68px;
   border-radius: 50%;
   overflow: hidden;
-  background: rgba(139, 0, 0, 0.5);
+  background: rgba(20, 4, 4, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 2px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 0 0 6px rgba(139, 0, 0, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.08);
   font-family: 'Metal Mania', cursive;
   font-size: 24px;
   color: #fff;
@@ -133,14 +134,13 @@
 
 .dropdown-greeting {
   font-family: 'Metal Mania', cursive;
-  font-size: 18px;
-  line-height: 1.1;
+  font-size: 16px;
   color: #fff;
 }
 
 .dropdown-email {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.4);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -148,11 +148,10 @@
 
 .dropdown-actions {
   display: flex;
-  gap: 6px;
-  padding: 8px 14px 14px;
+  gap: 8px;
+  padding: 12px 14px;
 }
 
-/* Items */
 .user-dropdown .dropdown-actions .dropdown-item {
   display: flex;
   align-items: center;
@@ -160,10 +159,10 @@
   flex: 1;
   height: 36px;
   padding: 0 14px;
-  background: linear-gradient(180deg, rgba(52, 9, 9, 0.98), rgba(24, 4, 4, 0.98)) !important;
-  border: 1px solid rgba(255, 107, 53, 0.18) !important;
-  border-radius: 14px !important;
-  color: #fff !important;
+  background: rgba(15, 3, 3, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 10px !important;
+  color: rgba(255, 255, 255, 0.75) !important;
   font-size: 10px !important;
   font-family: 'Metal Mania', cursive !important;
   letter-spacing: 1px !important;
@@ -172,28 +171,25 @@
   transition: all 0.15s ease !important;
   text-align: center !important;
   box-sizing: border-box !important;
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.72), 0 0 22px rgba(139, 0, 0, 0.18) !important;
   white-space: nowrap !important;
   outline: none !important;
   appearance: none !important;
 }
 
 .user-dropdown .dropdown-actions .dropdown-item:hover {
-  transform: translateY(-2px) !important;
-  background: linear-gradient(180deg, rgba(72, 15, 15, 0.98), rgba(40, 8, 8, 0.98)) !important;
-  box-shadow: 0 12px 38px rgba(0, 0, 0, 0.76), 0 0 24px rgba(139, 0, 0, 0.22) !important;
+  background: rgba(25, 5, 5, 0.8) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .user-dropdown .dropdown-actions .dropdown-item--danger {
-  background: linear-gradient(180deg, rgba(52, 9, 9, 0.98), rgba(24, 4, 4, 0.98)) !important;
+  color: rgba(255, 100, 100, 0.7) !important;
 }
 
 .user-dropdown .dropdown-actions .dropdown-item--danger:hover {
-  background: linear-gradient(180deg, rgba(72, 15, 15, 0.98), rgba(40, 8, 8, 0.98)) !important;
-  color: #fff !important;
+  color: #ff6464 !important;
 }
 
-/* Móvil */
 .mobile-nav-link--danger {
   color: rgba(255, 80, 80, 0.8) !important;
 }
