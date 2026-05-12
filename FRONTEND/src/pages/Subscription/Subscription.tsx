@@ -2,7 +2,7 @@ import './Subscription.css';
 import { useNavigate } from 'react-router-dom';
 import { Crown, Sparkles, Sword } from 'lucide-react';
 import { useAuth } from '../../services/AuthContext';
-import { createSuscripcion, getUserSuscripciones } from '../../services/suscripcionService';
+import { createSuscripcion, getUserSuscripciones, createStripeCheckoutSession } from '../../services/suscripcionService';
 import { useState, useEffect } from 'react';
 import { ModalAlert } from '../../components/ModalAlert/ModalAlert';
 
@@ -31,15 +31,27 @@ export function Subscription() {
     }
 
     try {
-      await createSuscripcion({
-        usuarioId: user.id,
-        nombre: nombrePlan,
-        tipo
-      });
-      navigate('/profile');
+      // Si el plan es BÁSICO (Gratis), no pasamos por Stripe
+      if (tipo === 'BASICA') {
+        await createSuscripcion({
+          usuarioId: user.id,
+          nombre: nombrePlan,
+          tipo
+        });
+        navigate('/profile');
+        return;
+      }
+
+      // Si es de pago (Héroe o DM), creamos la sesión en Stripe
+      const response = await createStripeCheckoutSession(tipo, user.id);
+      if (response && response.url) {
+        window.location.href = response.url;
+      } else {
+        throw new Error('No se pudo obtener la URL de pago.');
+      }
     } catch (e: any) {
       console.error(e);
-      let errorMsg = 'Error al elegir tu suscripción. Inténtalo más tarde.';
+      let errorMsg = 'Error al redirigir al pago. Inténtalo más tarde.';
       try {
         const errObj = JSON.parse(e.message);
         if (errObj.mensaje) errorMsg = errObj.mensaje;

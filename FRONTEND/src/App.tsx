@@ -19,6 +19,7 @@ import { ScrollToTop } from './components/ScrollToTop/ScrollToTop';
 import { JoinGame } from './pages/JoinGame/JoinGame';
 import { CreateCampaign } from './pages/CreateCampaign/CreateCampaign';
 import { Subscription } from './pages/Subscription/Subscription';
+import { PagoExitoso } from './pages/Subscription/PagoExitoso';
 import { Tablero } from './pages/Tablero/Tablero';
 import { TableroStoryMode } from './pages/TableroStoryMode/TableroStoryMode';
 import { RoleSelect } from './pages/RoleSelect/Rolselect';
@@ -84,6 +85,7 @@ function Layout() {
           <Route path="/register" element={<Register />} />
           <Route path="/activate" element={<ActivateAccount />} />
           <Route path="/subscription" element={<Subscription />} />
+          <Route path="/pago-exitoso" element={<PagoExitoso />} />
 
           {/* Privadas — requieren login */}
           <Route path="/profile" element={
