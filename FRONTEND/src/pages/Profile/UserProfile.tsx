@@ -8,6 +8,9 @@ import { BackButton } from '../../components/BackButton/BackButton';
 import { ModalAlert } from '../../components/ModalAlert/ModalAlert';
 import { getUserSuscripciones, cancelarSuscripcion } from '../../services/suscripcionService';
 import type { SuscripcionDTO } from '../../services/suscripcionService';
+import { getPersonajes } from '../../services/personajeService';
+import { MagicEdit, AvatarCircle} from 'pixelarticons/react'
+import { Sword } from 'lucide-react';
 
 const AVATARES = [
   '/images/avatars/caratula.png',
@@ -23,6 +26,23 @@ const AVATARES = [
 
 type Tab = 'perfil' | 'editar';
 
+function calcularNivel(suscripcion: SuscripcionDTO | null, numCampanas: number, numPersonajes: number): number {
+  let nivel = 1;
+  if (suscripcion && suscripcion.estado === 'ACTIVA' && suscripcion.tipo !== 'BASICA') nivel += 2;
+  nivel += numCampanas;
+  nivel += numPersonajes;
+  return nivel;
+}
+
+function getNombreNivel(nivel: number): string {
+  if (nivel <= 2) return 'Aldeano';
+  if (nivel <= 4) return 'Aventurero';
+  if (nivel <= 6) return 'Veterano';
+  if (nivel <= 9) return 'Héroe';
+  if (nivel <= 12) return 'Campeón';
+  return 'Leyenda';
+}
+
 export function UserProfile() {
   const navigate = useNavigate();
   const { user, updateUser, logout } = useAuth();
@@ -30,6 +50,9 @@ export function UserProfile() {
   const [suscripcionActual, setSuscripcionActual] = useState<SuscripcionDTO | null>(null);
   const [mostrarAvatares, setMostrarAvatares] = useState(false);
   const [avatarSeleccionado, setAvatarSeleccionado] = useState(user?.avatar ?? '');
+  const [campanas, setCampanas] = useState<any[]>([]);
+  const [personajes, setPersonajes] = useState<any[]>([]);
+  const [fechaRegistro, setFechaRegistro] = useState<string>('');
 
   const [nombre, setNombre] = useState(user?.nombre ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
@@ -64,7 +87,6 @@ export function UserProfile() {
   };
 
   useEffect(() => {
-    // Cargar perfil actualizado del servidor
     getMyProfile()
       .then(perfil => {
         updateUser({
@@ -74,16 +96,43 @@ export function UserProfile() {
           rol: perfil.rol,
         });
         setAvatarSeleccionado(perfil.avatar ?? '');
+        if (perfil.fechaRegistro) {
+          const fecha = new Date(perfil.fechaRegistro);
+          setFechaRegistro(fecha.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }));
+        }
       })
       .catch(err => console.error('Error cargando perfil:', err));
 
     cargarSuscripciones();
+
+    // Cargar campañas
+    fetch('http://localhost:8080/api/campanas/mis-campanas', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}`,
+        'Content-Type': 'application/json',
+      }
+    })
+      .then(r => r.json())
+      .then(data => setCampanas(Array.isArray(data) ? data : []))
+      .catch(() => setCampanas([]));
+
+    // Cargar personajes
+    getPersonajes()
+      .then(data => setPersonajes(Array.isArray(data) ? data : []))
+      .catch(() => setPersonajes([]));
+
   }, [user?.id]);
 
   if (!user) {
     navigate('/login');
     return null;
   }
+
+  const nivel = calcularNivel(suscripcionActual, campanas.length, personajes.length);
+  const nombreNivel = getNombreNivel(nivel);
+  const xpActual = nivel * 100;
+  const xpSiguiente = (nivel + 1) * 100;
+  const porcentajeXP = ((nivel % 1) * 100) || 60;
 
   const getInitials = () => user.nombre?.charAt(0).toUpperCase() ?? '?';
 
@@ -147,31 +196,27 @@ export function UserProfile() {
     }
   };
 
-  const cancelConfirm = () => {
-    setShowConfirmModal(false);
-  };
+  const cancelConfirm = () => setShowConfirmModal(false);
 
   return (
     <div className="profile-page">
       <BackButton />
-
       <div className="profile-bg" />
 
       <div className="profile-container">
 
-        {/* CABECERA */}
-        <div className="profile-header">
+        {/* ── HERO ── */}
+        <div className="profile-hero">
+          {/* AVATAR */}
           <div
             className="profile-avatar-wrap"
             onClick={() => setMostrarAvatares(!mostrarAvatares)}
-            style={{ cursor: 'pointer', position: 'relative' }}
           >
             {avatarSeleccionado
               ? <img src={avatarSeleccionado} alt={user.nombre} className="profile-avatar-img" />
               : <div className="profile-avatar-placeholder">{getInitials()}</div>
             }
-            <div className="profile-avatar-edit">✏️</div>
-
+            
             {mostrarAvatares && (
               <div className="profile-avatar-picker" onClick={e => e.stopPropagation()}>
                 {AVATARES.map(src => (
@@ -203,125 +248,139 @@ export function UserProfile() {
             )}
           </div>
 
+          {/* INFO PRINCIPAL */}
           <div className="profile-hero-info">
-            <h1 className="profile-username">{user.nombre}</h1>
+            <div className="profile-hero-top">
+              <h1 className="profile-username">{user.nombre}</h1>
+              <span className="profile-rol-badge">{user.rol ?? 'usuario'}</span>
+            </div>
             <p className="profile-email">{user.email}</p>
-            {user.rol && (
-              <span className="profile-rol-badge">{user.rol}</span>
+            {fechaRegistro && (
+              <p className="profile-fecha">⚔ Aventurero desde {fechaRegistro}</p>
             )}
+
+            {/* NIVEL */}
+            <div className="profile-nivel-wrap">
+              <div className="profile-nivel-info">
+                <span className="profile-nivel-label">Nivel {nivel}</span>
+                <span className="profile-nivel-nombre">{nombreNivel}</span>
+              </div>
+              <div className="profile-xp-barra">
+                <div className="profile-xp-fill" style={{ width: `${porcentajeXP}%` }} />
+              </div>
+            </div>
+          </div>
+
+          {/* STATS RÁPIDOS */}
+          <div className="profile-stats-rapidos">
+            <div className="profile-stat-rapido">
+              <span className="profile-stat-num">{campanas.length}</span>
+              <span className="profile-stat-label">Campañas</span>
+            </div>
+            <div className="profile-stat-rapido">
+              <span className="profile-stat-num">{personajes.length}</span>
+              <span className="profile-stat-label">Personajes</span>
+            </div>
+            <div className="profile-stat-rapido">
+              <span className="profile-stat-num">{nivel}</span>
+              <span className="profile-stat-label">Nivel</span>
+            </div>
           </div>
         </div>
 
-        {/* TABS */}
+        {/* ── TABS ── */}
         <div className="profile-tabs">
           <button
             className={`profile-tab ${tab === 'perfil' ? 'active' : ''}`}
             onClick={() => setTab('perfil')}
           >
-            ⚔️ Mi Perfil
+            <AvatarCircle /> Mi Perfil
           </button>
           <button
             className={`profile-tab ${tab === 'editar' ? 'active' : ''}`}
             onClick={() => setTab('editar')}
           >
-            ✏️ Editar Perfil
+            <MagicEdit /> Editar Perfil
           </button>
         </div>
 
-        {/* CONTENIDO */}
+        {/* ── CONTENIDO ── */}
         <div className="profile-content">
 
-          {/* ── TAB PERFIL ── */}
           {tab === 'perfil' && (
-            <div className="profile-info-grid">
+            <div className="profile-perfil-grid">
 
-              {success && (
-                <div className="profile-alert profile-alert--success" style={{ gridColumn: '1 / -1' }}>
-                  ✅ {success}
-                </div>
-              )}
-              {error && (
-                <div className="profile-alert profile-alert--error" style={{ gridColumn: '1 / -1' }}>
-                  ⚠ {error}
-                </div>
-              )}
+              {success && <div className="profile-alert profile-alert--success" style={{ gridColumn: '1/-1' }}>✅ {success}</div>}
+              {error && <div className="profile-alert profile-alert--error" style={{ gridColumn: '1/-1' }}>⚠ {error}</div>}
 
-              <div className="profile-info-card">
-                <div className="profile-info-label">Nombre de Aventurero</div>
-                <div className="profile-info-value">{user.nombre}</div>
-              </div>
-              <div className="profile-info-card">
-                <div className="profile-info-label">Correo de Contacto</div>
-                <div className="profile-info-value">{user.email}</div>
-              </div>
-              <div className="profile-info-card">
-                <div className="profile-info-label">Rango en el Castillo</div>
-                <div className="profile-info-value">{user.rol ?? 'Aventurero'}</div>
-              </div>
-
-              <div className="profile-info-card profile-subscription-card">
-                <div className="profile-info-label">Estado de Suscripción</div>
-                <div className="profile-info-value" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 'bold', color: 'var(--orange-fire, #f97316)' }}>
-                      Plan {suscripcionActual?.nombre || user.suscripcion || 'Aventurero (Gratis)'}
+              {/* SUSCRIPCIÓN */}
+              <div className="profile-card profile-card--full">
+                <div className="profile-card-titulo">Estado de Suscripción</div>
+                <div className="profile-suscrip-wrap">
+                  <div className="profile-suscrip-plan">
+                    <span className="profile-suscrip-nombre">
+                      {suscripcionActual?.nombre || user.suscripcion || 'Aventurero (Gratis)'}
                     </span>
-                    <span style={{
-                      fontSize: '0.8rem',
-                      padding: '0.2rem 0.6rem',
-                      borderRadius: '15px',
-                      backgroundColor: (suscripcionActual && suscripcionActual.estado === 'ACTIVA') ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                      color: (suscripcionActual && suscripcionActual.estado === 'ACTIVA') ? '#4ade80' : '#f87171',
-                      border: `1px solid ${(suscripcionActual && suscripcionActual.estado === 'ACTIVA') ? '#22c55e' : '#ef4444'}`
-                    }}>
-                      {(suscripcionActual && suscripcionActual.estado === 'ACTIVA') ? 'Activa' : 'Inactiva'}
+                    <span className={`profile-suscrip-estado ${suscripcionActual?.estado === 'ACTIVA' ? 'activa' : 'inactiva'}`}>
+                      {suscripcionActual?.estado === 'ACTIVA' ? 'Activa' : 'Inactiva'}
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.9rem', color: '#aaa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>{suscripcionActual ? `Miembro desde: ${suscripcionActual.fechaAlta}` : 'No tienes un plan activo'}</span>
-                    {suscripcionActual && suscripcionActual.estado === 'ACTIVA' && suscripcionActual.tipo !== 'BASICA' && (
-                      <button
-                        onClick={handleCancelarSuscripcion}
-                        style={{
-                          background: 'transparent',
-                          color: '#ef4444',
-                          border: '1px solid #ef4444',
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '5px',
-                          fontSize: '0.8rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Dar de baja
-                      </button>
-                    )}
-                  </div>
+                  {suscripcionActual && (
+                    <div className="profile-suscrip-fecha">
+                      Miembro desde: {suscripcionActual.fechaAlta}
+                    </div>
+                  )}
+                  {suscripcionActual && suscripcionActual.estado === 'ACTIVA' && suscripcionActual.tipo !== 'BASICA' && (
+                    <button className="profile-suscrip-baja" onClick={handleCancelarSuscripcion}>
+                      Dar de baja
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="profile-info-card profile-info-card--action">
-                <button
-                  className="profile-action-btn"
-                  onClick={() => navigate('/characters')}
-                >
-                  📜 Ver mis Personajes
+              {/* CAMPAÑAS */}
+              <div className="profile-card profile-card--full">
+                <div className="profile-card-titulo">Mis Campañas</div>
+                {campanas.length === 0 ? (
+                  <p className="profile-vacio">No has participado en ninguna campaña aún</p>
+                ) : (
+                  <div className="profile-campanas-lista">
+                    {campanas.map(c => (
+                      <div key={c.id} className="profile-campana-item">
+                        <div className="profile-campana-img-placeholder"><Sword /></div>
+                        <div className="profile-campana-info">
+                          <span className="profile-campana-nombre">{c.nombre}</span>
+                          <span className="profile-campana-rol">
+                            {c.masterId === user.id ? 'Master' : '⚔ Jugador'}
+                          </span>
+                        </div>
+                        <span className={`profile-campana-estado ${c.active ? 'activa' : 'inactiva'}`}>
+                          {c.active ? 'Activa' : 'Finalizada'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* ACCIONES */}
+              <div className="profile-card profile-card--acciones">
+                <button className="profile-action-btn" onClick={() => navigate('/characters')}>
+                  Ver mis Personajes
                 </button>
-                <button
-                  className="profile-action-btn profile-action-btn--danger"
-                  onClick={handleLogout}
-                >
-                  🚪 Cerrar Sesión
+                <button className="profile-action-btn profile-action-btn--danger" onClick={handleLogout}>
+                  Cerrar Sesión
                 </button>
               </div>
+
             </div>
           )}
 
-          {/* ── TAB EDITAR ── */}
           {tab === 'editar' && (
             <form onSubmit={handleSave} className="profile-edit-form">
 
               {success && <div className="profile-alert profile-alert--success">✅ {success}</div>}
-              {error   && <div className="profile-alert profile-alert--error">⚠ {error}</div>}
+              {error && <div className="profile-alert profile-alert--error">⚠ {error}</div>}
 
               <div className="profile-field">
                 <label className="profile-label">Nombre de Usuario</label>
@@ -372,18 +431,10 @@ export function UserProfile() {
               </div>
 
               <div className="profile-form-actions">
-                <button
-                  type="button"
-                  className="profile-btn-cancel"
-                  onClick={() => setTab('perfil')}
-                >
+                <button type="button" className="profile-btn-cancel" onClick={() => setTab('perfil')}>
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  className="profile-btn-save"
-                  disabled={saving}
-                >
+                <button type="submit" className="profile-btn-save" disabled={saving}>
                   {saving ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
               </div>

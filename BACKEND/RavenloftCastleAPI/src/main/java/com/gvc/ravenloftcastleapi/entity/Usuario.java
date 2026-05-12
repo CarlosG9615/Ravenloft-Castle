@@ -7,6 +7,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 
@@ -40,11 +41,22 @@ public class Usuario implements UserDetails {
     @Column(length = 255)
     private String avatar;
 
+    @Column(name = "fecha_registro", updatable = false)
+    private LocalDate fechaRegistro;
+
+    @PrePersist
+    protected void onCreate() {
+        this.fechaRegistro = LocalDate.now();
+    }
+
     @Column()
     private boolean activado = false;
 
     @Column(name = "token_activacion")
     private String tokenActivacion;
+
+
+
 
 
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)

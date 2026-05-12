@@ -90,7 +90,7 @@ const MAPAS_MOCK: Mapa[] = [
 // ── COMPONENTE PRINCIPAL ──────────────────────────────────
 export function CreateCampaign() {
   const navigate = useNavigate();
-  const [paso, setPaso] = useState(1);
+  const [paso, setPaso] = useState(2);
 
   // Formulario
   const [nombre, setNombre] = useState('');

@@ -35,7 +35,8 @@ public class UsuarioService {
                 usuario.getNombre(),
                 usuario.getEmail(),
                 usuario.getRole().getNombre(),
-                usuario.getAvatar()
+                usuario.getAvatar(),
+                usuario.getFechaRegistro()
         );
     }
 
@@ -46,7 +47,8 @@ public class UsuarioService {
                         usuario.getNombre(),
                         usuario.getEmail(),
                         usuario.getRole().getNombre(),
-                        usuario.getAvatar()
+                        usuario.getAvatar(),
+                        usuario.getFechaRegistro()
                 ))
                 .collect(Collectors.toList());
     }
@@ -60,7 +62,8 @@ public class UsuarioService {
                 usuario.getNombre(),
                 usuario.getEmail(),
                 usuario.getRole().getNombre(),
-                usuario.getAvatar()
+                usuario.getAvatar(),
+                usuario.getFechaRegistro()
 
         );
     }
@@ -108,7 +111,8 @@ public class UsuarioService {
                 usuarioGuardado.getNombre(),
                 usuarioGuardado.getEmail(),
                 usuarioGuardado.getRole().getNombre(),
-                usuarioGuardado.getAvatar()
+                usuarioGuardado.getAvatar(),
+                usuarioGuardado.getFechaRegistro()
         );
     }
 
@@ -157,7 +161,8 @@ public class UsuarioService {
                 usuarioGuardado.getNombre(),
                 usuarioGuardado.getEmail(),
                 usuarioGuardado.getRole().getNombre(),
-                usuarioGuardado.getAvatar()
+                usuarioGuardado.getAvatar(),
+                usuarioGuardado.getFechaRegistro()
         );
     }
 

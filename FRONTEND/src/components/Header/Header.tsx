@@ -1,8 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../services/AuthContext';
 import { getMyProfile } from '../../services/authService';
+import { getMisNotificaciones, marcarComoLeida, marcarTodasComoLeidas } from '../../services/notificacionService';
+import type { NotificacionDTO } from '../../services/notificacionService';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import './Header.css';
+import { Bell } from 'lucide-react';
 
 interface NavItem {
   label: string;
@@ -15,47 +20,84 @@ export function Header() {
   const { isLoggedIn, user, logout, updateUser } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notificaciones, setNotificaciones] = useState<NotificacionDTO[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const stompRef = useRef<Client | null>(null);
+
+  const noLeidas = notificaciones.filter(n => !n.leida).length;
 
   const navItems: NavItem[] = [
-    { label: 'Inicio',              route: '/home' },
-    { label: 'Personajes',          route: '/characters' },
-    { label: 'Unirte a una Partida',route: '/join' },
-    { label: 'Crear Sala',          route: '/create' },
-    { label: 'Comunidad',           route: '/community' },
-    { label: 'Planes',              route: '/subscription' },
-
+    { label: 'Inicio',               route: '/home' },
+    { label: 'Personajes',           route: '/characters' },
+    { label: 'Unirte a una Partida', route: '/join' },
+    { label: 'Crear Sala',           route: '/create' },
+    { label: 'Planes',               route: '/subscription' },
   ];
 
-  // Rutas que requieren login
-  const privateRoutes = ['/characters', '/join', '/create', '/tools' , '/community'];
-  
+  const privateRoutes = ['/characters', '/join', '/create', '/tools'];
   const isActive = (route: string) => location.pathname === route;
 
-  // Cerrar dropdown al hacer clic fuera
+  const cargarNotificaciones = useCallback(async () => {
+    if (!isLoggedIn) return;
+    try {
+      const data = await getMisNotificaciones();
+      setNotificaciones(data);
+    } catch (err) {
+      console.error('Error cargando notificaciones:', err);
+    }
+  }, [isLoggedIn]);
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setDropdownOpen(false);
       }
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-      useEffect(() => {
-        if (isLoggedIn) {
-          getMyProfile()
-            .then(perfil => {
-              updateUser({
-                avatar: perfil.avatar,
-                nombre: perfil.nombre,
-                email: perfil.email,
-                rol: perfil.rol,
-              });
-            })
-            .catch(err => console.error('Error cargando perfil en header:', err));
-        }
-      }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      getMyProfile()
+        .then(perfil => {
+          updateUser({
+            avatar: perfil.avatar,
+            nombre: perfil.nombre,
+            email: perfil.email,
+            rol: perfil.rol,
+          });
+        })
+        .catch(err => console.error('Error cargando perfil en header:', err));
+    }
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !user?.id) return;
+
+    cargarNotificaciones();
+
+    const client = new Client({
+      webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
+      reconnectDelay: 5000,
+      onConnect: () => {
+        client.subscribe(`/topic/usuario/${user.id}/notificaciones`, (frame) => {
+          const nueva: NotificacionDTO = JSON.parse(frame.body);
+          setNotificaciones(prev => [nueva, ...prev]);
+        });
+      },
+    });
+
+    client.activate();
+    stompRef.current = client;
+
+    return () => { client.deactivate(); };
+  }, [isLoggedIn, user?.id]);
 
   const handleNavClick = (route: string) => {
     if (privateRoutes.includes(route) && !isLoggedIn) {
@@ -72,81 +114,145 @@ export function Header() {
     navigate('/home');
   };
 
-  // Iniciales del usuario para el avatar si no tiene foto
+  const handleMarcarLeida = async (id: number) => {
+    await marcarComoLeida(id);
+    setNotificaciones(prev => prev.map(n => n.id === id ? { ...n, leida: true } : n));
+  };
+
+  const handleMarcarTodas = async () => {
+    await marcarTodasComoLeidas();
+    setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })));
+  };
+
   const getInitials = () => {
     if (!user?.nombre) return '?';
     return user.nombre.charAt(0).toUpperCase();
+  };
+
+  const formatFecha = (fecha: string) => {
+    const d = new Date(fecha);
+    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getIconoNotif = (tipo: string) => {
+    if (tipo === 'UNION_CAMPANA') return '⚔';
+    if (tipo === 'SEGUIMIENTO') return '👤';
+    return '🔔';
   };
 
   return (
     <header className="header">
 
       <nav className="nav-menu">
-        {navItems.map((item) => {
-          const navLinkClass = 'nav-link' + (isActive(item.route) ? ' active' : '');
-          return (
-            <a
-              key={item.route}
-              className={navLinkClass}
-              onClick={() => handleNavClick(item.route)}
-            >
-              {item.label}
-            </a>
-          );
-        })}
+        {navItems.map((item) => (
+          <a
+            key={item.route}
+            className={'nav-link' + (isActive(item.route) ? ' active' : '')}
+            onClick={() => handleNavClick(item.route)}
+          >
+            {item.label}
+          </a>
+        ))}
       </nav>
 
       <div className="header-actions">
         <button className="icon-btn-clean" title="Idioma">🌐</button>
 
         {isLoggedIn && user ? (
-          /* ── USUARIO LOGUEADO: avatar + dropdown ── */
-          <div className="user-menu" ref={dropdownRef}>
-            <button
-              className="user-menu-trigger"
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-            >
-              <div className="user-avatar">
-                {user.avatar
-                  ? <img src={user.avatar} alt={user.nombre} />
-                  : <span className="user-initials">{getInitials()}</span>
-                }
-              </div>
-              <span className="user-name">{user.nombre}</span>
-              <span className={`dropdown-arrow ${dropdownOpen ? 'open' : ''}`}>▾</span>
-            </button>
+          <>
+            {/* ── CAMPANA NOTIFICACIONES ── */}
+            <div className="notif-wrap" ref={notifRef}>
+              <button
+                className="notif-btn"
+                onClick={() => setNotifOpen(!notifOpen)}
+                title="Notificaciones"
+              >
+                <Bell size={22} color="rgba(255,255,255,0.8)" />
+                {noLeidas > 0 && (
+                  <span className="notif-badge">{noLeidas}</span>
+                )}
+              </button>
 
-            {dropdownOpen && (
-              <div className="user-dropdown">
-                <div className="dropdown-content">
-                  <div className="dropdown-profile">
-                    <div className="dropdown-avatar">
-                      {user.avatar
-                        ? <img src={user.avatar} alt={user.nombre} />
-                        : <span>{getInitials()}</span>
-                      }
-                    </div>
-                    <div className="dropdown-profile-text">
-                      <div className="dropdown-greeting">¡Hola, {user.nombre}!</div>
-                      <div className="dropdown-email">{user.email}</div>
-                    </div>
+              {notifOpen && (
+                <div className="notif-dropdown">
+                  <div className="notif-header">
+                    <span className="notif-titulo">Notificaciones</span>
+                    {noLeidas > 0 && (
+                      <button className="notif-leer-todas" onClick={handleMarcarTodas}>
+                        Marcar todas
+                      </button>
+                    )}
                   </div>
 
-                  <div className="dropdown-actions">
-                    <button className="dropdown-item" onClick={() => { navigate('/profile'); setDropdownOpen(false); }}>
-                      Mi Perfil
-                    </button>
-                    <button className="dropdown-item dropdown-item--danger" onClick={handleLogout}>
-                      Cerrar Sesión
-                    </button>
+                  <div className="notif-lista">
+                    {notificaciones.length === 0 ? (
+                      <p className="notif-vacio">Sin notificaciones</p>
+                    ) : (
+                      notificaciones.map(n => (
+                        <div
+                          key={n.id}
+                          className={`notif-item ${n.leida ? 'leida' : 'no-leida'}`}
+                          onClick={() => !n.leida && handleMarcarLeida(n.id)}
+                        >
+                          <div className="notif-icono">{getIconoNotif(n.tipo)}</div>
+                          <div className="notif-contenido">
+                            <p className="notif-mensaje">{n.mensaje}</p>
+                            <span className="notif-fecha">{formatFecha(n.fecha)}</span>
+                          </div>
+                          {!n.leida && <div className="notif-punto" />}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
 
+            {/* ── USUARIO ── */}
+            <div className="user-menu" ref={dropdownRef}>
+              <button
+                className="user-menu-trigger"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+              >
+                <div className="user-avatar">
+                  {user.avatar
+                    ? <img src={user.avatar} alt={user.nombre} />
+                    : <span className="user-initials">{getInitials()}</span>
+                  }
+                </div>
+                <span className="user-name">{user.nombre}</span>
+                <span className={`dropdown-arrow ${dropdownOpen ? 'open' : ''}`}>▾</span>
+              </button>
+
+              {dropdownOpen && (
+                <div className="user-dropdown">
+                  <div className="dropdown-content">
+                    <div className="dropdown-profile">
+                      <div className="dropdown-avatar">
+                        {user.avatar
+                          ? <img src={user.avatar} alt={user.nombre} />
+                          : <span>{getInitials()}</span>
+                        }
+                      </div>
+                      <div className="dropdown-profile-text">
+                        <div className="dropdown-greeting">¡Hola, {user.nombre}!</div>
+                        <div className="dropdown-email">{user.email}</div>
+                      </div>
+                    </div>
+                    <div className="dropdown-actions">
+                      <button className="dropdown-item" onClick={() => { navigate('/profile'); setDropdownOpen(false); }}>
+                        Mi Perfil
+                      </button>
+                      <button className="dropdown-item dropdown-item--danger" onClick={handleLogout}>
+                        Cerrar Sesión
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
         ) : (
-          /* ── NO LOGUEADO: botón login ── */
           <button className="login-btn" onClick={() => navigate('/login')}>
             <img
               src="/images/icons/icon-castle.png"
