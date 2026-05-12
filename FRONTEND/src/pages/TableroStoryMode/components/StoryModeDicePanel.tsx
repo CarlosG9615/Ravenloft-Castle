@@ -8,6 +8,7 @@ interface StoryModeDicePanelProps {
   turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
   jugadorActual?: any;
   movimientoYaLanzado?: boolean;
+  ataqueYaLanzado?: boolean;
 }
 
 const DADOS_MOVIMIENTO = [
@@ -28,6 +29,7 @@ export function StoryModeDicePanel({
   turnoActual,
   jugadorActual,
   movimientoYaLanzado = false,
+  ataqueYaLanzado = false,
 }: StoryModeDicePanelProps) {
   const isMyTurn =
     turnoActual?.fase === 'personajes' &&
@@ -69,7 +71,7 @@ export function StoryModeDicePanel({
                 }
                 onLanzarDado(caras, 'ataque-' + label);
               }}
-              disabled={dadoActivo !== null || !isMyTurn}
+              disabled={dadoActivo !== null || !isMyTurn || ataqueYaLanzado}
             >
               <img src={imagen} alt={label} className="pp-dado-imagen" />
             </button>

@@ -63,4 +63,10 @@ public class MisionParticipante {
 
     @Column(name = "orden_union")
     private Integer ordenUnion;
+
+    @Column(name = "movimiento_roll")
+    private Integer movimientoRoll;
+
+    @Column(name = "ataque_roll")
+    private Integer ataqueRoll;
 }

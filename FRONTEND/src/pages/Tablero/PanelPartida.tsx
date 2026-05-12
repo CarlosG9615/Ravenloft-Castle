@@ -37,6 +37,7 @@ interface MensajeChat {
     resultado: number;
     modificador: number;
     total: number;
+    imagenes?: string[];
   };
 }
 
@@ -155,20 +156,33 @@ interface Props {
   campanaId?: number | string;
   jugadorActual?: any;
   esMaster?: boolean;
+  dicesComponent?: React.ComponentType<any>;
+  turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
+  onMovimientoRollResult?: (resultado: number) => void;
+  movimientoYaLanzado?: boolean;
+  onAtaqueRollResult?: (cantidadResultados: number) => void;
+  ataqueYaLanzado?: boolean;
+  chatSince?: string | null;
 }
 
-export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0392b', panelSuperior, jugadores, campanaId, jugadorActual, esMaster = false }: Props) {
+export function PanelPartida({
+  nombreMaster = 'Tú (Master)',
+  colorMaster = '#c0392b',
+  panelSuperior,
+  jugadores,
+  campanaId,
+  jugadorActual,
+  esMaster: _esMaster = false,
+  dicesComponent: CustomDicePanel,
+  turnoActual,
+  onMovimientoRollResult,
+  movimientoYaLanzado = false,
+  onAtaqueRollResult,
+  ataqueYaLanzado = false,
+  chatSince,
+}: Props) {
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'dados' | 'voz'>('chat');
-  const [mensajes, setMensajes] = useState<MensajeChat[]>([
-    {
-      id: '0',
-      autor: 'Sistema',
-      colorAutor: '#8b0000',
-      texto: 'La partida ha comenzado. ¡Que empiece la aventura!',
-      tipo: 'sistema',
-      timestamp: hora(),
-    },
-  ]);
+  const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [inputChat, setInputChat] = useState('');
   const [modificador, setModificador] = useState(0);
   const [conectado, setConectado] = useState(false);
@@ -192,6 +206,37 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
       onConnect: () => {
         setConectado(true);
         if (campanaId) {
+          // Cargar historial persistido; si chatSince está definido sólo se cargan mensajes posteriores
+          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+          const sinceParam = chatSince ? `?since=${encodeURIComponent(chatSince)}` : '';
+          fetch(`http://localhost:8080/api/misiones/${campanaId}/chat${sinceParam}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          })
+            .then(r => (r.ok ? r.json() : []))
+            .then((items: any[]) => {
+              const historial: MensajeChat[] = Array.isArray(items)
+                ? items.map((m: any) => ({ ...m, id: m.id || (Date.now().toString() + Math.random()) }))
+                : [];
+              setMensajes(historial.length > 0 ? historial : [{
+                id: '0',
+                autor: 'Sistema',
+                colorAutor: '#8b0000',
+                texto: 'La partida ha comenzado. ¡Que empiece la aventura!',
+                tipo: 'sistema' as const,
+                timestamp: hora(),
+              }]);
+            })
+            .catch(() => {
+              setMensajes([{
+                id: '0',
+                autor: 'Sistema',
+                colorAutor: '#8b0000',
+                texto: 'La partida ha comenzado. ¡Que empiece la aventura!',
+                tipo: 'sistema' as const,
+                timestamp: hora(),
+              }]);
+            });
+
           client.subscribe(`/topic/campana/${campanaId}/chat`, (frame) => {
             const msg = JSON.parse(frame.body);
             setMensajes(prev => [...prev, {
@@ -298,9 +343,13 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     if (!texto || !stompRef.current?.connected || !campanaId) return;
     const autorNombre = jugadorActual?.nombre || nombreMaster;
     const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
+    const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
     stompRef.current.publish({
       destination: `/app/campana/${campanaId}/chat.enviar`,
       body: JSON.stringify({
+        personajeId,
+        usuarioId,
         autor: autorNombre,
         colorAutor: autorColor,
         texto,
@@ -318,7 +367,7 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     }
   };
 
-  const lanzarDado = (caras: number, label: string) => {
+  const lanzarDado = (_caras: number, label: string) => {
     setDadoActivo(label);
     setResultadoActivo(0);
   };
@@ -327,6 +376,8 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     if (dadoActivo === null) return;
     const autorNombre = jugadorActual?.nombre || nombreMaster;
     const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
+    const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
     const total = resultadoReal + modificador;
     const msg: MensajeChat = {
       id: Date.now().toString(),
@@ -340,14 +391,44 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
     if (stompRef.current?.connected && campanaId) {
       stompRef.current.publish({
         destination: `/app/campana/${campanaId}/chat.enviar`,
-        body: JSON.stringify(msg),
+        body: JSON.stringify({ ...msg, personajeId, usuarioId }),
       });
     } else {
       setMensajes(prev => [...prev, msg]);
     }
+    onMovimientoRollResult?.(resultadoReal);
     setDadoActivo(null);
     setResultadoActivo(null);
-  }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual]);
+  }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual, CustomDicePanel, onMovimientoRollResult]);
+
+  const handleAtaqueAnimacionFin = useCallback((imagenesResultado: string[]) => {
+    if (!CustomDicePanel || dadoActivo === null) return;
+    const dado = dadoActivo.replace(/^ataque-/, '');
+    const autorNombre = jugadorActual?.nombre || nombreMaster;
+    const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
+    const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
+    const msg: MensajeChat = {
+      id: Date.now().toString(),
+      autor: autorNombre,
+      colorAutor: autorColor,
+      texto: '',
+      tipo: 'tirada',
+      timestamp: hora(),
+      tirada: { dado, resultado: 0, modificador: 0, total: 0, imagenes: imagenesResultado },
+    };
+    if (stompRef.current?.connected && campanaId) {
+      stompRef.current.publish({
+        destination: `/app/campana/${campanaId}/chat.enviar`,
+        body: JSON.stringify({ ...msg, personajeId, usuarioId }),
+      });
+    } else {
+      setMensajes(prev => [...prev, msg]);
+    }
+    onAtaqueRollResult?.(imagenesResultado.length);
+    setDadoActivo(null);
+    setResultadoActivo(null);
+  }, [dadoActivo, nombreMaster, colorMaster, campanaId, jugadorActual, onAtaqueRollResult]);
 
   const jugadoresBase = Array.isArray(jugadores) ? jugadores : [];
   const jugadoresBasePorId = new Map(jugadoresBase.map(j => [j?.id?.toString?.(), j]));
@@ -629,33 +710,51 @@ export function PanelPartida({ nombreMaster = 'Tú (Master)', colorMaster = '#c0
 
       {/* ── DADOS ── */}
       {pestana === 'dados' && (
-        <div className="pp-seccion pp-dados-wrap">
-          <p className="pp-dados-hint">Haz clic en un dado para lanzarlo</p>
-          <div className="pp-dados-grid">
-            {DADOS.map(({ caras, label }) => (
-              <button
-                key={label}
-                className={`pp-dado-btn ${dadoActivo === label ? 'animando' : ''}`}
-                onClick={() => lanzarDado(caras, label)}
-                disabled={dadoActivo !== null}
-              >
-                <span className="pp-dado-icono">{dadoActivo === label ? '💫' : '⬡'}</span>
-                <span className="pp-dado-label">{label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="pp-modificador-wrap">
-            <label className="pp-mod-label">Modificador</label>
-            <div className="pp-mod-controles">
-              <button className="pp-mod-btn" onClick={() => setModificador(m => m - 1)}>−</button>
-              <span className="pp-mod-valor">{modificador >= 0 ? `+${modificador}` : modificador}</span>
-              <button className="pp-mod-btn" onClick={() => setModificador(m => m + 1)}>+</button>
+        <>
+          {CustomDicePanel ? (
+            <CustomDicePanel
+              dadoActivo={dadoActivo}
+              resultadoActivo={resultadoActivo}
+              onLanzarDado={lanzarDado}
+              modificador={modificador}
+              setModificador={setModificador}
+              onAnimacionFin={handleAnimacionFin}
+              onAtaqueAnimacionFin={handleAtaqueAnimacionFin}
+              turnoActual={turnoActual}
+              jugadorActual={jugadorActual}
+              movimientoYaLanzado={movimientoYaLanzado}
+              ataqueYaLanzado={ataqueYaLanzado}
+            />
+          ) : (
+            <div className="pp-seccion pp-dados-wrap">
+              <p className="pp-dados-hint">Haz clic en un dado para lanzarlo</p>
+              <div className="pp-dados-grid">
+                {DADOS.map(({ caras, label }) => (
+                  <button
+                    key={label}
+                    className={`pp-dado-btn ${dadoActivo === label ? 'animando' : ''}`}
+                    onClick={() => lanzarDado(caras, label)}
+                    disabled={dadoActivo !== null}
+                  >
+                    <span className="pp-dado-icono">{dadoActivo === label ? '💫' : '⬡'}</span>
+                    <span className="pp-dado-label">{label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="pp-modificador-wrap">
+                <label className="pp-mod-label">Modificador</label>
+                <div className="pp-mod-controles">
+                  <button className="pp-mod-btn" onClick={() => setModificador(m => m - 1)}>−</button>
+                  <span className="pp-mod-valor">{modificador >= 0 ? `+${modificador}` : modificador}</span>
+                  <button className="pp-mod-btn" onClick={() => setModificador(m => m + 1)}>+</button>
+                </div>
+              </div>
+              <p className="pp-dados-hint" style={{ marginTop: 12 }}>
+                El resultado aparecerá en el chat
+              </p>
             </div>
-          </div>
-          <p className="pp-dados-hint" style={{ marginTop: 12 }}>
-            El resultado aparecerá en el chat
-          </p>
-        </div>
+          )}
+        </>
       )}
 
       {/* ── VOZ ── */}

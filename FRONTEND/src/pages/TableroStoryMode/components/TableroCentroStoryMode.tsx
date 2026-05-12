@@ -27,7 +27,7 @@ const BASE_MAP_CONFIG = {
 } as const;
 
 const MAP_BY_DIFFICULTY: Record<string, MapConfig> = {
-  facil:  { ...BASE_MAP_CONFIG, imageUrl: '/images/tableros/tableroModHistoria1.png' },
+  facil:  { ...BASE_MAP_CONFIG, imageUrl: '/images/tableros/tableroModHistoria1.png', offsetX: BASE_MAP_CONFIG.offsetX + 6, offsetY: BASE_MAP_CONFIG.offsetY + 12 },
   media:  { ...BASE_MAP_CONFIG, imageUrl: '/images/tableros/tableroModHistoria2.png' },
   dificil: { ...BASE_MAP_CONFIG, imageUrl: '/images/tableros/tableroModHistoria3.png' },
 };
@@ -81,6 +81,7 @@ interface Props {
   sendFinTurno?: (personajeId: string | number) => void;
   onParticipantesLoaded?: (participantes: ParticipanteDTO[]) => void;
   movimientoRoll?: number | null;
+  onMovimientoUsed?: (steps: number) => void;
 }
 
 const COLORES_CLASES: Record<string, string> = {
@@ -151,6 +152,7 @@ export function TableroCentroStoryMode({
   sendFinTurno,
   onParticipantesLoaded,
   movimientoRoll = null,
+  onMovimientoUsed,
 }: Props) {
   const [participantes, setParticipantes] = useState<ParticipanteDTO[]>([]);
 
@@ -174,10 +176,10 @@ export function TableroCentroStoryMode({
             },
           }
         );
-        
+
         const contentType = response.headers.get('content-type');
         const isJson = contentType?.includes('application/json');
-        
+
         if (response.ok && isJson) {
           const data: ParticipanteDTO[] = await response.json();
           setParticipantes(data);
@@ -344,6 +346,7 @@ export function TableroCentroStoryMode({
         jugadorActual={jugadorActual}
         miPersonajeId={jugadorActual?.personajeId?.toString() ?? jugadorActual?.id?.toString()}
         movimientoRoll={movimientoRoll}
+        onMovimientoUsed={onMovimientoUsed}
       />
     </div>
   );

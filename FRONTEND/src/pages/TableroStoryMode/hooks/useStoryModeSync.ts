@@ -32,21 +32,19 @@ interface TurnoData {
   fase: 'personajes' | 'master';
 }
 
-// Colores por ordenUnion (se usan para tokens). Si hay más jugadores, se reutilizan por módulo.
+export interface DadosRollEntry {
+  movimiento?: number | null;
+  ataque?: number | null;
+}
+
 const ORDER_COLORS = ['#C0392B', '#2980B9', '#27AE60', '#8E44AD', '#E67E22', '#F39C12'];
 const getColorForOrden = (orden: number | null | undefined): string => {
   if (orden == null || Number.isNaN(Number(orden))) return '#4a90d9';
-  const idx = Number(orden) % ORDER_COLORS.length;
-  return ORDER_COLORS[idx];
+  return ORDER_COLORS[Number(orden) % ORDER_COLORS.length];
 };
 
-// Obtener token del storage
 const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
 
-/**
- * Hook personalizado para sincronizar jugadores en Story Mode
- * Conecta via WebSocket a /topic/mision/{misionId}/jugadores
- */
 export function useStoryModeSync(
   misionId: string | number | null | undefined,
   jugadorActual: any,
@@ -55,7 +53,6 @@ export function useStoryModeSync(
   const jugadorId = jugadorActual?.id ?? jugadorActual?.personajeId ?? null;
   const jugadorPersonajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
 
-  // Ref para el payload del join: se actualiza en cada render pero NO dispara reconexión
   const jugadorPayloadRef = useRef<Record<string, unknown>>({});
   jugadorPayloadRef.current = {
     id: jugadorId,
@@ -73,6 +70,7 @@ export function useStoryModeSync(
   const [conectado, setConectado] = useState(false);
   const [tokenMoves, setTokenMoves] = useState<TokenMove | null>(null);
   const [turnoActual, setTurnoActual] = useState<TurnoData | null>(null);
+  const [dadosRoll, setDadosRoll] = useState<Record<string, DadosRollEntry>>({});
   const stompRef = useRef<Client | null>(null);
 
   const sendTokenMove = useCallback((col: number, row: number) => {
@@ -106,6 +104,24 @@ export function useStoryModeSync(
     });
   }, [misionId]);
 
+  const sendDadoMovimiento = useCallback((personajeId: number, valor: number) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/dado-movimiento`,
+      body: JSON.stringify({ personajeId, valor, tipo: 'movimiento' }),
+    });
+  }, [misionId]);
+
+  const sendDadoAtaque = useCallback((personajeId: number, valor: number) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/dado-ataque`,
+      body: JSON.stringify({ personajeId, valor, tipo: 'ataque' }),
+    });
+  }, [misionId]);
+
   const sendChatMessage = useCallback((mensaje: { autor: string; colorAutor?: string; texto: string; tipo?: string }) => {
     const client = stompRef.current;
     if (!client?.connected || !misionId) return;
@@ -122,99 +138,93 @@ export function useStoryModeSync(
   }, [misionId]);
 
   useEffect(() => {
-    if (!misionId || !jugadorActual) {
-      return;
-    }
-
+    if (!misionId || !jugadorActual) return;
     const token = getToken();
-    if (!token) {
-      return;
-    }
+    if (!token) return;
 
     const client = new Client({
       webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
       reconnectDelay: 5000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
-      connectHeaders: {
-        Authorization: `Bearer ${token}`,
-      },
+      connectHeaders: { Authorization: `Bearer ${token}` },
       onConnect: () => {
         setConectado(true);
 
-        // Suscribirse a los jugadores de esta misión
-        client.subscribe(
-          `/topic/mision/${misionId}/jugadores`,
-          (frame) => {
-            try {
-              const list = JSON.parse(frame.body);
-              if (Array.isArray(list)) {
-                const mapped = list.map((p: any) => {
-                  const orden = p?.ordenUnion;
-                  return {
-                    ...p,
-                    // ParticipanteJugadorDTO usa nombrePersonaje/usuarioId; normalizar
-                    id: p.usuarioId ?? p.id,
-                    nombre: p.nombrePersonaje ?? p.nombre,
-                    hp: p.saludActual ?? p.hp,
-                    hpMax: p.saludMax ?? p.hpMax,
-                    ordenUnion: orden,
-                    color: getColorForOrden(orden),
+        client.subscribe(`/topic/mision/${misionId}/jugadores`, (frame) => {
+          try {
+            const list = JSON.parse(frame.body);
+            if (Array.isArray(list)) {
+              const rollsMap: Record<string, DadosRollEntry> = {};
+              const mapped = list.map((p: any) => {
+                const orden = p?.ordenUnion;
+                const pid = (p.personajeId ?? p.id)?.toString();
+                if (pid) {
+                  rollsMap[pid] = {
+                    movimiento: p.movimientoRoll ?? null,
+                    ataque: p.ataqueRoll ?? null,
                   };
-                });
-                setJugadoresSincronizados(mapped);
-              } else {
-                setJugadoresSincronizados([]);
-              }
-            } catch (e) {
-              // Ignorar payloads inválidos de forma silenciosa.
+                }
+                return {
+                  ...p,
+                  id: p.usuarioId ?? p.id,
+                  nombre: p.nombrePersonaje ?? p.nombre,
+                  hp: p.saludActual ?? p.hp,
+                  hpMax: p.saludMax ?? p.hpMax,
+                  ordenUnion: orden,
+                  color: getColorForOrden(orden),
+                };
+              });
+              setJugadoresSincronizados(mapped);
+              setDadosRoll(rollsMap);
+            } else {
+              setJugadoresSincronizados([]);
             }
-          }
-        );
+          } catch {}
+        });
 
-        // Suscribirse a los movimientos de tokens
         client.subscribe(`/topic/mision/${misionId}/tokens`, (frame) => {
           try {
             const move: TokenMove = JSON.parse(frame.body);
             setTokenMoves(move);
-          } catch (e) {
-            // Ignorar payloads inválidos de forma silenciosa.
-          }
+          } catch {}
         });
 
-        // Suscribirse al estado del turno
         client.subscribe(`/topic/mision/${misionId}/turno`, (frame) => {
           try {
             const turnoData: TurnoData = JSON.parse(frame.body);
             setTurnoActual(turnoData);
-          } catch (e) {
-            // Ignorar payloads inválidos de forma silenciosa.
-          }
+          } catch {}
         });
 
-        // Suscribirse a respuestas de sincronización privada
+        client.subscribe(`/topic/mision/${misionId}/dado-roll`, (frame) => {
+          try {
+            const roll = JSON.parse(frame.body);
+            const pid = roll.personajeId?.toString();
+            if (!pid) return;
+            setDadosRoll(prev => ({
+              ...prev,
+              [pid]: {
+                ...prev[pid],
+                [roll.tipo === 'movimiento' ? 'movimiento' : 'ataque']: roll.valor,
+              },
+            }));
+          } catch {}
+        });
+
         client.subscribe(`/user/queue/mision/${misionId}/token-sync`, (frame) => {
           try {
             const tokenStates: TokenMove[] = JSON.parse(frame.body);
-            // Aplicar cada estado de token recibido
-            tokenStates.forEach((state) => {
-              setTokenMoves(state);
-            });
-          } catch (e) {
-            // Ignorar payloads inválidos de forma silenciosa.
-          }
+            tokenStates.forEach((state) => setTokenMoves(state));
+          } catch {}
         });
 
-        // Solicitar sincronización de posiciones de tokens actuales
-        const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
         client.publish({
           destination: `/app/mision/${misionId}/token-request-sync`,
-          body: JSON.stringify({
-            sessionId: sessionId,
-          }),
+          body: JSON.stringify({ sessionId }),
         });
 
-        // Notificar que este jugador se une a la misión
         if (jugadorId || jugadorPersonajeId) {
           client.publish({
             destination: `/app/mision/${misionId}/join`,
@@ -223,32 +233,29 @@ export function useStoryModeSync(
         }
       },
 
-      onDisconnect: () => {
-        setConectado(false);
-      },
-
-      onStompError: () => {
-        setConectado(false);
-      },
+      onDisconnect: () => setConectado(false),
+      onStompError: () => setConectado(false),
     });
 
-    const handleBeforeUnload = () => {
-      // Evitar publicar `leave` en beforeunload para no provocar efectos
-      // secundarios en el backend que puedan forzar re-login del cliente.
-      // La desconexión se maneja en el cleanup del hook.
-      return;
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
     client.activate();
     stompRef.current = client;
 
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
       client.deactivate();
     };
-  // Solo reconectar cuando cambia la misión o el jugador, no por valores derivados
   }, [misionId, jugadorId, jugadorPersonajeId]);
 
-  return { jugadoresSincronizados, conectado, tokenMoves, sendTokenMove, turnoActual, sendFinTurno, sendIniciarRonda, sendChatMessage };
+  return {
+    jugadoresSincronizados,
+    conectado,
+    tokenMoves,
+    turnoActual,
+    dadosRoll,
+    sendTokenMove,
+    sendFinTurno,
+    sendIniciarRonda,
+    sendDadoMovimiento,
+    sendDadoAtaque,
+    sendChatMessage,
+  };
 }

@@ -18,6 +18,8 @@ public record ParticipanteJugadorDTO(
         Integer constitucion,
         Integer inteligencia,
         Integer sabiduria,
-        Integer carisma
+        Integer carisma,
+        Integer movimientoRoll,
+        Integer ataqueRoll
 ) {
 }

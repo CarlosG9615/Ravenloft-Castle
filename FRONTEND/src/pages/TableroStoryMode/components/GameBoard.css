@@ -86,7 +86,7 @@
 }
 
 .gb-top-avatar.current {
-  box-shadow: 0 0 0 2px rgba(255, 225, 107, 0.75), 0 0 16px rgba(255, 225, 107, 0.35);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.95), 0 0 10px rgba(255, 255, 255, 0.45);
 }
 
 .gb-top-avatar.ended {
@@ -217,6 +217,74 @@
   font-size: 11px;
   color: rgba(220, 190, 140, 0.9);
   text-align: center;
+}
+
+.gb-door-modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(360px, calc(100% - 32px));
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(241, 196, 15, 0.35);
+  background: linear-gradient(180deg, rgba(12, 2, 2, 0.98) 0%, rgba(6, 1, 1, 0.96) 100%);
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.48);
+  z-index: 40;
+  backdrop-filter: blur(8px);
+}
+
+.gb-door-modal.secret {
+  border-color: rgba(137, 180, 255, 0.5);
+}
+
+.gb-door-modal.double {
+  border-color: rgba(255, 225, 107, 0.55);
+}
+
+.gb-door-modal-title {
+  margin: 0 0 8px;
+  font-family: 'Metal Mania', cursive;
+  font-size: 20px;
+  line-height: 1.1;
+  color: rgba(255, 230, 180, 0.98);
+  text-align: center;
+}
+
+.gb-door-modal .gb-door-modal-text {
+  font-size: 12px;
+  color: rgba(226, 199, 152, 0.92);
+  text-align: center;
+}
+
+.gb-door-modal-actions {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+}
+
+.gb-door-modal-btn {
+  flex: 1;
+  border: 1px solid rgba(139, 0, 0, 0.45);
+  background: rgba(139, 0, 0, 0.18);
+  color: rgba(226, 199, 152, 0.95);
+  border-radius: 10px;
+  padding: 9px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+}
+
+.gb-door-modal-btn:hover {
+  background: rgba(139, 0, 0, 0.28);
+  transform: translateY(-1px);
+}
+
+.gb-door-modal-btn.primary {
+  border-color: rgba(241, 196, 15, 0.55);
+  background: rgba(139, 0, 0, 0.32);
+  color: rgba(255, 230, 180, 0.98);
 }
 
 .gb-master-loader {

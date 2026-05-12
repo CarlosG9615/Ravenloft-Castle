@@ -23,7 +23,10 @@ export interface BoardPixel {
 
 const keyFromCell = (col: number, row: number): string => `${col},${row}`;
 
-export function useBoardGrid(mapConfig: MapConfig) {
+export function useBoardGrid(
+  mapConfig: MapConfig,
+  isMovementBlocked: (fromCol: number, fromRow: number, toCol: number, toRow: number) => boolean = () => false
+) {
   const pixelToCell = useCallback((x: number, y: number, scale: number): BoardCell | null => {
     if (scale <= 0) return null;
 
@@ -71,6 +74,10 @@ export function useBoardGrid(mapConfig: MapConfig) {
           continue;
         }
 
+        if (isMovementBlocked(current.col, current.row, next.col, next.row)) {
+          continue;
+        }
+
         const nextKey = keyFromCell(next.col, next.row);
         if (visited.has(nextKey)) continue;
 
@@ -80,7 +87,7 @@ export function useBoardGrid(mapConfig: MapConfig) {
     }
 
     return reachable;
-  }, [mapConfig.cols, mapConfig.rows]);
+  }, [isMovementBlocked, mapConfig.cols, mapConfig.rows]);
 
   return {
     pixelToCell,

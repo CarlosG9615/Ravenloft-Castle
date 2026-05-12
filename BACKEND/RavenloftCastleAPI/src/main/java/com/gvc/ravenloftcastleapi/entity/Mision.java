@@ -41,6 +41,12 @@ public class Mision {
     @Column(nullable = false)
     private boolean completada;
 
+    @Column(name = "turno_actual_personaje_id")
+    private Long turnoActualPersonajeId;
+
+    @Column(name = "turno_fase", length = 20)
+    private String turnoFase;
+
     @OneToMany(mappedBy = "mision", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MisionEscenario> escenarios;
 

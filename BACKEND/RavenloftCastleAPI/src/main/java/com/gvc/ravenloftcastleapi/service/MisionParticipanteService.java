@@ -42,6 +42,7 @@ public class MisionParticipanteService {
     private final PersonajeRepository personajeRepository;
     private final ModoHistoriaPersonajeRepository modoHistoriaPersonajeRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final com.gvc.ravenloftcastleapi.repository.MensajeChatRepository mensajeChatRepository;
 
     // Posiciones de spawn iniciales para jugadores, fijas según ordenUnion
     private static final int[][] SPAWN_POSITIONS = {
@@ -185,6 +186,7 @@ public class MisionParticipanteService {
         Long pjId = participante.getPersonaje() != null ? participante.getPersonaje().getId() : null;
         Long usuarioId = participante.getUsuario().getId();
         Integer ordenUnion = participante.getOrdenUnion();
+        String nombrePersonaje = participante.getPersonaje() != null ? participante.getPersonaje().getNombre() : null;
 
         participanteRepository.delete(participante);
         participanteRepository.flush();
@@ -194,7 +196,24 @@ public class MisionParticipanteService {
         }
 
         limpiarModoHistoriaPersonajeSiSinPartidas(modoHistoriaId, pjId, usuarioId);
+
+        try {
+            if (pjId != null) {
+                mensajeChatRepository.deleteMensajesByMisionIdAndPersonajeId(misionId, pjId);
+            }
+            if (nombrePersonaje != null) {
+                mensajeChatRepository.deleteLegacyMensajesByMisionIdAndAutor(misionId, nombrePersonaje);
+            }
+        } catch (Exception e) {
+            System.err.println("[Abandon] Error limpiando mensajes del chat, continuando: " + e.getMessage());
+        }
+
+        if (participanteRepository.findByMisionId(misionId).isEmpty()) {
+            mensajeChatRepository.deleteByMisionId(misionId);
+        }
+
         broadcastParticipantes(misionId);
+        resetTurnoTrasAbandono(misionId);
     }
 
     private void limpiarModoHistoriaPersonajeSiSinPartidas(Long modoHistoriaId, Long personajeId, Long usuarioId) {
@@ -208,6 +227,24 @@ public class MisionParticipanteService {
         List<com.gvc.ravenloftcastleapi.dto.mision.ParticipanteJugadorDTO> lista =
                 participanteRepository.findParticipantesJugadores(misionId);
         messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/jugadores", lista);
+    }
+
+    private void resetTurnoTrasAbandono(Long misionId) {
+        List<com.gvc.ravenloftcastleapi.dto.mision.ParticipanteJugadorDTO> restantes =
+                participanteRepository.findParticipantesJugadores(misionId);
+        misionRepository.findById(misionId).ifPresent(m -> {
+            if (restantes.isEmpty()) {
+                m.setTurnoActualPersonajeId(null);
+                m.setTurnoFase("master");
+            } else {
+                m.setTurnoActualPersonajeId(restantes.get(0).personajeId());
+                m.setTurnoFase("personajes");
+            }
+            misionRepository.save(m);
+            messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/turno",
+                new com.gvc.ravenloftcastleapi.dto.mision.TurnoDTO(
+                    m.getTurnoActualPersonajeId(), m.getTurnoFase()));
+        });
     }
 
     @Transactional(readOnly = true)
@@ -250,20 +287,6 @@ public class MisionParticipanteService {
         if (personajesUnidos.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes personaje unido al modo historia de esta mision");
         }
-
-        Personaje personaje = personajesUnidos.get(0).getPersonaje();
-
-        int ordenUnionNuevo = participanteRepository.findByMisionId(mision.getId()).size();
-        MisionParticipante nuevo = MisionParticipante.builder()
-                .mision(mision)
-                .usuario(currentUser)
-                .personaje(personaje)
-                .rol(RolParticipante.JUGADOR)
-                .fechaInicio(LocalDateTime.now())
-                .ordenUnion(ordenUnionNuevo)
-                .build();
-
-        participanteRepository.save(nuevo);
     }
 
     private Usuario getUsuarioByEmail(String email) {
