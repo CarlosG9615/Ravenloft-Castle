@@ -1,7 +1,39 @@
 import './CharacterSelectModal.css';
 
-const defaultCardImage = personaje => personaje?.avatar ?? '/images/avatars/default.png';
-const defaultPreviewImage = personaje => personaje?.avatar ?? '/images/avatars/default.png';
+interface Stat {
+  key: string;
+  label: string;
+  value: string | number;
+}
+
+interface Personaje {
+  id: number;
+  nombre: string;
+  avatar?: string;
+  nivel?: number;
+  [key: string]: unknown;
+}
+
+interface CharacterSelectModalProps {
+  isOpen: boolean;
+  title?: string;
+  personajes?: Personaje[];
+  loading?: boolean;
+  error?: string | null;
+  selected?: Personaje | null;
+  onSelect?: (personaje: Personaje) => void;
+  onClose?: () => void;
+  onConfirm?: () => void;
+  confirmLabel?: string;
+  getCardImage?: (personaje: Personaje) => string;
+  getPreviewImage?: (personaje: Personaje) => string;
+  stats?: Stat[];
+  emptyMessage?: string;
+  previewEmptyMessage?: string;
+}
+
+const defaultCardImage = (personaje: Personaje) => personaje?.avatar ?? '/images/avatars/default.png';
+const defaultPreviewImage = (personaje: Personaje) => personaje?.avatar ?? '/images/avatars/default.png';
 
 export function CharacterSelectModal({
   isOpen,
@@ -19,7 +51,7 @@ export function CharacterSelectModal({
   stats = [],
   emptyMessage = 'No tienes personajes disponibles.',
   previewEmptyMessage = 'Selecciona un personaje para ver su avatar',
-}) {
+}: CharacterSelectModalProps) {
   if (!isOpen) return null;
 
   const mostrarStats = Array.isArray(stats) && stats.length > 0;
@@ -119,4 +151,3 @@ export function CharacterSelectModal({
     </div>
   );
 }
-

@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.gvc.ravenloftcastleapi.entity.CampanaJugador;
+import com.gvc.ravenloftcastleapi.entity.Personaje;
+import com.gvc.ravenloftcastleapi.repository.CampanaJugadorRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +19,7 @@ import com.gvc.ravenloftcastleapi.repository.CampanaRepository;
 import com.gvc.ravenloftcastleapi.repository.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +27,8 @@ public class CampanaService {
 
     private final CampanaRepository campanaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final CampanaJugadorRepository campanaJugadorRepository;
+    private final NotificacionService notificacionService;
 
     public CampanaResponse crearCampana(CampanaRequest request) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -87,6 +93,46 @@ public class CampanaService {
                 .orElseThrow(() -> new RuntimeException("Campaña no encontrada"));
         return mapToResponse(campana);
     }
+
+    @Transactional
+    public void unirseACampana(Long campanaId, Long personajeId) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Usuario jugador = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        Campana campana = campanaRepository.findById(campanaId)
+                .orElseThrow(() -> new RuntimeException("Campaña no encontrada"));
+
+        // Evitar duplicados
+        if (campanaJugadorRepository.existsByCampanaIdAndUsuarioId(campanaId, jugador.getId())) {
+            return;
+        }
+
+        Personaje personaje = null;
+        if (personajeId != null) {
+            personaje = new Personaje();
+            personaje.setId(personajeId);
+        }
+
+        CampanaJugador union = CampanaJugador.builder()
+                .campana(campana)
+                .usuario(jugador)
+                .personaje(personaje)
+                .build();
+
+        campanaJugadorRepository.save(union);
+
+        // Notificar al master
+        notificacionService.crearNotificacion(
+                campana.getMaster().getId(),
+                jugador.getId(),
+                "UNION_CAMPANA",
+                jugador.getNombre() + " quiere unirse a tu campaña \"" + campana.getNombre() + "\"",
+                campanaId,
+                campana.getNombre()
+        );
+    }
+
 
     private CampanaResponse mapToResponse(Campana campana) {
         return CampanaResponse.builder()

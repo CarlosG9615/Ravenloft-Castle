@@ -85,3 +85,15 @@ export const obtenerCampanaPorId = async (id: number): Promise<CampanaResponse> 
   }
   return response.json();
 };
+
+export const unirseACampana = async (campanaId: number, personajeId?: number): Promise<void> => {
+  const url = personajeId
+    ? `${API_URL}/api/campanas/${campanaId}/unirse?personajeId=${personajeId}`
+    : `${API_URL}/api/campanas/${campanaId}/unirse`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error('Error al unirse a la campaña');
+};

@@ -23,7 +23,6 @@ import { PagoExitoso } from './pages/Subscription/PagoExitoso';
 import { Tablero } from './pages/Tablero/Tablero';
 import { TableroStoryMode } from './pages/TableroStoryMode/TableroStoryMode';
 import { RoleSelect } from './pages/RoleSelect/Rolselect';
-import { Community } from './pages/Community/Community';
 import { StoryMode } from './pages/StoryMode/StoryMode';
 import Mission from './pages/Mission/Mission.jsx';
 
@@ -134,9 +133,7 @@ function Layout() {
         <Route path="/role-select" element={
           <PrivateRoute><RoleSelect /></PrivateRoute>
         } />
-        <Route path="/community" element={
-          <PrivateRoute><Community /></PrivateRoute>
-        } />
+        
 
         </Routes>
       </main>
