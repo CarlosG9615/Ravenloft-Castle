@@ -31,6 +31,20 @@ export const createSuscripcion = async (dto: SuscripcionCreateDTO): Promise<Susc
   return response.json();
 };
 
+export const createStripeCheckoutSession = async (tipoPlan: string, usuarioId: number): Promise<{ url: string }> => {
+  const response = await fetchWithAuth(`${API_URL}/api/stripe/create-checkout-session`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ tipoPlan, usuarioId }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Error al crear la sesión de pago');
+  }
+
+  return response.json();
+};
+
 export const getUserSuscripciones = async (usuarioId: number): Promise<SuscripcionDTO[]> => {
   const response = await fetchWithAuth(`${API_URL}/api/suscripciones/usuario/${usuarioId}`, {
     method: 'GET',
