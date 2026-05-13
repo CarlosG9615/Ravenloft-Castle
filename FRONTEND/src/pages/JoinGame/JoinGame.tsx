@@ -330,7 +330,7 @@ export function JoinGame() {
 
     const misJugadores = [...campanaParaUnirse.jugadores, jugadorRed];
 
-    navigate('/tablero-story-mode', {
+    navigate('/tablero', {
       state: {
         campanaId: campanaParaUnirse.id,
         campanaNombre: campanaParaUnirse.nombre,
