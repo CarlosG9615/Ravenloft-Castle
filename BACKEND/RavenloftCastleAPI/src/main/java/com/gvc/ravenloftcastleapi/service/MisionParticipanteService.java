@@ -213,7 +213,7 @@ public class MisionParticipanteService {
         }
 
         broadcastParticipantes(misionId);
-        resetTurnoTrasAbandono(misionId);
+        resetTurnoTrasAbandono(misionId, pjId);
     }
 
     private void limpiarModoHistoriaPersonajeSiSinPartidas(Long modoHistoriaId, Long personajeId, Long usuarioId) {
@@ -229,18 +229,22 @@ public class MisionParticipanteService {
         messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/jugadores", lista);
     }
 
-    private void resetTurnoTrasAbandono(Long misionId) {
+    private void resetTurnoTrasAbandono(Long misionId, Long personajeIdQueAbandona) {
         List<com.gvc.ravenloftcastleapi.dto.mision.ParticipanteJugadorDTO> restantes =
                 participanteRepository.findParticipantesJugadores(misionId);
         misionRepository.findById(misionId).ifPresent(m -> {
             if (restantes.isEmpty()) {
                 m.setTurnoActualPersonajeId(null);
-                m.setTurnoFase("master");
+                m.setTurnoFase(null);
+                misionRepository.save(m);
+            } else if ("master".equals(m.getTurnoFase())
+                    || !java.util.Objects.equals(personajeIdQueAbandona, m.getTurnoActualPersonajeId())) {
+                // turno activo no afectado: no modificar
             } else {
                 m.setTurnoActualPersonajeId(restantes.get(0).personajeId());
                 m.setTurnoFase("personajes");
+                misionRepository.save(m);
             }
-            misionRepository.save(m);
             messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/turno",
                 new com.gvc.ravenloftcastleapi.dto.mision.TurnoDTO(
                     m.getTurnoActualPersonajeId(), m.getTurnoFase()));

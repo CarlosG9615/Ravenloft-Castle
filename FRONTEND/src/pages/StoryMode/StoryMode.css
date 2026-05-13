@@ -1,263 +1,175 @@
 @import '../JoinGame/JoinGame.css';
 
-.sm-page {
-	min-height: 100vh;
-	background: #0a0203;
+.jg-bg.is-modos-historia::before {
+	background-image: url('/images/campaña3.png');
+	left: clamp(18px, 2.4vw, 40px);
+	top: clamp(34px, 4.2vh, 60px);
+	width: min(50vw, 860px);
+	height: min(86vh, 860px);
 }
 
-.sm-bg {
-	position: fixed;
-	inset: 0;
-	z-index: 0;
-	overflow: hidden;
-	pointer-events: none;
+.jg-bg.is-modos-historia::after {
+	background-image: url('/images/campaña4.png');
+	right: clamp(34px, 4.2vw, 72px);
+	top: clamp(0px, 0.6vh, 10px);
+	width: min(46vw, 780px);
+	height: min(82vh, 820px);
 }
 
-.sm-bg-image {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-	object-position: center;
-	filter: saturate(0.92) contrast(1.04);
-}
-
-.sm-bg-overlay {
+.jg-modo-historia-btn-inline {
 	position: absolute;
-	inset: 0;
-	background:
-		linear-gradient(90deg, rgba(10, 2, 3, 0.9) 0%, rgba(10, 2, 3, 0.68) 45%, rgba(10, 2, 3, 0.35) 100%),
-		linear-gradient(180deg, rgba(10, 2, 3, 0.24) 0%, rgba(10, 2, 3, 0.54) 100%),
-		radial-gradient(circle at top right, rgba(139, 0, 0, 0.14), transparent 45%),
-		radial-gradient(circle at bottom left, rgba(50, 6, 8, 0.22), transparent 55%);
+	right: 0;
+	min-width: 132px;
+	padding: 8px 16px;
+	font-size: 13px;
+	letter-spacing: 0.8px;
+	box-shadow:
+		0 8px 20px rgba(0, 0, 0, 0.28),
+		inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
-.sm-contenido {
-	padding-top: 32px;
+.jg-modo-historia-btn-inline .jg-modo-historia-texto {
+	font-size: 13px;
 }
 
-.sm-titulo-wrap {
-	margin-top: 10px;
-	margin-bottom: 18px;
+.jg-modo-historia-btn-inline .jg-modo-historia-badge {
+	top: -8px;
+	right: -8px;
+	min-width: 42px;
+	height: 18px;
+	padding: 0 8px;
+	font-size: 9px;
 }
 
-.sm-header {
-	margin-bottom: 30px;
-}
-
-.sm-controles {
-	justify-content: space-between;
-	margin-bottom: 14px;
-}
-
-.sm-controles .jg-filtros {
-	justify-content: flex-start;
-}
-
-.sm-mision-card {
-	position: relative;
-	border-color: rgba(139, 0, 0, 0.28);
-	display: grid;
-	grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
-	gap: 0;
-	width: 100%;
-	min-height: 260px;
-	padding: 0;
-	text-align: left;
-	appearance: none;
-	-webkit-appearance: none;
-	overflow: hidden;
-}
-
-.sm-mision-orden-badge {
-	position: absolute;
-	top: 12px;
-	left: 12px;
-	z-index: 5;
-	width: 34px;
-	height: 34px;
-	display: inline-flex;
+.jg-modal-hero-modo {
+	display: flex;
 	align-items: center;
 	justify-content: center;
-	border-radius: 50%;
-	border: 1px solid rgba(255, 255, 255, 0.16);
-	background: linear-gradient(180deg, rgba(14, 5, 6, 0.92), rgba(8, 2, 3, 0.94));
-	color: #fff;
-	font-family: 'Metal Mania', cursive;
-	font-size: 14px;
-	letter-spacing: 0.4px;
-	text-shadow: 0 0 8px rgba(0, 0, 0, 0.55);
-	box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
-	pointer-events: none;
+	background: radial-gradient(circle at top, rgba(200,50,30,0.15), transparent 35%), linear-gradient(180deg, rgba(28,8,10,0.98), rgba(12,4,5,0.98));
 }
 
-.sm-mision-hero {
-	background:
-		radial-gradient(circle at top, rgba(200, 50, 30, 0.18), transparent 46%),
-		linear-gradient(180deg, rgba(36, 10, 12, 0.96), rgba(12, 4, 5, 0.98));
-	aspect-ratio: auto;
-	min-height: 260px;
-	border-top-right-radius: 0;
-	border-bottom-left-radius: 10px;
-}
-
-.sm-contenido .jg-grid {
-	display: flex;
-	flex-direction: column;
-	gap: 16px;
-}
-
-.sm-contenido .jg-card-info {
-	display: flex;
-	flex-direction: column;
-	justify-content: flex-start;
-	padding: 16px 18px;
-	min-width: 0;
-	height: 100%;
-}
-
-.sm-contenido .jg-card-nombre {
-	font-size: 18px;
-	line-height: 1.2;
-	margin-top: 0;
-	margin-bottom: 10px;
-}
-
-.sm-contenido .jg-card-desc {
-	font-size: 13px;
-	line-height: 1.55;
-	margin-bottom: auto;
-	line-clamp: 3;
-	-webkit-line-clamp: 3;
-}
-
-.sm-mision-meta-grid {
+.jg-modo-personajes-lista {
 	display: flex;
 	flex-wrap: wrap;
-	justify-content: flex-end;
-	gap: 8px;
-	margin-top: 12px;
-	align-self: flex-end;
+	gap: 10px;
 }
 
-.sm-mision-meta-grid .jg-card-modo-nivel,
-.sm-mision-meta-grid .jg-card-modo-personajes {
-	display: inline-flex;
-	align-items: center;
-	padding: 5px 10px;
-	border-radius: 999px;
-	border: 1px solid rgba(255, 255, 255, 0.14);
-	background: rgba(0, 0, 0, 0.24);
-	font-size: 11px;
-	letter-spacing: 0.35px;
-	color: rgba(255, 255, 255, 0.86);
+.jg-upgrade-modal {
+	max-width: 720px;
+	padding: 28px 24px 22px;
 }
 
-.sm-mision-meta-dificultad {
-	border-width: 2px;
-	border-style: solid;
+.jg-upgrade-header h3 {
+	margin: 0 0 8px;
+	font-family: 'Metal Mania', cursive;
+	letter-spacing: 1px;
+	color: #fff;
 }
 
-.sm-mision-completada {
-	border-color: rgba(46, 204, 113, 0.45);
-	color: rgba(202, 255, 220, 0.95);
-	background: rgba(46, 204, 113, 0.14);
+.jg-upgrade-header p {
+	margin: 0;
+	color: rgba(255, 255, 255, 0.72);
+	font-size: 14px;
 }
 
-.sm-mision-pendiente {
-	border-color: rgba(243, 156, 18, 0.44);
-	color: rgba(255, 232, 187, 0.95);
-	background: rgba(243, 156, 18, 0.13);
+.jg-upgrade-planes {
+	margin-top: 18px;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+	gap: 12px;
 }
 
-.sm-paginacion {
+.jg-upgrade-plan-card {
+	background: rgba(139, 0, 0, 0.12);
+	border: 1px solid rgba(139, 0, 0, 0.35);
+	border-radius: 12px;
+	padding: 12px;
+}
+
+.jg-upgrade-plan-top {
 	display: flex;
+	justify-content: space-between;
 	align-items: center;
-	justify-content: center;
-	gap: 20px;
-	margin-top: 26px;
-	padding-bottom: 24px;
+	gap: 8px;
+	margin-bottom: 8px;
 }
 
-.sm-paginacion-numero {
-	min-width: 36px;
-	text-align: center;
-	font-family: 'Metal Mania', cursive;
-	font-size: 22px;
-	color: rgba(255, 255, 255, 0.93);
-	text-shadow: 0 0 10px rgba(0, 0, 0, 0.55);
-	line-height: 1;
+.jg-upgrade-plan-tipo {
+	font-size: 11px;
+	letter-spacing: 0.6px;
+	text-transform: uppercase;
+	color: rgba(255, 255, 255, 0.9);
+	background: rgba(0, 0, 0, 0.3);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	padding: 2px 8px;
+	border-radius: 999px;
 }
 
-.sm-paginacion-flecha {
-	width: 60px;
-	height: 44px;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
+.jg-upgrade-plan-precio {
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.85);
+}
+
+.jg-upgrade-plan-card h4 {
+	margin: 0 0 6px;
+	color: #fff;
+	font-size: 16px;
+}
+
+.jg-upgrade-plan-card p {
+	margin: 0;
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.7);
+	line-height: 1.45;
+}
+
+.jg-upgrade-vacio {
+	margin: 0;
+	font-size: 13px;
+	color: rgba(255, 255, 255, 0.72);
+}
+
+.jg-upgrade-actions {
+	margin-top: 18px;
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+}
+
+.jg-upgrade-btn-sec,
+.jg-upgrade-btn-pri {
+	border: 1px solid rgba(139, 0, 0, 0.45);
 	border-radius: 10px;
-	border: 1px solid rgba(200, 50, 30, 0.46);
-	background: linear-gradient(180deg, rgba(28, 9, 10, 0.9), rgba(12, 3, 4, 0.92));
-	color: #fff;
-	font-family: 'Metal Mania', cursive;
-	font-size: 34px;
-	font-weight: 700;
-	line-height: 1;
-	cursor: default;
-	transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-}
-
-.sm-paginacion-flecha.is-active {
-	cursor: pointer;
-}
-
-.sm-paginacion-flecha.is-active:hover {
-	transform: translateY(-1px);
-	border-color: rgba(255, 107, 53, 0.75);
-	background: linear-gradient(180deg, rgba(45, 12, 14, 0.94), rgba(18, 5, 6, 0.96));
-}
-
-.sm-paginacion-flecha.is-inactive {
-	opacity: 0.45;
-	transform: none;
-}
-
-@media (max-width: 920px) {
-	.sm-mision-card {
-		grid-template-columns: 1fr;
-	}
-
-	.sm-mision-hero {
-		min-height: 220px;
-		border-top-right-radius: 10px;
-		border-bottom-left-radius: 0;
-	}
-
-	.sm-paginacion {
-		margin-top: 20px;
-		padding-bottom: 18px;
-		gap: 14px;
-	}
-
-	.sm-paginacion-flecha {
-		width: 54px;
-		height: 42px;
-		font-size: 30px;
-	}
-}
-
-.sm-back-btn {
-	margin-top: 14px;
-	padding: 8px 14px;
-	border-radius: 8px;
-	border: 1px solid rgba(255, 107, 53, 0.45);
-	background: rgba(139, 0, 0, 0.25);
-	color: #fff;
-	cursor: pointer;
+	padding: 10px 14px;
 	font-family: 'Metal Mania', cursive;
 	letter-spacing: 0.8px;
+	text-transform: uppercase;
+	cursor: pointer;
 }
 
-.sm-back-btn:hover {
-	background: rgba(139, 0, 0, 0.36);
-	border-color: rgba(255, 107, 53, 0.68);
+.jg-upgrade-btn-sec {
+	background: rgba(20, 6, 8, 0.9);
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.jg-upgrade-btn-pri {
+	background: linear-gradient(135deg, #8b0000, #c0392b);
+	color: #fff;
+}
+
+@media (max-width: 768px) {
+	.jg-seccion-titulo-top {
+		justify-content: flex-start;
+		gap: 10px;
+		min-height: auto;
+	}
+
+	.jg-seccion-titulo {
+		text-align: left;
+	}
+
+	.jg-modo-historia-btn-inline {
+		position: static;
+		margin-left: auto;
+	}
 }
