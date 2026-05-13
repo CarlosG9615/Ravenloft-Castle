@@ -17,6 +17,7 @@ import { CharacterCreate } from './pages/Characters/CharacterCreate';
 import { CharactersList } from './pages/Characters/CharactersList';
 import { ScrollToTop } from './components/ScrollToTop/ScrollToTop';
 import { JoinGame } from './pages/JoinGame/JoinGame';
+import { JoinGameStoryMode } from './pages/JoinGame/JoinGameStoryMode';
 import { CreateCampaign } from './pages/CreateCampaign/CreateCampaign';
 import { Subscription } from './pages/Subscription/Subscription';
 import { PagoExitoso } from './pages/Subscription/PagoExitoso';
@@ -27,8 +28,6 @@ import { StoryMode } from './pages/StoryMode/StoryMode';
 import Mission from './pages/Mission/Mission.jsx';
 
 import './App.css';
-
-const JOIN_GAME_VISTA_KEY = 'ravenloft.joinGame.vistaActual';
 
 function Layout() {
   const location = useLocation();
@@ -60,15 +59,6 @@ function Layout() {
     }
 
     document.title = title;
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const path = location.pathname;
-    const esRutaRelacionadaConJoin = path === '/join' || path.startsWith('/story-mode');
-
-    if (!esRutaRelacionadaConJoin) {
-      sessionStorage.removeItem(JOIN_GAME_VISTA_KEY);
-    }
   }, [location.pathname]);
 
   return (
@@ -113,6 +103,9 @@ function Layout() {
           } />
           <Route path="/join" element={
             <PrivateRoute><JoinGame /></PrivateRoute>
+          } />
+          <Route path="/join/story-mode" element={
+            <PrivateRoute><JoinGameStoryMode /></PrivateRoute>
           } />
           <Route path="/story-mode/:id" element={
             <PrivateRoute><StoryMode /></PrivateRoute>

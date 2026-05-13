@@ -79,28 +79,6 @@ const normalizarTexto = (texto: string): string => {
 		.toLowerCase();
 };
 
-const normalizarMisionesRespuesta = (payload: unknown): Mision[] => {
-	if (Array.isArray(payload)) {
-		return payload as Mision[];
-	}
-
-	if (!payload || typeof payload !== 'object') {
-		return [];
-	}
-
-	const data = payload as Record<string, unknown>;
-
-	if (Array.isArray(data.misiones)) {
-		return data.misiones as Mision[];
-	}
-
-	if (typeof data.id === 'number' && typeof data.nombre === 'string') {
-		return [data as unknown as Mision];
-	}
-
-	return [];
-};
-
 export function StoryMode() {
 	const navigate = useNavigate();
 	const location = useLocation();
@@ -111,6 +89,9 @@ export function StoryMode() {
 	const [filtro, setFiltro] = useState<string>('todas');
 	const [busqueda, setBusqueda] = useState('');
 	const [paginaActual, setPaginaActual] = useState(1);
+
+	// Leer la ruta origen del sessionStorage o usar valor por defecto
+	const rutaOrigen = sessionStorage.getItem('storyModeOrigin') || '/join';
 
 	const modoId = Number(id);
 	const locationState = location.state as LocationState | null;
@@ -269,7 +250,7 @@ export function StoryMode() {
 				<div className="sm-bg-overlay" />
 			</div>
 
-			<BackButton to="/join" />
+			<BackButton to={rutaOrigen} />
 
 			<div className="sm-contenido jg-contenido">
 				<div className="jg-header sm-header">
