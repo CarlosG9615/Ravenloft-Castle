@@ -1,4 +1,29 @@
-const NARRATIVA_ESPECIAL_POR_ID = {
+type MissionNarrativeInput = {
+	id?: number;
+	nombre?: string;
+	descripcion?: string;
+	xpRecompensa?: number;
+};
+
+type NarrativeScene = {
+	titulo: string;
+	texto: string;
+};
+
+type NarrativeResult = {
+	tituloNarrativo: string;
+	sinopsis: string[];
+	escenas: NarrativeScene[];
+	objetivos: string[];
+	pistas: string[];
+	recompensaNarrativa: string;
+};
+
+type NarrativeTemplate = Partial<Omit<NarrativeResult, 'recompensaNarrativa'>> & {
+	recompensaNarrativa?: string;
+};
+
+const NARRATIVA_ESPECIAL_POR_ID: Record<number, NarrativeTemplate> = {
 	1: {
 		tituloNarrativo: 'La primera grieta en el velo',
 		escenas: [
@@ -24,13 +49,13 @@ const NARRATIVA_ESPECIAL_POR_ID = {
 	},
 };
 
-const normalizar = (texto) => (texto ?? '')
+const normalizar = (texto?: string): string => (texto ?? '')
 	.normalize('NFD')
 	.replace(/[\u0300-\u036f]/g, '')
 	.toLowerCase()
 	.trim();
 
-const detectarTemaPorTitulo = (titulo) => {
+const detectarTemaPorTitulo = (titulo?: string): string => {
 	const base = normalizar(titulo);
 
 	if (base.includes('ciudad') || base.includes('calle') || base.includes('barrio') || base.includes('plaza')) return 'ciudad';
@@ -45,7 +70,7 @@ const detectarTemaPorTitulo = (titulo) => {
 	return 'general';
 };
 
-const PLANTILLAS_SINOPSIS_POR_TEMA = {
+const PLANTILLAS_SINOPSIS_POR_TEMA: Record<string, string[]> = {
 	ciudad: [
 		'Bajo la rutina aparente del distrito se mueve una red de decisiones ocultas: cada contacto, cada desvio y cada demora puede abrir una ventaja tactica o encender un conflicto mayor antes de que el grupo este listo.',
 		'El entorno urbano parece estable, pero el equilibrio es fragil; la expedicion debe interpretar rumores, patrones de movimiento y silencios oportunos para adelantarse a una amenaza que prefiere no mostrarse de frente.',
@@ -93,19 +118,19 @@ const PLANTILLAS_SINOPSIS_POR_TEMA = {
 	],
 };
 
-const obtenerIndicePorTitulo = (titulo, totalOpciones) => {
+const obtenerIndicePorTitulo = (titulo?: string, totalOpciones = 1): number => {
 	const base = normalizar(titulo);
 	if (!base || totalOpciones <= 1) return 0;
 
 	let hash = 0;
-	for (let i = 0; i < base.length; i += 1) {
-		hash = (hash * 31 + base.charCodeAt(i)) >>> 0;
+	for (let indice = 0; indice < base.length; indice += 1) {
+		hash = (hash * 31 + base.charCodeAt(indice)) >>> 0;
 	}
 
 	return hash % totalOpciones;
 };
 
-const construirSinopsis = (mision) => {
+const construirSinopsis = (mision: MissionNarrativeInput): string[] => {
 	const nombre = mision?.nombre ?? '';
 	const tema = detectarTemaPorTitulo(nombre);
 	const opciones = PLANTILLAS_SINOPSIS_POR_TEMA[tema] ?? PLANTILLAS_SINOPSIS_POR_TEMA.general;
@@ -114,13 +139,13 @@ const construirSinopsis = (mision) => {
 	return [opciones[indice]];
 };
 
-const construirNarrativaBase = (mision) => {
+const construirNarrativaBase = (mision: MissionNarrativeInput): NarrativeResult => {
 	const nombre = mision?.nombre ?? `Mision ${mision?.id ?? '-'}`;
 	const descripcion = mision?.descripcion ?? 'No hay resumen oficial para este tramo, por lo que la historia se interpreta a partir de los rastros del entorno.';
 	const xp = mision?.xpRecompensa ?? 0;
 
 	return {
-		tituloNarrativo: `Sinopsis`,
+		tituloNarrativo: 'Sinopsis',
 		sinopsis: construirSinopsis(mision),
 		escenas: [
 			{
@@ -150,17 +175,18 @@ const construirNarrativaBase = (mision) => {
 	};
 };
 
-const fusionarNarrativa = (base, especial = {}) => ({
+const fusionarNarrativa = (base: NarrativeResult, especial: NarrativeTemplate = {}): NarrativeResult => ({
 	...base,
 	...especial,
 	sinopsis: especial.sinopsis ?? base.sinopsis,
 	escenas: especial.escenas ?? base.escenas,
 	objetivos: especial.objetivos ?? base.objetivos,
 	pistas: especial.pistas ?? base.pistas,
+	recompensaNarrativa: especial.recompensaNarrativa ?? base.recompensaNarrativa,
 });
 
-export const obtenerNarrativaMision = (mision) => {
+export const obtenerNarrativaMision = (mision: MissionNarrativeInput): NarrativeResult => {
 	const base = construirNarrativaBase(mision);
-	const especial = NARRATIVA_ESPECIAL_POR_ID[mision?.id] ?? {};
+	const especial = NARRATIVA_ESPECIAL_POR_ID[mision?.id ?? 0] ?? {};
 	return fusionarNarrativa(base, especial);
 };

@@ -11,6 +11,7 @@ import type { SuscripcionDTO } from '../../services/suscripcionService';
 import { getPersonajes } from '../../services/personajeService';
 import { MagicEdit, AvatarCircle} from 'pixelarticons/react'
 import { Sword } from 'lucide-react';
+import { resolveProfileAvatar } from '../../utils/avatarUtils';
 
 const AVATARES = [
   '/images/avatars/caratula.png',
@@ -49,7 +50,7 @@ export function UserProfile() {
   const [tab, setTab] = useState<Tab>('perfil');
   const [suscripcionActual, setSuscripcionActual] = useState<SuscripcionDTO | null>(null);
   const [mostrarAvatares, setMostrarAvatares] = useState(false);
-  const [avatarSeleccionado, setAvatarSeleccionado] = useState(user?.avatar ?? '');
+  const [avatarSeleccionado, setAvatarSeleccionado] = useState(resolveProfileAvatar(user?.avatar) ?? '');
   const [campanas, setCampanas] = useState<any[]>([]);
   const [personajes, setPersonajes] = useState<any[]>([]);
   const [fechaRegistro, setFechaRegistro] = useState<string>('');
@@ -62,6 +63,37 @@ export function UserProfile() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
+
+  const normalizeAvatarForSave = (value: string) => {
+    if (!value) return value;
+    if (value.startsWith('/images/avatars/')) {
+      return value.split('/').pop() ?? value;
+    }
+    return value;
+  };
+
+  const handleGuardarAvatar = async (nextAvatar: string) => {
+    if (!nextAvatar) {
+      setError('Selecciona un avatar antes de guardar');
+      return;
+    }
+    setError('');
+    setSuccess('');
+    setSavingAvatar(true);
+    try {
+      const avatarPayload = normalizeAvatarForSave(nextAvatar);
+      const response = await updateProfile({ avatar: avatarPayload });
+      const resolvedAvatar = resolveProfileAvatar(response?.avatar ?? avatarPayload) ?? nextAvatar;
+      updateUser({ avatar: resolvedAvatar });
+      setAvatarSeleccionado(resolvedAvatar);
+      setMostrarAvatares(false);
+    } catch (err: any) {
+      setError(err?.message || 'No se pudo actualizar el avatar');
+    } finally {
+      setSavingAvatar(false);
+    }
+  };
 
   const cargarSuscripciones = () => {
     if (user?.id) {
@@ -89,13 +121,15 @@ export function UserProfile() {
   useEffect(() => {
     getMyProfile()
       .then(perfil => {
-        updateUser({
+        const resolvedAvatar = resolveProfileAvatar(perfil.avatar) ?? user?.avatar;
+        const nextUser: { nombre?: string; email?: string; avatar?: string; rol?: string } = {
           nombre: perfil.nombre,
           email: perfil.email,
-          avatar: perfil.avatar,
           rol: perfil.rol,
-        });
-        setAvatarSeleccionado(perfil.avatar ?? '');
+        };
+        if (resolvedAvatar) nextUser.avatar = resolvedAvatar;
+        updateUser(nextUser);
+        setAvatarSeleccionado(resolvedAvatar ?? '');
         if (perfil.fechaRegistro) {
           const fecha = new Date(perfil.fechaRegistro);
           setFechaRegistro(fecha.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }));
@@ -225,24 +259,18 @@ export function UserProfile() {
                     src={src}
                     alt="avatar"
                     className={`profile-avatar-opcion ${avatarSeleccionado === src ? 'seleccionado' : ''}`}
-                    onClick={() => setAvatarSeleccionado(src)}
+                    onClick={() => {
+                      setAvatarSeleccionado(src);
+                      handleGuardarAvatar(src);
+                    }}
                   />
                 ))}
                 <button
                   className="profile-avatar-guardar"
-                  onClick={async () => {
-                    try {
-                      await updateProfile({ avatar: avatarSeleccionado });
-                      updateUser({ avatar: avatarSeleccionado });
-                      setMostrarAvatares(false);
-                      setSuccess('¡Avatar actualizado!');
-                      setTimeout(() => setSuccess(''), 3000);
-                    } catch (err) {
-                      console.error('Error actualizando avatar:', err);
-                    }
-                  }}
+                  disabled={savingAvatar}
+                  onClick={() => handleGuardarAvatar(avatarSeleccionado)}
                 >
-                  Guardar avatar
+                  {savingAvatar ? 'Guardando...' : 'Guardar avatar'}
                 </button>
               </div>
             )}

@@ -8,6 +8,7 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import './Header.css';
 import { Bell } from 'lucide-react';
+import { resolveProfileAvatar } from '../../utils/avatarUtils';
 
 interface NavItem {
   label: string;
@@ -66,12 +67,14 @@ export function Header() {
     if (isLoggedIn) {
       getMyProfile()
         .then(perfil => {
-          updateUser({
-            avatar: perfil.avatar,
+          const nextUser: { nombre?: string; email?: string; rol?: string; avatar?: string } = {
             nombre: perfil.nombre,
             email: perfil.email,
             rol: perfil.rol,
-          });
+          };
+          const resolvedAvatar = resolveProfileAvatar(perfil.avatar);
+          if (resolvedAvatar) nextUser.avatar = resolvedAvatar;
+          updateUser(nextUser);
         })
         .catch(err => console.error('Error cargando perfil en header:', err));
     }
@@ -185,23 +188,26 @@ export function Header() {
                   </div>
 
                   <div className="notif-lista">
-                    {notificaciones.length === 0 ? (
+                    {notificaciones.length === 0 && (
                       <p className="notif-vacio">Sin notificaciones</p>
-                    ) : (
-                      notificaciones.map(n => (
-                        <div
-                          key={n.id}
-                          className={`notif-item ${n.leida ? 'leida' : 'no-leida'}`}
-                          onClick={() => !n.leida && handleMarcarLeida(n.id)}
-                        >
-                          <div className="notif-icono">{getIconoNotif(n.tipo)}</div>
-                          <div className="notif-contenido">
-                            <p className="notif-mensaje">{n.mensaje}</p>
-                            <span className="notif-fecha">{formatFecha(n.fecha)}</span>
+                    )}
+                    {notificaciones.length > 0 && (
+                      <>
+                        {notificaciones.map(n => (
+                          <div
+                            key={n.id}
+                            className={`notif-item ${n.leida ? 'leida' : 'no-leida'}`}
+                            onClick={() => !n.leida && handleMarcarLeida(n.id)}
+                          >
+                            <div className="notif-icono">{getIconoNotif(n.tipo)}</div>
+                            <div className="notif-contenido">
+                              <p className="notif-mensaje">{n.mensaje}</p>
+                              <span className="notif-fecha">{formatFecha(n.fecha)}</span>
+                            </div>
+                            {!n.leida && <div className="notif-punto" />}
                           </div>
-                          {!n.leida && <div className="notif-punto" />}
-                        </div>
-                      ))
+                        ))}
+                      </>
                     )}
                   </div>
                 </div>
