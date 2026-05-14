@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { API_URL, isTokenExpired } from './api';
 import type { ReactNode } from 'react';
+import { resolveProfileAvatar } from '../utils/avatarUtils';
 
 
 export interface UserData {
@@ -109,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: profile.id,
             nombre: profile.nombre ?? profile.username ?? profile.email,
             email: profile.email,
-            avatar: profile.avatar ?? undefined,
+            avatar: resolveProfileAvatar(profile.avatar) ?? undefined,
             rol: profile.rol ?? undefined,
           };
           setToken(savedToken);
