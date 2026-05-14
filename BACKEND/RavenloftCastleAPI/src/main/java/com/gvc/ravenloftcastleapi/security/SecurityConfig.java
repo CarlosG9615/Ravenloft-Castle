@@ -43,7 +43,7 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET ,"/api/usuarios/**").permitAll()
                     .requestMatchers(HttpMethod.GET ,"/api/modos-historia/**").permitAll()
                     .requestMatchers(HttpMethod.GET ,"/api/misiones/*/participantes/**").permitAll()
-                    .requestMatchers(HttpMethod.DELETE, "/api/campanas/**").permitAll()
+                    .requestMatchers(HttpMethod.DELETE, "/api/campanas/**").authenticated()
                     .requestMatchers(HttpMethod.PUT, "/api/modos-historia/*/codigo-invitacion").authenticated()
                     .requestMatchers(HttpMethod.POST, "/api/modos-historia/*/codigo-invitacion/generar").authenticated()
                     .requestMatchers(HttpMethod.POST, "/api/modos-historia").hasRole("ADMIN")

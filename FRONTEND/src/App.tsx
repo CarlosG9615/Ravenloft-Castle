@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import { ThemeProvider } from './services/ThemeContext';
 import { AuthProvider } from './services/AuthContext';
@@ -17,18 +17,17 @@ import { CharacterCreate } from './pages/Characters/CharacterCreate';
 import { CharactersList } from './pages/Characters/CharactersList';
 import { ScrollToTop } from './components/ScrollToTop/ScrollToTop';
 import { JoinGame } from './pages/JoinGame/JoinGame';
+import { StoryMode } from './pages/StoryMode/StoryMode';
 import { CreateCampaign } from './pages/CreateCampaign/CreateCampaign';
 import { Subscription } from './pages/Subscription/Subscription';
 import { PagoExitoso } from './pages/Subscription/PagoExitoso';
 import { Tablero } from './pages/Tablero/Tablero';
 import { TableroStoryMode } from './pages/TableroStoryMode/TableroStoryMode';
 import { RoleSelect } from './pages/RoleSelect/Rolselect';
-import { StoryMode } from './pages/StoryMode/StoryMode';
-import Mission from './pages/Mission/Mission.jsx';
+import Mission from './pages/Mission/Mission';
+import { buildMissionDetailsPath, buildMissionListPath } from './pages/Mission/missionRoutes';
 
 import './App.css';
-
-const JOIN_GAME_VISTA_KEY = 'ravenloft.joinGame.vistaActual';
 
 function Layout() {
   const location = useLocation();
@@ -60,15 +59,6 @@ function Layout() {
     }
 
     document.title = title;
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const path = location.pathname;
-    const esRutaRelacionadaConJoin = path === '/join' || path.startsWith('/story-mode');
-
-    if (!esRutaRelacionadaConJoin) {
-      sessionStorage.removeItem(JOIN_GAME_VISTA_KEY);
-    }
   }, [location.pathname]);
 
   return (
@@ -114,10 +104,19 @@ function Layout() {
           <Route path="/join" element={
             <PrivateRoute><JoinGame /></PrivateRoute>
           } />
-          <Route path="/story-mode/:id" element={
+          <Route path="/join/story-mode" element={
             <PrivateRoute><StoryMode /></PrivateRoute>
           } />
+          <Route path="/story-mode/:id" element={
+            <PrivateRoute><StoryModeRedirect /></PrivateRoute>
+          } />
+          <Route path="/story-mode/:id/mission" element={
+            <PrivateRoute><Mission /></PrivateRoute>
+          } />
           <Route path="/story-mode/:id/:misionId" element={
+            <PrivateRoute><MissionDetailsRedirect /></PrivateRoute>
+          } />
+          <Route path="/story-mode/:id/mission/:misionId/details" element={
             <PrivateRoute><Mission /></PrivateRoute>
           } />
 
@@ -141,6 +140,26 @@ function Layout() {
   
     </>
   );
+}
+
+function StoryModeRedirect() {
+  const { id } = useParams<{ id: string }>();
+
+  if (!id) {
+    return <Navigate to="/home" replace />;
+  }
+
+  return <Navigate to={buildMissionListPath(id)} replace />;
+}
+
+function MissionDetailsRedirect() {
+  const { id, misionId } = useParams<{ id: string; misionId: string }>();
+
+  if (!id || !misionId) {
+    return <Navigate to="/home" replace />;
+  }
+
+  return <Navigate to={buildMissionDetailsPath(id, misionId)} replace />;
 }
 
 function App() {

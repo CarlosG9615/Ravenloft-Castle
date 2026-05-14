@@ -22,7 +22,7 @@ public class TurnoService {
     @Transactional(readOnly = true)
     public TurnoDTO obtenerTurnoActual(Long misionId) {
         return misionRepository.findById(misionId)
-            .filter(m -> m.getTurnoActualPersonajeId() != null)
+            .filter(m -> m.getTurnoActualPersonajeId() != null || "master".equals(m.getTurnoFase()))
             .map(m -> new TurnoDTO(
                 m.getTurnoActualPersonajeId(),
                 m.getTurnoFase() != null ? m.getTurnoFase() : "personajes"

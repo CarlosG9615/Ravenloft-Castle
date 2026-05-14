@@ -7,6 +7,8 @@ import java.util.stream.Collectors;
 import com.gvc.ravenloftcastleapi.entity.CampanaJugador;
 import com.gvc.ravenloftcastleapi.entity.Personaje;
 import com.gvc.ravenloftcastleapi.repository.CampanaJugadorRepository;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -84,8 +86,26 @@ public class CampanaService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public void eliminarCampana(Long id) {
-        campanaRepository.deleteById(id);
+        Campana campana = campanaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Campaña no encontrada"));
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new AccessDeniedException("No tienes permiso para eliminar esta campaña");
+        }
+
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+        boolean esMaster = campana.getMaster() != null
+                && authentication.getName().equals(campana.getMaster().getEmail());
+
+        if (!isAdmin && !esMaster) {
+            throw new AccessDeniedException("No tienes permiso para eliminar esta campaña");
+        }
+
+        campanaRepository.delete(campana);
     }
 
     public CampanaResponse obtenerCampana(Long id) {
