@@ -246,7 +246,7 @@ export function CharacterCreate() {
   const handleConfirmar = async () => {
     if (guardando) return;
 
-    const userRaw = sessionStorage.getItem('user');
+    const userRaw = localStorage.getItem('user') || sessionStorage.getItem('user');
     const user = userRaw ? JSON.parse(userRaw) : null;
     const usuarioId = Number(user?.id);
 

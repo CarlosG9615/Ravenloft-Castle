@@ -6,6 +6,7 @@ import { DiceRoller } from './DiceRoller';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import { Comment, Users, Mic } from 'pixelarticons/react'
 import { Dices } from 'lucide-react';
+import { PerfilPublicoModal } from '../../components/PerfilPublicoModal/PerfilPublicoModal';
 import './PanelPartida.css';
 
 interface Jugador {
@@ -189,6 +190,7 @@ export function PanelPartida({
   const [dadoActivo, setDadoActivo] = useState<string | null>(null);
   const [resultadoActivo, setResultadoActivo] = useState<number | null>(null);
   const [mostrarEmotes, setMostrarEmotes] = useState(false);
+  const [perfilPersonajeId, setPerfilPersonajeId] = useState<number | null>(null);
 
   const chatRef = useRef<HTMLDivElement>(null);
   const stompRef = useRef<Client | null>(null);
@@ -206,7 +208,6 @@ export function PanelPartida({
       onConnect: () => {
         setConectado(true);
         if (campanaId) {
-          // Cargar historial persistido; si chatSince está definido sólo se cargan mensajes posteriores
           const token = localStorage.getItem('token') || sessionStorage.getItem('token');
           const sinceParam = chatSince ? `?since=${encodeURIComponent(chatSince)}` : '';
           fetch(`http://localhost:8080/api/misiones/${campanaId}/chat${sinceParam}`, {
@@ -444,6 +445,7 @@ export function PanelPartida({
         || jugadoresBasePorNombre.get(j.nombre || j.usuarioNombre);
       return {
         id: j.id?.toString() || i.toString(),
+        usuarioId: j.usuarioId ?? j.usuario_id ?? null,
         nombre: j.nombre || j.usuarioNombre || 'Aventurero',
         clase: j.clase || base?.clase || 'Desconocida',
         avatar: j.avatar
@@ -687,7 +689,19 @@ export function PanelPartida({
                     <div className="pp-jugador-cabecera">
                       <span className="pp-jugador-dot" style={{ background: j.conectado ? j.color : '#555' }} />
                       <AvatarImage avatar={j.avatar} nombre={j.nombre} />
-                      <span className="pp-jugador-nombre">{j.nombre}</span>
+                      <span
+                        className="pp-jugador-nombre"
+                        style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                        onClick={() => {
+                          const pid = parseInt(j.id);
+                          const miId = jugadorActual?.personajeId ?? jugadorActual?.id;
+                          if (!isNaN(pid) && String(pid) !== String(miId)) {
+                            setPerfilPersonajeId(pid);
+                          }
+                        }}
+                      >
+                        {j.nombre}
+                      </span>
                       <span className="pp-jugador-clase">{j.clase}</span>
                       {!j.conectado && <span className="pp-jugador-off">desconectado</span>}
                     </div>
@@ -795,6 +809,14 @@ export function PanelPartida({
             )}
           </div>
         </div>
+      )}
+
+      {/* ── MODAL PERFIL PÚBLICO ── */}
+      {perfilPersonajeId !== null && (
+        <PerfilPublicoModal
+          personajeId={perfilPersonajeId}
+          onClose={() => setPerfilPersonajeId(null)}
+        />
       )}
     </div>
   );
