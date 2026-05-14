@@ -753,14 +753,15 @@ export function JoinGame() {
   };
 
   const crearJugadorBase = (base: { id?: number; nombre?: string; clase?: string; hp?: number; hpMax?: number; avatar?: string }) => ({
-    id: base.id ?? user?.id ?? Date.now(),
-    nombre: base.nombre ?? user?.nombre ?? 'Tu',
-    clase: base.clase ?? 'Aventurero',
-    hp: base.hp ?? base.hpMax ?? 20,
-    hpMax: base.hpMax ?? base.hp ?? 20,
-    conectado: true,
-    avatar: base.avatar,
-  });
+  id: base.id ?? user?.id ?? Date.now(),
+  usuarioId: user?.id ?? null,
+  nombre: base.nombre ?? user?.nombre ?? 'Tu',
+  clase: base.clase ?? 'Aventurero',
+  hp: base.hp ?? base.hpMax ?? 20,
+  hpMax: base.hpMax ?? base.hp ?? 20,
+  conectado: true,
+  avatar: base.avatar,
+});
 
   const confirmarUnionConPersonaje = async () => {
     if (!campanaParaUnirse || !personajeSeleccionado) return;
