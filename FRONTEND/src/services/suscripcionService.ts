@@ -4,7 +4,7 @@ export interface SuscripcionDTO {
   id: number;
   usuarioId: number;
   nombre: string;
-  tipo: 'BASICA' | 'PREMIUM' | 'VIP';
+  tipo: 'BASICA' | 'PREMIUM' | 'VIP' | 'ARCHIMAGO';
   estado: string;
   fechaAlta: string;
   fechaBaja?: string;
@@ -13,7 +13,7 @@ export interface SuscripcionDTO {
 export interface SuscripcionCreateDTO {
   usuarioId: number;
   nombre: string;
-  tipo: 'BASICA' | 'PREMIUM' | 'VIP';
+  tipo: 'BASICA' | 'PREMIUM' | 'VIP' | 'ARCHIMAGO';
 }
 
 export const createSuscripcion = async (dto: SuscripcionCreateDTO): Promise<SuscripcionDTO> => {

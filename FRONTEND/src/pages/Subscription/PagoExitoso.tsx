@@ -18,7 +18,7 @@ export function PagoExitoso() {
       hasProcessed.current = true;
 
       const sessionId = searchParams.get('session_id');
-      const plan = searchParams.get('plan') as 'BASICA' | 'PREMIUM' | 'VIP';
+      const plan = searchParams.get('plan') as 'BASICA' | 'PREMIUM' | 'VIP' | 'ARCHIMAGO';
       const usuarioIdStr = searchParams.get('usuarioId');
       const usuarioId = usuarioIdStr ? parseInt(usuarioIdStr) : user?.id;
 
@@ -32,6 +32,7 @@ export function PagoExitoso() {
         let nombre = 'Aventurero';
         if (plan === 'PREMIUM') nombre = 'Héroe';
         if (plan === 'VIP') nombre = 'Dungeon Master';
+        if (plan === 'ARCHIMAGO') nombre = 'Archimago';
 
         await createSuscripcion({
           usuarioId,

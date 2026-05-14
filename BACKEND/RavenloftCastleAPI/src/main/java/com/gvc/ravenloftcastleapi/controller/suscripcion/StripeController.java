@@ -40,6 +40,10 @@ public class StripeController {
                     price = 999L;
                     planName = "Suscripción Dungeon Master (Mensual) - Ravenloft Castle";
                     break;
+                case "ARCHIMAGO":
+                    price = 1999L;
+                    planName = "Suscripción Archimago (Mensual) - Ravenloft Castle";
+                    break;
                 default:
                     return ResponseEntity.badRequest().build();
             }

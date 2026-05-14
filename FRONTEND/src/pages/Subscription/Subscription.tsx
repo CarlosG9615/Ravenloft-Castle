@@ -1,8 +1,8 @@
 import './Subscription.css';
 import { useNavigate } from 'react-router-dom';
-import { Crown, Sparkles, Sword } from 'lucide-react';
+import { Crown, Sparkles, Gem } from 'lucide-react';
 import { useAuth } from '../../services/AuthContext';
-import { createSuscripcion, getUserSuscripciones, createStripeCheckoutSession } from '../../services/suscripcionService';
+import { getUserSuscripciones, createStripeCheckoutSession } from '../../services/suscripcionService';
 import { useState, useEffect } from 'react';
 import { ModalAlert } from '../../components/ModalAlert/ModalAlert';
 
@@ -24,25 +24,13 @@ export function Subscription() {
     }
   }, [user?.id]);
 
-  const handleSelectPlan = async (nombrePlan: string, tipo: 'BASICA' | 'PREMIUM' | 'VIP') => {
+  const handleSelectPlan = async (nombrePlan: string, tipo: 'PREMIUM' | 'VIP' | 'ARCHIMAGO') => {
     if (!user) {
       navigate('/login');
       return;
     }
 
     try {
-      // Si el plan es BÁSICO (Gratis), no pasamos por Stripe
-      if (tipo === 'BASICA') {
-        await createSuscripcion({
-          usuarioId: user.id,
-          nombre: nombrePlan,
-          tipo
-        });
-        navigate('/profile');
-        return;
-      }
-
-      // Si es de pago (Héroe o DM), creamos la sesión en Stripe
       const response = await createStripeCheckoutSession(tipo, user.id);
       if (response && response.url) {
         window.location.href = response.url;
@@ -74,32 +62,6 @@ export function Subscription() {
       </div>
 
       <div className="plans-grid">
-        {/* Plan Aventurero */}
-        <div className="plan-card">
-          <div className="plan-header">
-            <Sword className="plan-icon" size={32} />
-            <h2>Aventurero</h2>
-            <div className="plan-price">
-              <span className="amount">Gratis</span>
-            </div>
-            <p className="plan-desc">Lo esencial para comenzar tu viaje.</p>
-          </div>
-          <ul className="plan-features">
-            <li>Creación de 3 personajes</li>
-            <li>Acceso a campañas públicas</li>
-            <li>Ficha básica de personaje</li>
-            <li>Dado virtual estándar</li>
-          </ul>
-          <button
-            className="plan-btn"
-            onClick={() => handleSelectPlan('Aventurero', 'BASICA')}
-            disabled={activeSubscription?.tipo === 'BASICA'}
-            style={activeSubscription?.tipo === 'BASICA' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
-          >
-            {activeSubscription?.tipo === 'BASICA' ? 'Plan Actual' : 'Comenzar'}
-          </button>
-        </div>
-
         {/* Plan Héroe (Featured) */}
         <div className="plan-card featured">
           <div className="plan-badge">Más Popular</div>
@@ -152,6 +114,36 @@ export function Subscription() {
             style={activeSubscription?.tipo === 'VIP' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
           >
             {activeSubscription?.tipo === 'VIP' ? 'Plan Actual' : 'Elegir DM'}
+          </button>
+        </div>
+
+        {/* Plan Archimago */}
+        <div className="plan-card">
+          <div className="plan-header">
+            <Gem className="plan-icon" size={32} />
+            <h2>Archimago</h2>
+            <div className="plan-price">
+              <span className="currency">€</span>
+              <span className="amount">19.99</span>
+              <span className="period">/mes</span>
+            </div>
+            <p className="plan-desc">El máximo poder para crear mundos épicos.</p>
+          </div>
+          <ul className="plan-features">
+            <li>Todo el contenido del plan Dungeon Master</li>
+            <li>Campañas activas ilimitadas + 20 plazas extra</li>
+            <li>Co-Master con permisos avanzados</li>
+            <li>Biblioteca premium y 5 GB de recursos</li>
+            <li>Automatizaciones y macros avanzadas</li>
+            <li>Salas persistentes 24/7</li>
+          </ul>
+          <button
+            className="plan-btn"
+            onClick={() => handleSelectPlan('Archimago', 'ARCHIMAGO')}
+            disabled={activeSubscription?.tipo === 'ARCHIMAGO'}
+            style={activeSubscription?.tipo === 'ARCHIMAGO' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+          >
+            {activeSubscription?.tipo === 'ARCHIMAGO' ? 'Plan Actual' : 'Elegir Archimago'}
           </button>
         </div>
       </div>
