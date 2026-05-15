@@ -47,6 +47,7 @@ public class NotificacionService {
         );
     }
 
+    @Transactional(readOnly = true)
     public List<NotificacionDTO> getMisNotificaciones() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Usuario usuario = usuarioRepository.findByEmail(email)

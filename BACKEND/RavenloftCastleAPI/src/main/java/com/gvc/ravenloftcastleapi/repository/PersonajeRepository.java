@@ -13,4 +13,6 @@ public interface PersonajeRepository extends JpaRepository<Personaje, Long> {
     List<Personaje> findByUsuarioId(Long usuarioId);
 
     Optional<Personaje> findByIdAndUsuarioId(Long id, Long usuarioId);
+
+    int countByUsuarioId(Long usuarioId);
 }

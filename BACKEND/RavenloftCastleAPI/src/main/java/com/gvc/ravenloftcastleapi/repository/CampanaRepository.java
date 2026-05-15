@@ -10,4 +10,5 @@ import java.util.List;
 public interface CampanaRepository extends JpaRepository<Campana, Long> {
     List<Campana> findByMasterId(Long masterId);
     List<Campana> findAllByActive(Boolean active);
+
 }
