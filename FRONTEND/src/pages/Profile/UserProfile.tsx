@@ -358,7 +358,7 @@ export function UserProfile() {
                       Miembro desde: {suscripcionActual.fechaAlta}
                     </div>
                   )}
-                  {suscripcionActual && suscripcionActual.estado === 'ACTIVA' && suscripcionActual.tipo !== 'BASICA' && (
+                  {suscripcionActual && suscripcionActual.estado === 'ACTIVA' && (
                     <button className="profile-suscrip-baja" onClick={handleCancelarSuscripcion}>
                       Dar de baja
                     </button>

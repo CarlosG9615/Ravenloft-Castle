@@ -61,6 +61,16 @@ type MisionDetalle = {
 	completada?: boolean;
 };
 
+type MisionParticipanteResponse = {
+	id: number;
+	misionId: number;
+	usuarioId: number;
+	usuarioNombre?: string;
+	rol?: string;
+	personajeId?: number | null;
+	personajeNombre?: string | null;
+};
+
 type MissionListItem = MisionDetalle & {
 	id: number;
 	imagen?: string;
@@ -454,6 +464,7 @@ function MissionDetailView() {
 	const [nivelCampanaRequerido, setNivelCampanaRequerido] = useState(1);
 	const [misionesSugeridas, setMisionesSugeridas] = useState<MisionDetalle[]>([]);
 	const [todosModosHistoria, setTodosModosHistoria] = useState<ModoHistoriaState[]>([]);
+	const [personajeAsignado, setPersonajeAsignado] = useState<CharacterLike | null>(null);
 	const statsPersonajeSeleccionado = useMemo(
 		() => STAT_KEYS.map(statKey => ({
 			key: statKey,
@@ -464,6 +475,31 @@ function MissionDetailView() {
 	);
 
 	const misionIdNumero = useMemo(() => Number(misionId), [misionId]);
+
+	useEffect(() => {
+		if (!Number.isFinite(misionIdNumero) || misionIdNumero <= 0) return;
+
+		const controller = new AbortController();
+
+		const checkParticipacion = async () => {
+			try {
+				const response = await fetch(`${API_URL}/api/misiones/${misionIdNumero}/participantes/me`, {
+					signal: controller.signal,
+					headers: authHeaders(),
+				});
+				if (!response.ok) return;
+				const participante = (await response.json()) as MisionParticipanteResponse;
+				if (participante.personajeId) {
+					setPersonajeAsignado({ id: participante.personajeId, nombre: participante.personajeNombre ?? `Personaje ${participante.personajeId}` });
+				}
+			} catch {
+				// silently ignore — si falla el check, mostramos el modal normalmente
+			}
+		};
+
+		checkParticipacion();
+		return () => controller.abort();
+	}, [misionIdNumero]);
 
 	useEffect(() => {
 		if (!Number.isFinite(misionIdNumero) || misionIdNumero <= 0) {
@@ -603,6 +639,12 @@ function MissionDetailView() {
 	] as const;
 
 	const abrirModalPersonaje = () => {
+		if (personajeAsignado) {
+			navigate('/tablero-story-mode', {
+				state: { modoHistoria, mision, personaje: personajeAsignado },
+			});
+			return;
+		}
 		setIsCharacterModalOpen(true);
 	};
 

@@ -15,9 +15,6 @@ public class SuscripcionCreateDTO {
     @NotNull(message = "El id del usuario es obligatorio")
     private Long usuarioId;
 
-    @NotNull(message = "El nombre de la suscripción es obligatorio")
-    private String nombre;
-
     @NotNull(message = "El tipo de suscripción es obligatorio")
     private TipoSuscripcion tipo;
 }

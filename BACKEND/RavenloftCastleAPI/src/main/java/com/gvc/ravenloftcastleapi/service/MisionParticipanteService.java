@@ -252,6 +252,13 @@ public class MisionParticipanteService {
     }
 
     @Transactional(readOnly = true)
+    public java.util.Optional<MisionParticipanteResponseDTO> getMiParticipacion(String email, Long misionId) {
+        Usuario currentUser = getUsuarioByEmail(email);
+        return participanteRepository.findByMisionIdAndUsuarioId(misionId, currentUser.getId())
+                .map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
     public boolean puedeAccederAMision(Long usuarioId, Long misionId) {
         List<MisionParticipante> lista = participanteRepository.findByMisionId(misionId);
         return lista.stream().anyMatch(p -> p.getUsuario().getId().equals(usuarioId)
@@ -327,6 +334,8 @@ public class MisionParticipanteService {
 
     private void validarSuscripcionActiva(Long usuarioId, ModoHistoria modoHistoria) {
         TipoSuscripcion nivel = modoHistoria.getNivelAcceso();
+        if (nivel == null) return; // contenido gratuito, acceso libre
+
         boolean tieneSuscripcion = suscripcionRepository.findByUsuarioIdAndEstadoIgnoreCase(usuarioId, "ACTIVA")
                 .stream()
                 .map(Suscripcion::getTipo)
