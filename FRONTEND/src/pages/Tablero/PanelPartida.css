@@ -550,3 +550,53 @@
 }
 
 .pp-emote-opcion:hover { transform: scale(1.2); }
+
+/* ── Attack dice chat messages ── */
+.pp-tirada-ataque {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pp-tirada-caras {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pp-tirada-cara-img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px;
+}
+
+/* ── Story mode dice panel ── */
+.pp-dado-imagen-btn { padding: 8px 4px; gap: 6px; }
+.pp-dado-imagen {
+  width: 100%;
+  max-width: 90px;
+  height: 80px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  transition: transform 0.15s ease;
+}
+.pp-dado-imagen-btn:hover:not(:disabled) .pp-dado-imagen { transform: scale(1.08); }
+.pp-dado-imagen-btn.animando .pp-dado-imagen { animation: dadoRoll 0.35s ease infinite alternate; }
+
+.pp-story-dados-title {
+  font-family: 'Metal Mania', cursive;
+  font-size: 12px;
+  color: rgba(206, 165, 70, 0.8);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 12px 0 8px 0;
+  padding: 0;
+  font-weight: normal;
+}
+.pp-story-dados-title:first-child { margin-top: 0; }

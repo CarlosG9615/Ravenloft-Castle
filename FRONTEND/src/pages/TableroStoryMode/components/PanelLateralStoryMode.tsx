@@ -78,7 +78,7 @@ export function PanelLateralStoryMode({
   const [abandonandoMision, setAbandonandoMision] = useState(false);
 
   const misionId = mision?.id ?? null;
-  const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? personaje?.nivel ?? null;
+  const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
 
   const getColorByOrden = (ordenUnion?: number | null): string => {
     if (ordenUnion === null || ordenUnion === undefined || Number.isNaN(Number(ordenUnion))) {

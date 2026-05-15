@@ -440,31 +440,34 @@ export function PanelPartida({
   });
 
   const jugadoresAMostrar = (jugadoresRed.length > 0 ? jugadoresRed : (jugadores !== undefined ? jugadores : JUGADORES_DEMO))
-    .map((j: any, i: number) => ({
-      id: j.id?.toString() || i.toString(),
-      usuarioId: j.usuarioId ?? j.usuario_id ?? null,
-      nombre: j.nombre || j.usuarioNombre || 'Aventurero',
-      clase: j.clase || 'Desconocida',
-      avatar: j.avatar
-        || j.foto
-        || jugadoresBasePorId.get(j.id?.toString?.())?.avatar
-        || jugadoresBasePorNombre.get(j.nombre || j.usuarioNombre)?.avatar
-        || (jugadorActual?.id?.toString?.() === j.id?.toString?.() ? jugadorActual?.avatar : null)
-        || (jugadorActual?.nombre && (jugadorActual.nombre === j.nombre || jugadorActual.nombre === j.usuarioNombre)
-          ? jugadorActual?.avatar
-          : null)
-        || null,
-      hp: j.hp || 10,
-      hpMax: j.hpMax || 10,
-      color: j.color || COLORES_CLASES[j.clase] || '#4a90d9',
-      conectado: j.conectado !== false,
-      fuerza: j.fuerza,
-      destreza: j.destreza,
-      constitucion: j.constitucion,
-      inteligencia: j.inteligencia,
-      sabiduria: j.sabiduria,
-      carisma: j.carisma,
-    }));
+    .map((j: any, i: number) => {
+      const base = jugadoresBasePorId.get(j.id?.toString?.())
+        || jugadoresBasePorNombre.get(j.nombre || j.usuarioNombre);
+      return {
+        id: j.id?.toString() || i.toString(),
+        usuarioId: j.usuarioId ?? j.usuario_id ?? null,
+        nombre: j.nombre || j.usuarioNombre || 'Aventurero',
+        clase: j.clase || base?.clase || 'Desconocida',
+        avatar: j.avatar
+          || j.foto
+          || base?.avatar
+          || (jugadorActual?.id?.toString?.() === j.id?.toString?.() ? jugadorActual?.avatar : null)
+          || (jugadorActual?.nombre && (jugadorActual.nombre === j.nombre || jugadorActual.nombre === j.usuarioNombre)
+            ? jugadorActual?.avatar
+            : null)
+          || null,
+        hp: j.hp || base?.hp || 10,
+        hpMax: j.hpMax || base?.hpMax || 10,
+        color: j.color || base?.color || COLORES_CLASES[j.clase || base?.clase] || '#4a90d9',
+        conectado: j.conectado !== false,
+        fuerza: j.fuerza ?? base?.fuerza,
+        destreza: j.destreza ?? base?.destreza,
+        constitucion: j.constitucion ?? base?.constitucion,
+        inteligencia: j.inteligencia ?? base?.inteligencia,
+        sabiduria: j.sabiduria ?? base?.sabiduria,
+        carisma: j.carisma ?? base?.carisma,
+      };
+    });
 
   const crearPeerConnection = (peerId: string): RTCPeerConnection => {
     const pc = new RTCPeerConnection({
@@ -583,28 +586,45 @@ export function PanelPartida({
                       <span className="pp-msg-autor" style={{ color: msg.colorAutor }}>{msg.autor}</span>
                       <span className="pp-msg-hora">{msg.timestamp}</span>
                     </div>
-                    <div className="pp-tirada-resultado">
-                      <span className="pp-tirada-dado">{msg.tirada.dado}</span>
-                      <div className="pp-tirada-desglose">
-                        <span className="pp-tirada-num">{msg.tirada.resultado}</span>
-                        {msg.tirada.modificador !== 0 && (
-                          <>
-                            <span className="pp-tirada-mod">
-                              {msg.tirada.modificador > 0 ? '+' : ''}{msg.tirada.modificador}
-                            </span>
-                            <span className="pp-tirada-igual">=</span>
-                            <span className={`pp-tirada-total ${msg.tirada.total >= 15 ? 'critico' : msg.tirada.total <= 3 ? 'pifia' : ''}`}>
+                    {msg.tirada.imagenes ? (
+                      <div className="pp-tirada-ataque">
+                        <span className="pp-tirada-dado">{msg.tirada.dado}</span>
+                        <div className="pp-tirada-caras">
+                          {msg.tirada.imagenes.map((cara, i) => (
+                            <img
+                              key={i}
+                              src={`/images/dadosModHistoria/${cara}.png`}
+                              alt={cara}
+                              className="pp-tirada-cara-img"
+                              title={cara}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="pp-tirada-resultado">
+                        <span className="pp-tirada-dado">{msg.tirada.dado}</span>
+                        <div className="pp-tirada-desglose">
+                          <span className="pp-tirada-num">{msg.tirada.resultado}</span>
+                          {msg.tirada.modificador !== 0 && (
+                            <>
+                              <span className="pp-tirada-mod">
+                                {msg.tirada.modificador > 0 ? '+' : ''}{msg.tirada.modificador}
+                              </span>
+                              <span className="pp-tirada-igual">=</span>
+                              <span className={`pp-tirada-total ${msg.tirada.total >= 15 ? 'critico' : msg.tirada.total <= 3 ? 'pifia' : ''}`}>
+                                {msg.tirada.total}
+                              </span>
+                            </>
+                          )}
+                          {msg.tirada.modificador === 0 && (
+                            <span className={`pp-tirada-total ${msg.tirada.total >= 18 ? 'critico' : msg.tirada.total <= 2 ? 'pifia' : ''}`}>
                               {msg.tirada.total}
                             </span>
-                          </>
-                        )}
-                        {msg.tirada.modificador === 0 && (
-                          <span className={`pp-tirada-total ${msg.tirada.total >= 18 ? 'critico' : msg.tirada.total <= 2 ? 'pifia' : ''}`}>
-                            {msg.tirada.total}
-                          </span>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </>
                 )}
               </div>
@@ -728,11 +748,7 @@ export function PanelPartida({
           {CustomDicePanel ? (
             <CustomDicePanel
               dadoActivo={dadoActivo}
-              resultadoActivo={resultadoActivo}
               onLanzarDado={lanzarDado}
-              modificador={modificador}
-              setModificador={setModificador}
-              onAnimacionFin={handleAnimacionFin}
               onAtaqueAnimacionFin={handleAtaqueAnimacionFin}
               turnoActual={turnoActual}
               jugadorActual={jugadorActual}

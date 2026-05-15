@@ -2,7 +2,6 @@ import { StoryModeDiceRoller } from './StoryModeDiceRoller';
 
 interface StoryModeDicePanelProps {
   dadoActivo: string | null;
-  resultadoActivo: number | null;
   onLanzarDado: (caras: number, label: string) => void;
   onAtaqueAnimacionFin?: (imagenes: string[]) => void;
   turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;

@@ -60,7 +60,7 @@ public class TableroWebSocketController {
     public void tokenMove(@DestinationVariable String misionId, @Payload TokenMoveDTO move) {
         try {
             misionParticipanteRepository.actualizarPosicionToken(
-                Long.valueOf(misionId), Long.valueOf(move.getUserId()), move.getCol(), move.getRow());
+                    Long.valueOf(misionId), Long.valueOf(move.getUserId()), move.getCol(), move.getRow());
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("IDs inválidos para token-move", e);
         }
@@ -71,7 +71,7 @@ public class TableroWebSocketController {
     public void tokenRequestSync(@DestinationVariable String misionId, @Payload TokenSyncRequestDTO request) {
         try {
             List<ParticipanteJugadorDTO> participantes =
-                misionParticipanteRepository.findParticipantesJugadores(Long.valueOf(misionId));
+                    misionParticipanteRepository.findParticipantesJugadores(Long.valueOf(misionId));
             List<TokenStateDTO> tokenStates = new ArrayList<>();
             for (ParticipanteJugadorDTO p : participantes) {
                 if (p.tokenCol() != null && p.tokenRow() != null) {
@@ -79,9 +79,9 @@ public class TableroWebSocketController {
                 }
             }
             messagingTemplate.convertAndSendToUser(
-                request.getSessionId(),
-                "/queue/mision/" + misionId + "/token-sync",
-                tokenStates);
+                    request.getSessionId(),
+                    "/queue/mision/" + misionId + "/token-sync",
+                    tokenStates);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("misionId inválido para token-request-sync", e);
         }
@@ -94,7 +94,7 @@ public class TableroWebSocketController {
             TurnoDTO siguiente = turnoService.calcularSiguiente(mid, dto.personajeId());
             messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/turno", siguiente);
             List<ParticipanteJugadorDTO> participantes =
-                misionParticipanteRepository.findParticipantesJugadores(mid);
+                    misionParticipanteRepository.findParticipantesJugadores(mid);
             messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/jugadores", participantes);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("misionId inválido para fin-turno", e);
@@ -108,7 +108,7 @@ public class TableroWebSocketController {
             TurnoDTO turnoInicial = turnoService.iniciarNuevaRonda(mid);
             messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/turno", turnoInicial);
             List<ParticipanteJugadorDTO> participantes =
-                misionParticipanteRepository.findParticipantesJugadores(mid);
+                    misionParticipanteRepository.findParticipantesJugadores(mid);
             messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/jugadores", participantes);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("misionId inválido para iniciar-ronda", e);
@@ -122,7 +122,7 @@ public class TableroWebSocketController {
             TurnoDTO turnoActual = turnoService.obtenerTurnoActual(mid);
             messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/turno", turnoActual);
             List<ParticipanteJugadorDTO> participantes =
-                misionParticipanteRepository.findParticipantesJugadores(mid);
+                    misionParticipanteRepository.findParticipantesJugadores(mid);
             messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/jugadores", participantes);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("misionId inválido para join mision", e);
@@ -133,7 +133,7 @@ public class TableroWebSocketController {
     public void dadoMovimiento(@DestinationVariable String misionId, @Payload DadoRollWsDTO dto) {
         try {
             misionParticipanteRepository.actualizarMovimientoRoll(
-                Long.valueOf(misionId), dto.getPersonajeId(), dto.getValor());
+                    Long.valueOf(misionId), dto.getPersonajeId(), dto.getValor());
             dto.setTipo("movimiento");
             messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/dado-roll", dto);
         } catch (NumberFormatException e) {
@@ -145,7 +145,7 @@ public class TableroWebSocketController {
     public void dadoAtaque(@DestinationVariable String misionId, @Payload DadoRollWsDTO dto) {
         try {
             misionParticipanteRepository.actualizarAtaqueRoll(
-                Long.valueOf(misionId), dto.getPersonajeId(), dto.getValor());
+                    Long.valueOf(misionId), dto.getPersonajeId(), dto.getValor());
             dto.setTipo("ataque");
             messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/dado-roll", dto);
         } catch (NumberFormatException e) {
@@ -159,45 +159,27 @@ public class TableroWebSocketController {
         if (move.getTokenId() == null || move.getTokenId().isBlank()) {
             return;
         }
-
         CampanaTokenStateDTO state = new CampanaTokenStateDTO(
-            move.getTokenId(),
-            move.getOwnerId(),
-            move.getTipo(),
-            move.getNombre(),
-            move.getColor(),
-            move.getCol(),
-            move.getRow(),
-            move.getMapaUrl()
+                move.getTokenId(), move.getOwnerId(), move.getTipo(), move.getNombre(),
+                move.getColor(), move.getCol(), move.getRow(), move.getMapaUrl()
         );
-
         tokensCampana.get(campanaId).put(move.getTokenId(), state);
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/tokens", state);
     }
 
     @MessageMapping("/campana/{campanaId}/token-delete")
     public void campanaTokenDelete(@DestinationVariable String campanaId, @Payload CampanaTokenDeleteDTO delete) {
-        if (delete.getTokenId() == null || delete.getTokenId().isBlank()) {
-            return;
-        }
-
+        if (delete.getTokenId() == null || delete.getTokenId().isBlank()) return;
         Map<String, CampanaTokenStateDTO> tokens = tokensCampana.get(campanaId);
-        if (tokens != null) {
-            tokens.remove(delete.getTokenId());
-        }
-
+        if (tokens != null) tokens.remove(delete.getTokenId());
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/token-delete", delete);
     }
 
     @MessageMapping("/campana/{campanaId}/token-request-sync")
     public void campanaTokenRequestSync(@DestinationVariable String campanaId, @Payload TokenSyncRequestDTO request) {
         List<CampanaTokenStateDTO> tokenStates = new ArrayList<>(
-            tokensCampana.getOrDefault(campanaId, new ConcurrentHashMap<>()).values()
-        );
-        messagingTemplate.convertAndSend(
-            "/topic/campana/" + campanaId + "/token-sync",
-            tokenStates
-        );
+                tokensCampana.getOrDefault(campanaId, new ConcurrentHashMap<>()).values());
+        messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/token-sync", tokenStates);
     }
 
     @MessageMapping("/campana/{campanaId}/chat.enviar")
@@ -205,14 +187,14 @@ public class TableroWebSocketController {
         try {
             Long misionId = Long.valueOf(campanaId);
             MensajeChatPersistido.MensajeChatPersistidoBuilder builder = MensajeChatPersistido.builder()
-                .misionId(misionId)
-                .personajeId(mensaje.getPersonajeId())
-                .usuarioId(mensaje.getUsuarioId())
-                .autor(mensaje.getAutor())
-                .colorAutor(mensaje.getColorAutor())
-                .texto(mensaje.getTexto())
-                .tipo(mensaje.getTipo())
-                .timestamp(mensaje.getTimestamp());
+                    .misionId(misionId)
+                    .personajeId(mensaje.getPersonajeId())
+                    .usuarioId(mensaje.getUsuarioId())
+                    .autor(mensaje.getAutor())
+                    .colorAutor(mensaje.getColorAutor())
+                    .texto(mensaje.getTexto())
+                    .tipo(mensaje.getTipo())
+                    .timestamp(mensaje.getTimestamp());
 
             if (mensaje.getTirada() instanceof Map) {
                 @SuppressWarnings("unchecked")
@@ -227,7 +209,6 @@ public class TableroWebSocketController {
                     builder.tiradaImagenes(String.join(",", imgs));
                 }
             }
-
             mensajeChatRepository.save(builder.build());
         } catch (IllegalArgumentException | ClassCastException e) {
             System.err.println("[Chat] Error persistiendo mensaje: " + e.getMessage());
@@ -242,8 +223,41 @@ public class TableroWebSocketController {
 
     private void broadcastJugadores(String campanaId) {
         List<JugadorWsDTO> jugadores = new ArrayList<>(
-            sessionesCampana.getOrDefault(campanaId, new ConcurrentHashMap<>()).values());
+                sessionesCampana.getOrDefault(campanaId, new ConcurrentHashMap<>()).values());
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/jugadores", jugadores);
+    }
+
+    // ── DTOs ──────────────────────────────────────────────────────────────────
+
+    public static class JugadorWsDTO {
+        private Long id;
+        private Long usuarioId;
+        private String nombre;
+        private String clase;
+        private Integer hp;
+        private Integer hpMax;
+        private Boolean conectado;
+        private String avatar;
+        private String color;
+
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public Long getUsuarioId() { return usuarioId; }
+        public void setUsuarioId(Long usuarioId) { this.usuarioId = usuarioId; }
+        public String getNombre() { return nombre; }
+        public void setNombre(String nombre) { this.nombre = nombre; }
+        public String getClase() { return clase; }
+        public void setClase(String clase) { this.clase = clase; }
+        public Integer getHp() { return hp; }
+        public void setHp(Integer hp) { this.hp = hp; }
+        public Integer getHpMax() { return hpMax; }
+        public void setHpMax(Integer hpMax) { this.hpMax = hpMax; }
+        public Boolean getConectado() { return conectado; }
+        public void setConectado(Boolean conectado) { this.conectado = conectado; }
+        public String getAvatar() { return avatar; }
+        public void setAvatar(String avatar) { this.avatar = avatar; }
+        public String getColor() { return color; }
+        public void setColor(String color) { this.color = color; }
     }
 
     public static class DadoRollWsDTO {
@@ -288,28 +302,6 @@ public class TableroWebSocketController {
         public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
         public Object getTirada() { return tirada; }
         public void setTirada(Object tirada) { this.tirada = tirada; }
-    }
-
-    public static class JugadorWsDTO {
-        private Long id;
-        private String nombre;
-        private String clase;
-        private Integer hp;
-        private Integer hpMax;
-        private Boolean conectado;
-
-        public Long getId() { return id; }
-        public void setId(Long id) { this.id = id; }
-        public String getNombre() { return nombre; }
-        public void setNombre(String nombre) { this.nombre = nombre; }
-        public String getClase() { return clase; }
-        public void setClase(String clase) { this.clase = clase; }
-        public Integer getHp() { return hp; }
-        public void setHp(Integer hp) { this.hp = hp; }
-        public Integer getHpMax() { return hpMax; }
-        public void setHpMax(Integer hpMax) { this.hpMax = hpMax; }
-        public Boolean getConectado() { return conectado; }
-        public void setConectado(Boolean conectado) { this.conectado = conectado; }
     }
 
     public static class TokenMoveDTO {
@@ -398,7 +390,8 @@ public class TableroWebSocketController {
         private int row;
         private String mapaUrl;
 
-        public CampanaTokenStateDTO(String tokenId, String ownerId, String tipo, String nombre, String color, int col, int row, String mapaUrl) {
+        public CampanaTokenStateDTO(String tokenId, String ownerId, String tipo, String nombre,
+                                    String color, int col, int row, String mapaUrl) {
             this.tokenId = tokenId;
             this.ownerId = ownerId;
             this.tipo = tipo;
