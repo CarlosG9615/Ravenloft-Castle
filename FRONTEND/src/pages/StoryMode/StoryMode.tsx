@@ -4,7 +4,15 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './StoryMode.css';
 import { API_URL } from '../../services/api';
 import { getMySuscripciones, getUserSuscripciones } from '../../services/suscripcionService';
-import { getModoHistoriaImageCandidates } from '../../utils/imageUtils';
+import { getModoHistoriaImageCandidates, getAvatarUrl } from '../../utils/imageUtils';
+
+const isAbsoluteUrl = (v: string) => /^https?:\/\//i.test(v);
+const isAppPath    = (v: string) => v.startsWith('/');
+const resolvePersonajeAvatar = (avatar?: string): string | undefined => {
+  if (!avatar) return undefined;
+  if (isAbsoluteUrl(avatar) || isAppPath(avatar)) return avatar;
+  return getAvatarUrl(avatar);
+};
 import { buildMissionListPath } from '../Mission/missionRoutes';
 
 // ── TIPOS ─────────────────────────────────────────────────
@@ -27,6 +35,7 @@ interface ModoHistoria {
     id: number;
     usuarioNombre?: string;
     nombre?: string;
+    clase?: string;
     avatar?: string;
   }>;
   misiones: Array<{
@@ -60,60 +69,59 @@ const NIVEL_SUSCRIPCION: Record<TipoSuscripcion, number> = {
   VIP: 3,
 };
 
+const NOMBRE_PARA_NIVEL: Record<TipoSuscripcion, string> = {
+  BASICA: 'Héroe',
+  PREMIUM: 'DM',
+  VIP: 'Archimago',
+};
+
 const PLANES_SUSCRIPCION: Array<{ tipo: TipoSuscripcion; nombre: string; precio: string; descripcion: string }> = [
   {
     tipo: 'BASICA',
-    nombre: 'Aventurero',
-    precio: 'Gratis',
-    descripcion: 'Ideal para empezar tu aventura.',
+    nombre: 'Héroe',
+    precio: '4.99 €/mes',
+    descripcion: 'Para aventureros dedicados.',
   },
   {
     tipo: 'PREMIUM',
-    nombre: 'Heroe',
-    precio: '4.99 EUR/mes',
-    descripcion: 'Desbloquea modos e historias premium.',
+    nombre: 'DM',
+    precio: '9.99 €/mes',
+    descripcion: 'Todo el poder para crear mundos.',
   },
   {
     tipo: 'VIP',
-    nombre: 'Dungeon Master',
-    precio: '9.99 EUR/mes',
-    descripcion: 'Acceso total para jugadores avanzados.',
+    nombre: 'Archimago',
+    precio: '19.99 €/mes',
+    descripcion: 'El máximo poder para crear mundos épicos.',
   },
 ];
 
 const resolverTipoDesdeTexto = (valor?: string | null): TipoSuscripcion | null => {
   if (!valor) return null;
-  const normalizado = valor.trim().toUpperCase();
+  const normalizado = valor.trim().toUpperCase().replace(/_/g, ' ');
 
-  if (normalizado.includes('VIP')) return 'VIP';
-  if (normalizado.includes('PREMIUM') || normalizado.includes('HEROE') || normalizado.includes('HÉROE')) return 'PREMIUM';
-  if (
-    normalizado.includes('BASICA') ||
-    normalizado.includes('BÁSICA') ||
-    normalizado.includes('AVENTURERO') ||
-    normalizado.includes('FREE') ||
-    normalizado.includes('GRATIS')
-  ) return 'BASICA';
+  if (normalizado.includes('ARCHIMAGO') || normalizado.includes('VIP')) return 'VIP';
+  if (normalizado.includes('DUNGEON') || normalizado.includes('PREMIUM')) return 'PREMIUM';
+  if (normalizado.includes('HEROE') || normalizado.includes('HÉROE') || normalizado.includes('BASICA') || normalizado.includes('BÁSICA')) return 'BASICA';
 
   return null;
 };
 
-const resolverTipoSuscripcionPersistida = (): TipoSuscripcion => {
+const resolverTipoSuscripcionPersistida = (): TipoSuscripcion | null => {
   const userRaw = localStorage.getItem('user') || sessionStorage.getItem('user');
   if (userRaw) {
     try {
-      const user = JSON.parse(userRaw) as { suscripcion?: string; suscripcionTipo?: TipoSuscripcion };
+      const user = JSON.parse(userRaw) as { suscripcion?: string; suscripcionTipo?: TipoSuscripcion; suscripcionActiva?: boolean };
+      if (!user.suscripcionActiva) return null;
       if (user.suscripcionTipo === 'PREMIUM' || user.suscripcionTipo === 'VIP' || user.suscripcionTipo === 'BASICA') {
         return user.suscripcionTipo;
       }
-      const tipoDesdeStorage = resolverTipoDesdeTexto(user.suscripcion);
-      if (tipoDesdeStorage) return tipoDesdeStorage;
+      return resolverTipoDesdeTexto(user.suscripcion);
     } catch {
-      // Si el storage está corrupto, caemos al valor por defecto.
+      return null;
     }
   }
-
-  return 'BASICA';
+  return null;
 };
 
 const getDificultadColor = (dificultad?: string): string => {
@@ -245,11 +253,17 @@ function ModalModoHistoria({
             ) : (
               <div className="jg-modo-personajes-lista">
                 {modoHistoria.personajes.map(personaje => {
-                  const nombreVisible = personaje.usuarioNombre ?? personaje.nombre ?? 'Jugador';
+                  const nombrePersonaje = personaje.nombre ?? personaje.usuarioNombre ?? 'Jugador';
                   return (
                     <div key={personaje.id} className="jg-jugador-chip">
-                      <div className="jg-jugador-avatar">{nombreVisible.charAt(0).toUpperCase()}</div>
-                      <span>{nombreVisible}</span>
+                      {resolvePersonajeAvatar(personaje.avatar)
+                        ? <img src={resolvePersonajeAvatar(personaje.avatar)} alt={nombrePersonaje} className="jg-jugador-avatar" style={{ objectFit: 'cover', borderRadius: '50%' }} />
+                        : <div className="jg-jugador-avatar">{nombrePersonaje.charAt(0).toUpperCase()}</div>
+                      }
+                      <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
+                        <span>{nombrePersonaje}</span>
+                        {personaje.usuarioNombre && <span style={{ fontSize: '0.75em', color: '#ffd700' }}>{personaje.usuarioNombre}</span>}
+                      </div>
                     </div>
                   );
                 })}
@@ -270,20 +284,18 @@ function ModalModoHistoria({
 }
 
 function ModalSuscripcionRequerida({
-  nivelActual,
   nivelRequerido,
   nombreModo,
   onClose,
   onIrASuscripciones,
 }: {
-  nivelActual: TipoSuscripcion;
   nivelRequerido: TipoSuscripcion;
   nombreModo: string;
   onClose: () => void;
   onIrASuscripciones: () => void;
 }) {
-  const planesDisponibles = PLANES_SUSCRIPCION.filter(
-    plan => NIVEL_SUSCRIPCION[plan.tipo] > NIVEL_SUSCRIPCION[nivelActual],
+  const planesQueDesbloquean = PLANES_SUSCRIPCION.filter(
+    plan => NIVEL_SUSCRIPCION[plan.tipo] >= NIVEL_SUSCRIPCION[nivelRequerido],
   );
 
   return (
@@ -291,27 +303,22 @@ function ModalSuscripcionRequerida({
       <div className="jg-modal jg-upgrade-modal" onClick={e => e.stopPropagation()}>
         <button className="jg-modal-close" onClick={onClose}>✕</button>
         <div className="jg-upgrade-header">
-          <h3>Necesitas mejorar tu suscripcion</h3>
+          <h3>Necesitas mejorar tu suscripción</h3>
           <p>
-            El modo <strong>{nombreModo}</strong> requiere plan <strong>{nivelRequerido}</strong>.
+            El modo <strong>{nombreModo}</strong> requiere el plan <strong>{NOMBRE_PARA_NIVEL[nivelRequerido]}</strong> o superior.
           </p>
         </div>
 
         <div className="jg-upgrade-planes">
-          {planesDisponibles.length === 0 ? (
-            <p className="jg-upgrade-vacio">Ya tienes el plan mas alto disponible.</p>
-          ) : (
-            planesDisponibles.map(plan => (
-              <div key={plan.tipo} className="jg-upgrade-plan-card">
-                <div className="jg-upgrade-plan-top">
-                  <span className="jg-upgrade-plan-tipo">{plan.tipo}</span>
-                  <span className="jg-upgrade-plan-precio">{plan.precio}</span>
-                </div>
-                <h4>{plan.nombre}</h4>
-                <p>{plan.descripcion}</p>
+          {planesQueDesbloquean.map(plan => (
+            <div key={plan.tipo} className="jg-upgrade-plan-card">
+              <div className="jg-upgrade-plan-top">
+                <span className="jg-upgrade-plan-tipo">{plan.nombre}</span>
+                <span className="jg-upgrade-plan-precio">{plan.precio}</span>
               </div>
-            ))
-          )}
+              <p>{plan.descripcion}</p>
+            </div>
+          ))}
         </div>
 
         <div className="jg-upgrade-actions">
@@ -333,7 +340,7 @@ export function StoryMode() {
   const [modosHistoria, setModosHistoria] = useState<ModoHistoria[]>([]);
   const [cargandoModosHistoria, setCargandoModosHistoria] = useState(false);
   const [errorModosHistoria, setErrorModosHistoria] = useState<string | null>(null);
-  const [tipoSuscripcionUsuario, setTipoSuscripcionUsuario] = useState<TipoSuscripcion>(resolverTipoSuscripcionPersistida);
+  const [tipoSuscripcionUsuario, setTipoSuscripcionUsuario] = useState<TipoSuscripcion | null>(resolverTipoSuscripcionPersistida);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -375,20 +382,11 @@ export function StoryMode() {
       try {
         const userRaw = localStorage.getItem('user') || sessionStorage.getItem('user');
         if (!userRaw) {
-          setTipoSuscripcionUsuario('BASICA');
+          setTipoSuscripcionUsuario(null);
           return;
         }
 
         const user = JSON.parse(userRaw) as { id?: number; suscripcion?: string; suscripcionTipo?: TipoSuscripcion };
-
-        if (user.suscripcionTipo === 'PREMIUM' || user.suscripcionTipo === 'VIP' || user.suscripcionTipo === 'BASICA') {
-          setTipoSuscripcionUsuario(user.suscripcionTipo);
-        }
-
-        const tipoDesdeStorage = resolverTipoDesdeTexto(user.suscripcion);
-        if (tipoDesdeStorage) {
-          setTipoSuscripcionUsuario(tipoDesdeStorage);
-        }
 
         let suscripciones = await getMySuscripciones();
 
@@ -401,9 +399,7 @@ export function StoryMode() {
         );
 
         if (suscripcionesActivas.length === 0) {
-          if (!tipoDesdeStorage) {
-            setTipoSuscripcionUsuario('BASICA');
-          }
+          setTipoSuscripcionUsuario(null);
           return;
         }
 
@@ -422,25 +418,32 @@ export function StoryMode() {
   }, []);
 
   const usuarioPuedeVerModo = (modo: ModoHistoria) => {
-    const nivelRequerido = (modo.nivelAcceso ?? 'BASICA') as TipoSuscripcion;
-    return NIVEL_SUSCRIPCION[tipoSuscripcionUsuario] >= NIVEL_SUSCRIPCION[nivelRequerido];
+    if (!modo.nivelAcceso) return true;
+    if (!tipoSuscripcionUsuario) return false;
+    return NIVEL_SUSCRIPCION[tipoSuscripcionUsuario] >= NIVEL_SUSCRIPCION[modo.nivelAcceso];
   };
 
-  const modosHistoriaFiltrados = modosHistoria.filter(modo => {
-    const textoMaster = modo.master?.nombre ?? '';
-    const coincideBusqueda = modo.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      textoMaster.toLowerCase().includes(busqueda.toLowerCase());
-    const coincideFiltro = filtro === 'todas' || normalizarDificultad(modo.dificultad) === normalizarDificultad(filtro);
-    return coincideBusqueda && coincideFiltro;
-  });
+  const ORDEN_NIVEL: Record<string, number> = { null: 0, BASICA: 1, PREMIUM: 2, VIP: 3 };
+
+  const modosHistoriaFiltrados = modosHistoria
+    .filter(modo => {
+      const textoMaster = modo.master?.nombre ?? '';
+      const coincideBusqueda = modo.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+        textoMaster.toLowerCase().includes(busqueda.toLowerCase());
+      const coincideFiltro = filtro === 'todas' || normalizarDificultad(modo.dificultad) === normalizarDificultad(filtro);
+      return coincideBusqueda && coincideFiltro;
+    })
+    .sort((a, b) => {
+      const nivelA = ORDEN_NIVEL[a.nivelAcceso ?? 'null'] ?? 0;
+      const nivelB = ORDEN_NIVEL[b.nivelAcceso ?? 'null'] ?? 0;
+      return nivelA - nivelB;
+    });
 
   const handleSeleccionModoHistoria = (modoHistoria: ModoHistoria) => {
-    const nivelRequerido = (modoHistoria.nivelAcceso ?? 'BASICA') as TipoSuscripcion;
-
     if (!usuarioPuedeVerModo(modoHistoria)) {
       setModoBloqueadoSeleccionado({
         nombre: modoHistoria.nombre,
-        nivelRequerido,
+        nivelRequerido: modoHistoria.nivelAcceso as TipoSuscripcion,
       });
       return;
     }
@@ -509,7 +512,6 @@ export function StoryMode() {
               className="jg-modo-historia-btn jg-modo-historia-btn-inline"
               onClick={() => navigate('/join')}
             >
-              <span className="jg-modo-historia-badge">volver</span>
               <span className="jg-modo-historia-texto">Campañas</span>
             </button>
           </div>
@@ -542,8 +544,8 @@ export function StoryMode() {
                     style={{ animationDelay: `${i * 0.08}s` }}
                     onClick={() => handleSeleccionModoHistoria(modoHistoria)}
                   >
-                    {(modoHistoria.nivelAcceso ?? 'BASICA') !== 'BASICA' && (
-                      <span className="jg-card-premium-chip">{modoHistoria.nivelAcceso}</span>
+                    {modoHistoria.nivelAcceso && (
+                      <span className="jg-card-premium-chip">Plan {NOMBRE_PARA_NIVEL[modoHistoria.nivelAcceso]}</span>
                     )}
                     <div className="jg-card-modo-hero">
                       <ModoHistoriaCover
@@ -596,7 +598,6 @@ export function StoryMode() {
       )}
       {modoBloqueadoSeleccionado && (
         <ModalSuscripcionRequerida
-          nivelActual={tipoSuscripcionUsuario}
           nivelRequerido={modoBloqueadoSeleccionado.nivelRequerido}
           nombreModo={modoBloqueadoSeleccionado.nombre}
           onClose={() => setModoBloqueadoSeleccionado(null)}
