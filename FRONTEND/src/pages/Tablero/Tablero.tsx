@@ -5,6 +5,8 @@ import { PanelPartida } from './PanelPartida';
 import { obtenerCampanaPorId } from '../../services/campanaService';
 import { getPersonajes } from '../../services/personajeService';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
+import { getEnemigos } from '../../services/enemigoService';
+import type { EnemigoDetalleDTO } from '../../services/enemigoService';
 import useImage from 'use-image';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -34,6 +36,11 @@ interface TokenMovePayload {
 interface TokenDeletePayload {
   tokenId: string;
   mapaUrl?: string | null;
+}
+
+interface EnemigoCombate extends EnemigoDetalleDTO {
+  instanciaId: string;
+  hpActual: number;
 }
 
 const COLORES_TOKEN = {
@@ -133,6 +140,11 @@ export function Tablero() {
   const [tokenNombre, setTokenNombre]             = useState('');
   const [mostrarCuadricula, setMostrarCuadricula] = useState(true);
   const [panelAbierto, setPanelAbierto]           = useState(true);
+  const [panelEnemigos, setPanelEnemigos]         = useState(false);
+  const [enemigos, setEnemigos]                   = useState<EnemigoDetalleDTO[]>([]);
+  const [hpEnemigos, setHpEnemigos]               = useState<Record<string, number>>({});
+  const [enemigosCombate, setEnemigosCombate]     = useState<EnemigoCombate[]>([]);
+  const [busquedaEnemigo, setBusquedaEnemigo]     = useState('');
 
   const currentPlayerId = jugadorActualConAvatar?.id ?? jugadorActualConAvatar?.personajeId ?? personaje?.id ?? null;
 
@@ -241,6 +253,14 @@ export function Tablero() {
           if (personajes.length > 0) setPersonaje(personajes[0]);
         })
         .catch(err => console.error('Error cargando personaje:', err));
+    }
+  }, [esMaster]);
+
+  useEffect(() => {
+    if (esMaster) {
+      getEnemigos()
+        .then(data => setEnemigos(data))
+        .catch(err => console.error('Error cargando enemigos:', err));
     }
   }, [esMaster]);
 
@@ -411,9 +431,57 @@ export function Tablero() {
   const nombreMapa = (url: string) =>
     url.split('/').pop()?.replace(/\.(jpg|jpeg|png|webp)$/i, '') ?? url;
 
+  const añadirEnemigoCombate = (enemigo: EnemigoDetalleDTO) => {
+    const instanciaId = `enemigo-${enemigo.id}-${Date.now()}`;
+    const nuevoEnemigo: EnemigoCombate = { ...enemigo, instanciaId, hpActual: enemigo.salud };
+    setEnemigosCombate(prev => [...prev, nuevoEnemigo]);
+    setHpEnemigos(prev => ({ ...prev, [instanciaId]: enemigo.salud }));
+    const token: Token = {
+      id: instanciaId,
+      ownerId: null,
+      x: TAMANYO_CELDA * 5 + (enemigosCombate.length * TAMANYO_CELDA),
+      y: TAMANYO_CELDA * 3,
+      color: COLORES_TOKEN.enemigo,
+      nombre: enemigo.nombre,
+      tipo: 'enemigo',
+    };
+    setTokens(prev => [...prev, token]);
+    publishTokenMove(token, token.x, token.y);
+    setPanelEnemigos(false);
+  };
+
+  const cambiarHpEnemigo = (instanciaId: string, hpActual: number, hpMax: number, delta: number) => {
+    const nuevoHp = Math.max(0, Math.min(hpMax, hpActual + delta));
+    setHpEnemigos(prev => ({ ...prev, [instanciaId]: nuevoHp }));
+    if (stompRef.current?.connected && campanaId) {
+      stompRef.current.publish({
+        destination: `/app/campana/${campanaId}/hp-update`,
+        body: JSON.stringify({ jugadorId: instanciaId, hp: nuevoHp }),
+      });
+    }
+  };
+
+  const eliminarEnemigoCombate = (instanciaId: string) => {
+    setEnemigosCombate(prev => prev.filter(e => e.instanciaId !== instanciaId));
+    setHpEnemigos(prev => {
+      const next = { ...prev };
+      delete next[instanciaId];
+      return next;
+    });
+    const token = tokens.find(t => t.id === instanciaId);
+    if (token) {
+      setTokens(prev => prev.filter(t => t.id !== instanciaId));
+      publishTokenDelete(token);
+    }
+  };
+
+  const enemigosFiltrados = enemigos.filter(e =>
+    e.nombre.toLowerCase().includes(busquedaEnemigo.toLowerCase()) ||
+    e.tipo.toLowerCase().includes(busquedaEnemigo.toLowerCase())
+  );
+
   useEffect(() => {
     if (!campanaId) return;
-
     const client = new Client({
       webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
       reconnectDelay: 5000,
@@ -432,7 +500,6 @@ export function Tablero() {
             console.error('Error parseando tokens:', e);
           }
         });
-
         client.subscribe(`/topic/campana/${campanaId}/token-sync`, (frame) => {
           try {
             const payload = JSON.parse(frame.body);
@@ -443,7 +510,6 @@ export function Tablero() {
             console.error('Error sincronizando tokens:', e);
           }
         });
-
         client.subscribe(`/topic/campana/${campanaId}/token-delete`, (frame) => {
           try {
             const payload = JSON.parse(frame.body) as TokenDeletePayload;
@@ -452,7 +518,6 @@ export function Tablero() {
             console.error('Error borrando token:', e);
           }
         });
-
         if (!syncRequestedRef.current) {
           syncRequestedRef.current = true;
           const sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -463,10 +528,8 @@ export function Tablero() {
         }
       },
     });
-
     client.activate();
     stompRef.current = client;
-
     return () => {
       client.deactivate();
       stompRef.current = null;
@@ -583,6 +646,64 @@ export function Tablero() {
               <button className="tb-toggle-btn" onClick={resetearVista}>⟳ Resetear zoom</button>
             </div>
 
+            {/* ── BOTONES COMBATE CON GIF ── */}
+            <div className="tb-seccion">
+              <span className="tb-seccion-label">Combate</span>
+              <div className="tb-combat-btns">
+                <button
+                  className={`tb-combat-btn ${panelEnemigos ? 'active' : ''}`}
+                  onClick={() => setPanelEnemigos(!panelEnemigos)}
+                >
+                  <img src="/images/gif/enemigo.gif" alt="Enemigos" className="tb-combat-gif" />
+                  <span>Enemigos</span>
+                </button>
+                <button className="tb-combat-btn">
+                  <img src="/images/gif/npc.gif" alt="PJ" className="tb-combat-gif tb-combat-gif-npc" />
+                  <span>Personajes</span>
+                </button>
+              </div>
+            </div>
+
+            {/* ── ENEMIGOS EN COMBATE ── */}
+            {enemigosCombate.length > 0 && (
+              <div className="tb-seccion">
+                <span className="tb-seccion-label">Enemigos en combate ({enemigosCombate.length})</span>
+                <div className="tb-enemigos-combate">
+                  {enemigosCombate.map(e => {
+                    const hpActual = hpEnemigos[e.instanciaId] ?? e.salud;
+                    return (
+                      <div key={e.instanciaId} className="tb-enemigo-combate-item">
+                        <div className="tb-enemigo-combate-cabecera">
+                          <span className="tb-enemigo-combate-nombre">{e.nombre}</span>
+                          <button
+                            className="tb-token-borrar"
+                            onClick={() => eliminarEnemigoCombate(e.instanciaId)}
+                            title="Eliminar del combate"
+                          >✕</button>
+                        </div>
+                        <div className="tb-enemigo-hp-wrap">
+                          <button className="tb-hp-btn" onClick={() => cambiarHpEnemigo(e.instanciaId, hpActual, e.salud, -1)}>−</button>
+                          <div className="tb-jugador-hp-barra">
+                            <div className="tb-jugador-hp-fill" style={{
+                              width: `${(hpActual / e.salud) * 100}%`,
+                              background: hpActual / e.salud > 0.5 ? '#e74c3c' : hpActual / e.salud > 0.25 ? '#f39c12' : '#555',
+                            }} />
+                          </div>
+                          <button className="tb-hp-btn" onClick={() => cambiarHpEnemigo(e.instanciaId, hpActual, e.salud, 1)}>+</button>
+                          <span className="tb-hp-num">{hpActual}/{e.salud}</span>
+                        </div>
+                        <div className="tb-enemigo-combate-stats">
+                          <span>🛡 CA {e.ca}</span>
+                          <span>⚔ {e.danoAtaque}</span>
+                          <span>CR {e.cr}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="tb-seccion">
               <span className="tb-seccion-label">Tokens ({tokens.length})</span>
               <div className="tb-tokens-lista">
@@ -635,12 +756,49 @@ export function Tablero() {
         </div>
       )}
 
+      {/* PANEL CATÁLOGO ENEMIGOS */}
+      {esMaster && panelEnemigos && (
+        <div className="tb-enemigos-panel">
+          <div className="tb-enemigos-panel-header">
+            <h4 className="tb-enemigos-titulo">⚔ Catálogo de Enemigos</h4>
+            <button className="tb-enemigos-cerrar" onClick={() => setPanelEnemigos(false)}>✕</button>
+          </div>
+          <input
+            className="tb-input"
+            placeholder="Buscar enemigo..."
+            value={busquedaEnemigo}
+            onChange={e => setBusquedaEnemigo(e.target.value)}
+            style={{ marginBottom: 8 }}
+          />
+          <div className="tb-enemigos-lista">
+            {enemigosFiltrados.map(e => (
+              <div key={e.id} className="tb-enemigo-card" onClick={() => añadirEnemigoCombate(e)}>
+                <div className="tb-enemigo-card-header">
+                  <span className="tb-enemigo-nombre">{e.nombre}</span>
+                  <span className="tb-enemigo-tipo">{e.tipo}</span>
+                </div>
+                <div className="tb-enemigo-card-stats">
+                  <span>❤ {e.salud}</span>
+                  <span>🛡 {e.ca}</span>
+                  <span>⚔ {e.danoAtaque}</span>
+                  <span>CR {e.cr}</span>
+                </div>
+                {e.descripcion && (
+                  <p className="tb-enemigo-desc">{e.descripcion}</p>
+                )}
+              </div>
+            ))}
+            {enemigosFiltrados.length === 0 && (
+              <p className="tb-vacio">No se encontraron enemigos</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* PANEL JUGADOR */}
       {!esMaster && personaje && (
         <div className="tb-panel abierto">
           <div className="tb-panel-contenido">
-
-            {/* CABECERA */}
             <div className="tb-ficha-header">
               {avatarSrc
                 ? (
@@ -675,7 +833,6 @@ export function Tablero() {
               </div>
             </div>
 
-            {/* HP */}
             <div className="tb-seccion">
               <span className="tb-seccion-label">Puntos de Golpe</span>
               <div className="tb-ficha-hp">
@@ -693,7 +850,6 @@ export function Tablero() {
               </div>
             </div>
 
-            {/* CARACTERÍSTICAS */}
             <div className="tb-seccion">
               <span className="tb-seccion-label">Características</span>
               <div className="tb-ficha-stats">
@@ -717,7 +873,6 @@ export function Tablero() {
               </div>
             </div>
 
-            {/* COMBATE */}
             <div className="tb-seccion">
               <span className="tb-seccion-label">Combate</span>
               <div className="tb-ficha-combate">

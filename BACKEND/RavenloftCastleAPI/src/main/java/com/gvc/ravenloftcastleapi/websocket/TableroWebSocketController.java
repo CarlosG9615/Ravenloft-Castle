@@ -28,6 +28,7 @@ public class TableroWebSocketController {
     private final MensajeChatRepository mensajeChatRepository;
     private final Map<String, Map<String, JugadorWsDTO>> sessionesCampana = new ConcurrentHashMap<>();
     private final Map<String, Map<String, CampanaTokenStateDTO>> tokensCampana = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, Integer>> hpOverridesCampana = new ConcurrentHashMap<>();
 
     public TableroWebSocketController(SimpMessagingTemplate messagingTemplate,
                                       MisionParticipanteRepository misionParticipanteRepository,
@@ -44,6 +45,13 @@ public class TableroWebSocketController {
         sessionesCampana.putIfAbsent(campanaId, new ConcurrentHashMap<>());
         String idKey = jugador.getId() != null ? jugador.getId().toString() : String.valueOf(System.currentTimeMillis());
         jugador.setConectado(true);
+
+        // Aplicar HP override si existe
+        Map<String, Integer> hpOverrides = hpOverridesCampana.get(campanaId);
+        if (hpOverrides != null && hpOverrides.containsKey(idKey)) {
+            jugador.setHp(hpOverrides.get(idKey));
+        }
+
         sessionesCampana.get(campanaId).put(idKey, jugador);
         broadcastJugadores(campanaId);
     }
@@ -54,6 +62,22 @@ public class TableroWebSocketController {
             sessionesCampana.get(campanaId).remove(jugadorId);
             broadcastJugadores(campanaId);
         }
+    }
+
+    @MessageMapping("/campana/{campanaId}/hp-update")
+    public void hpUpdate(@DestinationVariable String campanaId, @Payload HpUpdateDTO dto) {
+        // Guardar el override en memoria
+        hpOverridesCampana.putIfAbsent(campanaId, new ConcurrentHashMap<>());
+        hpOverridesCampana.get(campanaId).put(dto.getJugadorId(), dto.getHp());
+
+        // Actualizar el jugador en sesión si está conectado
+        Map<String, JugadorWsDTO> sesiones = sessionesCampana.get(campanaId);
+        if (sesiones != null && sesiones.containsKey(dto.getJugadorId())) {
+            sesiones.get(dto.getJugadorId()).setHp(dto.getHp());
+        }
+
+        // Broadcast a todos
+        messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/hp-update", dto);
     }
 
     @MessageMapping("/mision/{misionId}/token-move")
@@ -258,6 +282,16 @@ public class TableroWebSocketController {
         public void setAvatar(String avatar) { this.avatar = avatar; }
         public String getColor() { return color; }
         public void setColor(String color) { this.color = color; }
+    }
+
+    public static class HpUpdateDTO {
+        private String jugadorId;
+        private Integer hp;
+
+        public String getJugadorId() { return jugadorId; }
+        public void setJugadorId(String jugadorId) { this.jugadorId = jugadorId; }
+        public Integer getHp() { return hp; }
+        public void setHp(Integer hp) { this.hp = hp; }
     }
 
     public static class DadoRollWsDTO {

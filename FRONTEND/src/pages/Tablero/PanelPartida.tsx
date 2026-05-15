@@ -173,7 +173,7 @@ export function PanelPartida({
   jugadores,
   campanaId,
   jugadorActual,
-  esMaster: _esMaster = false,
+  esMaster = false,
   dicesComponent: CustomDicePanel,
   turnoActual,
   onMovimientoRollResult,
@@ -191,6 +191,7 @@ export function PanelPartida({
   const [resultadoActivo, setResultadoActivo] = useState<number | null>(null);
   const [mostrarEmotes, setMostrarEmotes] = useState(false);
   const [perfilPersonajeId, setPerfilPersonajeId] = useState<number | null>(null);
+  const [hpOverrides, setHpOverrides] = useState<Record<string, number>>({});
 
   const chatRef = useRef<HTMLDivElement>(null);
   const stompRef = useRef<Client | null>(null);
@@ -246,10 +247,17 @@ export function PanelPartida({
               timestamp: msg.timestamp || hora(),
             }]);
           });
+
           client.subscribe(`/topic/campana/${campanaId}/jugadores`, (frame) => {
             const list = JSON.parse(frame.body);
             setJugadoresRed(list);
           });
+
+          client.subscribe(`/topic/campana/${campanaId}/hp-update`, (frame) => {
+            const { jugadorId, hp } = JSON.parse(frame.body);
+            setHpOverrides(prev => ({ ...prev, [jugadorId]: hp }));
+          });
+
           client.subscribe(`/topic/campana/${campanaId}/voice`, async (frame) => {
             const señal = JSON.parse(frame.body);
             const { tipo, de, sdp, candidate } = señal;
@@ -272,6 +280,7 @@ export function PanelPartida({
               if (pc) await pc.addIceCandidate(new RTCIceCandidate(candidate));
             }
           });
+
           if (jugadorActual) {
             client.publish({
               destination: `/app/campana/${campanaId}/join`,
@@ -430,6 +439,17 @@ export function PanelPartida({
     setDadoActivo(null);
     setResultadoActivo(null);
   }, [dadoActivo, nombreMaster, colorMaster, campanaId, jugadorActual, onAtaqueRollResult]);
+
+  const cambiarHp = (jugadorId: string, hpActual: number, hpMax: number, delta: number) => {
+    const nuevoHp = Math.max(0, Math.min(hpMax, hpActual + delta));
+    setHpOverrides(prev => ({ ...prev, [jugadorId]: nuevoHp }));
+    if (stompRef.current?.connected && campanaId) {
+      stompRef.current.publish({
+        destination: `/app/campana/${campanaId}/hp-update`,
+        body: JSON.stringify({ jugadorId, hp: nuevoHp }),
+      });
+    }
+  };
 
   const jugadoresBase = Array.isArray(jugadores) ? jugadores : [];
   const jugadoresBasePorId = new Map(jugadoresBase.map(j => [j?.id?.toString?.(), j]));
@@ -676,6 +696,7 @@ export function PanelPartida({
           <div className="pp-jugadores-lista">
             {jugadoresAMostrar.length > 0 ? (
               jugadoresAMostrar.map(j => {
+                const hpReal = hpOverrides[j.id] ?? j.hp;
                 const stats = [
                   { label: 'FUE', valor: j.fuerza ?? 10 },
                   { label: 'DES', valor: j.destreza ?? 10 },
@@ -707,16 +728,22 @@ export function PanelPartida({
                     </div>
                     <div className="pp-jugador-hp-wrap">
                       <span className="pp-jugador-hp-label">HP</span>
+                      {esMaster && (
+                        <button className="pp-hp-btn" onClick={() => cambiarHp(j.id, hpReal, j.hpMax, -1)}>−</button>
+                      )}
                       <div className="pp-jugador-hp-barra">
                         <div
                           className="pp-jugador-hp-fill"
                           style={{
-                            width: `${(j.hp / j.hpMax) * 100}%`,
-                            background: j.hp / j.hpMax > 0.5 ? '#2ecc71' : j.hp / j.hpMax > 0.25 ? '#f39c12' : '#e74c3c',
+                            width: `${(hpReal / j.hpMax) * 100}%`,
+                            background: hpReal / j.hpMax > 0.5 ? '#2ecc71' : hpReal / j.hpMax > 0.25 ? '#f39c12' : '#e74c3c',
                           }}
                         />
                       </div>
-                      <span className="pp-jugador-hp-num">{j.hp}/{j.hpMax}</span>
+                      {esMaster && (
+                        <button className="pp-hp-btn" onClick={() => cambiarHp(j.id, hpReal, j.hpMax, 1)}>+</button>
+                      )}
+                      <span className="pp-jugador-hp-num">{hpReal}/{j.hpMax}</span>
                     </div>
                     <div className="pp-jugador-stats">
                       {stats.map(({ label, valor }) => {
