@@ -467,3 +467,212 @@
   color: rgba(220, 190, 140, 0.95);
   font-family: 'Press Start 2P', monospace;
 }
+
+/* ── PANEL CATÁLOGO ENEMIGOS ── */
+.tb-enemigos-panel {
+  position: absolute;
+  left: 260px;
+  top: 0;
+  width: 230px;
+  height: 100%;
+  background: rgba(15, 8, 3, 0.97);
+  border-right: 1px solid rgba(139, 0, 0, 0.4);
+  z-index: 100;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tb-enemigos-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.tb-enemigos-titulo {
+  color: #c0392b;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+.tb-enemigos-cerrar {
+  background: transparent;
+  border: none;
+  color: rgba(232, 213, 183, 0.5);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+}
+.tb-enemigos-cerrar:hover { color: #e8d5b7; }
+
+.tb-enemigos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tb-enemigo-card {
+  background: rgba(139, 0, 0, 0.12);
+  border: 1px solid rgba(139, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.tb-enemigo-card:hover {
+  background: rgba(139, 0, 0, 0.3);
+  border-color: rgba(139, 0, 0, 0.6);
+}
+
+.tb-enemigo-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.tb-enemigo-nombre {
+  color: #e8d5b7;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.tb-enemigo-tipo {
+  color: #c0392b;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tb-enemigo-card-stats {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  color: rgba(232, 213, 183, 0.6);
+  font-size: 10px;
+}
+
+.tb-enemigo-desc {
+  color: rgba(232, 213, 183, 0.4);
+  font-size: 10px;
+  margin-top: 4px;
+  margin-bottom: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.tb-enemigos-combate {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tb-enemigo-combate-item {
+  background: rgba(139, 0, 0, 0.1);
+  border: 1px solid rgba(139, 0, 0, 0.25);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.tb-enemigo-combate-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.tb-enemigo-combate-nombre {
+  color: #e8d5b7;
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.tb-enemigo-combate-stats {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  color: rgba(232, 213, 183, 0.5);
+  font-size: 10px;
+}
+
+.tb-enemigo-hp-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tb-hp-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  border-radius: 4px;
+  width: 18px;
+  height: 18px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  line-height: 1;
+}
+.tb-hp-btn:hover { background: rgba(255,255,255,0.25); }
+
+.tb-hp-num {
+  color: rgba(232, 213, 183, 0.8);
+  font-size: 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── BOTONES COMBATE GIF ── */
+.tb-combat-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tb-combat-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(10, 4, 2, 0.7);
+  border: 1px solid rgba(139, 0, 0, 0.35);
+  border-radius: 10px;
+  padding: 6px 12px 6px 6px;
+  cursor: pointer;
+  color: #e8d5b7;
+  font-size: 13px;
+  font-weight: bold;
+  font-family: 'Metal Mania', cursive;
+  letter-spacing: 1.5px;
+  width: 100%;
+  transition: background 0.2s, border-color 0.2s;
+  overflow: hidden;
+}
+.tb-combat-btn:hover,
+.tb-combat-btn.active {
+  background: rgba(139, 0, 0, 0.25);
+  border-color: rgba(139, 0, 0, 0.7);
+}
+
+.tb-combat-gif {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+.tb-combat-gif-npc {
+  width: 110px;
+  height: 110px;
+  margin: -10px -10px;
+}
