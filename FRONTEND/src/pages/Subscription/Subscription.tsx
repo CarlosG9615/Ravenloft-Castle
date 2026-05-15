@@ -63,27 +63,16 @@ export function Subscription() {
 
       <div className="plans-grid">
         {/* Plan Héroe (Featured) */}
-        <div className="plan-card featured" style={{ position: 'relative' }}>
+        <div className={`plan-card featured${activeSubscription && activeSubscription.tipo !== 'BASICA' ? ' plan-card--locked' : ''}`}>
           {activeSubscription && activeSubscription.tipo !== 'BASICA' && (
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'rgba(0, 0, 0, 0.55)',
-              borderRadius: 'inherit',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '1.5rem',
-              zIndex: 10,
-              cursor: 'not-allowed',
-            }}>
-              <p style={{ color: 'white', fontWeight: 'bold', textAlign: 'center', margin: 0, background: 'transparent' }}>
-                Para suscribirte a otro plan debes acceder a tu perfil para darte de baja del actual
-              </p>
+            <div className="plan-overlay">
+              <p>Para suscribirte a otro plan debes acceder a tu perfil para darte de baja del actual</p>
             </div>
           )}
           <div className="plan-badge">Más Popular</div>
           <div className="plan-header">
             <Sparkles className="plan-icon" size={32} />
             <h2>Héroe</h2>
-            <h3 className="plan-tipo">BASICA</h3>
             <div className="plan-price">
               <span className="currency">€</span>
               <span className="amount">4.99</span>
@@ -102,33 +91,21 @@ export function Subscription() {
             className="plan-btn featured-btn"
             onClick={() => activeSubscription?.tipo === 'BASICA' ? navigate('/profile') : handleSelectPlan('Héroe', 'BASICA')}
             disabled={!!activeSubscription && activeSubscription.tipo !== 'BASICA'}
-            style={activeSubscription && activeSubscription.tipo !== 'BASICA' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
           >
             {activeSubscription?.tipo === 'BASICA' ? 'Plan Actual' : 'Elegir Héroe'}
           </button>
         </div>
 
         {/* Plan Dungeon Master */}
-        <div className="plan-card" style={{ position: 'relative' }}>
+        <div className={`plan-card${activeSubscription && activeSubscription.tipo !== 'PREMIUM' ? ' plan-card--locked' : ''}`}>
           {activeSubscription && activeSubscription.tipo !== 'PREMIUM' && (
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'rgba(0, 0, 0, 0.55)',
-              borderRadius: 'inherit',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '1.5rem',
-              zIndex: 10,
-              cursor: 'not-allowed',
-            }}>
-              <p style={{ color: 'white', fontWeight: 'bold', textAlign: 'center', margin: 0, background: 'transparent' }}>
-                Para suscribirte a otro plan debes acceder a tu perfil para darte de baja del actual
-              </p>
+            <div className="plan-overlay">
+              <p>Para suscribirte a otro plan debes acceder a tu perfil para darte de baja del actual</p>
             </div>
           )}
           <div className="plan-header">
             <Crown className="plan-icon" size={32} />
             <h2>Dungeon Master</h2>
-            <h3 className="plan-tipo">PREMIUM</h3>
             <div className="plan-price">
               <span className="currency">€</span>
               <span className="amount">9.99</span>
@@ -145,33 +122,21 @@ export function Subscription() {
             className="plan-btn"
             onClick={() => activeSubscription?.tipo === 'PREMIUM' ? navigate('/profile') : handleSelectPlan('Dungeon Master', 'PREMIUM')}
             disabled={!!activeSubscription && activeSubscription.tipo !== 'PREMIUM'}
-            style={activeSubscription && activeSubscription.tipo !== 'PREMIUM' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
           >
             {activeSubscription?.tipo === 'PREMIUM' ? 'Plan Actual' : 'Elegir DM'}
           </button>
         </div>
 
         {/* Plan Archimago */}
-        <div className="plan-card" style={{ position: 'relative' }}>
+        <div className={`plan-card${activeSubscription && activeSubscription.tipo !== 'VIP' ? ' plan-card--locked' : ''}`}>
           {activeSubscription && activeSubscription.tipo !== 'VIP' && (
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'rgba(0, 0, 0, 0.55)',
-              borderRadius: 'inherit',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '1.5rem',
-              zIndex: 10,
-              cursor: 'not-allowed',
-            }}>
-              <p style={{ color: 'white', fontWeight: 'bold', textAlign: 'center', margin: 0, background: 'transparent' }}>
-                Para suscribirte a otro plan debes acceder a tu perfil para darte de baja del actual
-              </p>
+            <div className="plan-overlay">
+              <p>Para suscribirte a otro plan debes acceder a tu perfil para darte de baja del actual</p>
             </div>
           )}
           <div className="plan-header">
             <Gem className="plan-icon" size={32} />
             <h2>Archimago</h2>
-            <h3 className="plan-tipo">VIP</h3>
             <div className="plan-price">
               <span className="currency">€</span>
               <span className="amount">19.99</span>
@@ -191,7 +156,6 @@ export function Subscription() {
             className="plan-btn"
             onClick={() => activeSubscription?.tipo === 'VIP' ? navigate('/profile') : handleSelectPlan('Archimago', 'VIP')}
             disabled={!!activeSubscription && activeSubscription.tipo !== 'VIP'}
-            style={activeSubscription && activeSubscription.tipo !== 'VIP' ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
           >
             {activeSubscription?.tipo === 'VIP' ? 'Plan Actual' : 'Elegir Archimago'}
           </button>
