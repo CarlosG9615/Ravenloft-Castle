@@ -9,8 +9,7 @@ import java.util.List;
 public enum TipoSuscripcion {
     BASICA,
     PREMIUM,
-    VIP,
-    ARCHIMAGO;
+    VIP;
 
     @JsonCreator
     public static TipoSuscripcion fromString(String value) {

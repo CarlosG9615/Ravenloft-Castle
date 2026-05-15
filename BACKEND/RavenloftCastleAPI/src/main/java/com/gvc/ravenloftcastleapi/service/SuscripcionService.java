@@ -7,6 +7,7 @@ import com.gvc.ravenloftcastleapi.entity.Suscripcion;
 import com.gvc.ravenloftcastleapi.entity.Usuario;
 import com.gvc.ravenloftcastleapi.exception.SuscripcionNotFoundException;
 import com.gvc.ravenloftcastleapi.exception.UserNotFoundException;
+import com.gvc.ravenloftcastleapi.enums.NombreSuscripcion;
 import com.gvc.ravenloftcastleapi.enums.TipoSuscripcion;
 import com.gvc.ravenloftcastleapi.repository.SuscripcionRepository;
 import com.gvc.ravenloftcastleapi.repository.UsuarioRepository;
@@ -117,7 +118,7 @@ public class SuscripcionService {
 
         Suscripcion suscripcion = Suscripcion.builder()
                 .usuario(usuario)
-                .nombre(createDTO.getNombre())
+                .nombre(NombreSuscripcion.fromTipo(createDTO.getTipo()).name())
                 .tipo(createDTO.getTipo())
                 .estado("ACTIVA")
                 .fechaAlta(LocalDate.now())

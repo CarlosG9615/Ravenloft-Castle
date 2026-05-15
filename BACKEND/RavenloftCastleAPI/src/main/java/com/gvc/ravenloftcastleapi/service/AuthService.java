@@ -11,6 +11,7 @@ import com.gvc.ravenloftcastleapi.repository.RoleRepository;
 import com.gvc.ravenloftcastleapi.repository.UsuarioRepository;
 import com.gvc.ravenloftcastleapi.repository.SuscripcionRepository;
 import com.gvc.ravenloftcastleapi.entity.Suscripcion;
+import com.gvc.ravenloftcastleapi.enums.NombreSuscripcion;
 import java.time.LocalDate;
 import com.gvc.ravenloftcastleapi.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -54,7 +55,7 @@ public class AuthService {
 
         Suscripcion suscripcionGratis = Suscripcion.builder()
                 .usuario(guardado)
-                .nombre("Aventurero")
+                .nombre(NombreSuscripcion.HEROE.name())
                 .tipo(com.gvc.ravenloftcastleapi.enums.TipoSuscripcion.BASICA)
                 .estado("ACTIVA")
                 .fechaAlta(LocalDate.now())
