@@ -83,6 +83,7 @@ export function Subscription() {
           <div className="plan-header">
             <Sparkles className="plan-icon" size={32} />
             <h2>Héroe</h2>
+            <h3 className="plan-tipo">BASICA</h3>
             <div className="plan-price">
               <span className="currency">€</span>
               <span className="amount">4.99</span>
@@ -95,6 +96,7 @@ export function Subscription() {
             <li>Mapas interactivos básicos</li>
             <li>Diario de campaña avanzado</li>
             <li>Dados virtuales personalizados</li>
+            <li>Nuevos Modos Historia</li>
           </ul>
           <button
             className="plan-btn featured-btn"
@@ -126,6 +128,7 @@ export function Subscription() {
           <div className="plan-header">
             <Crown className="plan-icon" size={32} />
             <h2>Dungeon Master</h2>
+            <h3 className="plan-tipo">PREMIUM</h3>
             <div className="plan-price">
               <span className="currency">€</span>
               <span className="amount">9.99</span>
@@ -136,6 +139,7 @@ export function Subscription() {
           <ul className="plan-features">
             <li>Todo el contenido del plan Héroe</li>
             <li>Creación ilimitada de campañas</li>
+            <li>Modos Historia del plan Héroe + 3 adicionales</li>
           </ul>
           <button
             className="plan-btn"
@@ -167,6 +171,7 @@ export function Subscription() {
           <div className="plan-header">
             <Gem className="plan-icon" size={32} />
             <h2>Archimago</h2>
+            <h3 className="plan-tipo">VIP</h3>
             <div className="plan-price">
               <span className="currency">€</span>
               <span className="amount">19.99</span>
