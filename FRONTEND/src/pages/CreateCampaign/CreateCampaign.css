@@ -9,6 +9,7 @@
   display: flex;
   flex-direction: column;
   padding-top: 80px;
+  overflow-x: hidden;
 }
 
 .cc-campanas-contenido {
@@ -116,6 +117,7 @@
   align-items: center;
   padding-top: 80px;
   padding-bottom: 80px;
+  overflow-x: hidden;
 }
 
 .cc-form-contenido {
@@ -139,15 +141,15 @@
 
 .cc-form {
   width: 100%;
-  max-width: 440px;
+  max-width: 760px;
   background: rgba(15, 6, 4, 0.50);
 
   border-radius: 16px;
   padding: 32px 28px;
   backdrop-filter: blur(12px);
   box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
 }
 
@@ -155,6 +157,10 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.cc-field--full {
+  grid-column: 1 / -1;
 }
 
 .cc-label {
@@ -186,7 +192,7 @@
 .cc-textarea { resize: vertical; min-height: 90px; }
 
 .cc-select {
-  background: rgba(255,255,255,0.04);
+  background: #111;
   border: 1px solid rgba(139,0,0,0.25);
   border-radius: 8px;
   color: white;
@@ -236,6 +242,7 @@
 
 .cc-btn-next {
   align-self: center;
+  justify-self: center;
   width: 52px;
   height: 52px;
   border-radius: 50%;
@@ -249,6 +256,7 @@
   align-items: center;
   justify-content: center;
   margin-top: 8px;
+  grid-column: 1 / -1;
 }
 
 .cc-btn-next:hover:not(:disabled) {
@@ -271,6 +279,7 @@
   padding-bottom: 120px;
   filter: brightness(1.1);
   position: relative;
+  overflow-x: hidden;
 }
 
 .cc-page--mesa > * {
@@ -392,6 +401,10 @@
 }
 
 .cc-mesa-flecha:disabled { opacity: 0.2; cursor: not-allowed; }
+
+.cc-mesa-flecha-icon {
+  color: rgba(255,255,255,0.75);
+}
 
 /* CENTRO CON EL MAPA */
 .cc-mesa-centro {
@@ -643,6 +656,12 @@
 
 /* ── RESPONSIVE ── */
 @media (max-width: 768px) {
+  .cc-form {
+    grid-template-columns: 1fr;
+  }
+  .cc-file-wrap {
+    flex-wrap: wrap;
+  }
   .cc-mesa-zona { gap: 12px; }
   .cc-mesa-flecha { width: 40px; height: 40px; font-size: 20px; }
   .cc-campanas-grid { flex-direction: column; align-items: center; }
@@ -665,6 +684,10 @@
 .cc-filtro-btn-icon:hover {
   background: rgba(139,0,0,0.5);
   border-color: rgba(200,50,30,0.6);
+}
+
+.cc-filtro-icon {
+  color: rgba(255,255,255,0.8);
 }
 
 /* ── PANEL LATERAL ── */
