@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './CreateCampaign.css';
 import { crearCampana } from '../../services/campanaService';
+import { Settings2, ArrowLeft, ArrowRight } from 'pixelarticons/react';
 
 interface Mapa {
   id: number;
@@ -231,7 +232,7 @@ export function CreateCampaign() {
           <h2 className="cc-form-titulo">Añadir Campaña</h2>
           <div className="cc-form">
 
-            <div className="cc-field">
+            <div className="cc-field cc-field--full">
               <label className="cc-label">Nombre</label>
               <input className="cc-input" placeholder="Nombre de la campaña..."
                 value={nombre} onChange={e => setNombre(e.target.value)} />
@@ -261,7 +262,7 @@ export function CreateCampaign() {
               </div>
             </div>
 
-            <div className="cc-field">
+            <div className="cc-field cc-field--full">
               <label className="cc-label">Descripción</label>
               <textarea className="cc-input cc-textarea" placeholder="Describe tu campaña..."
                 value={descripcion} onChange={e => setDescripcion(e.target.value)} rows={4} />
@@ -281,7 +282,7 @@ export function CreateCampaign() {
 
             <div className="cc-field">
               <label className="cc-label">Dificultad</label>
-              <select className="cc-input" style={{ backgroundColor: '#111', color: 'white', border: '1px solid #333' }} value={dificultad} onChange={e => setDificultad(e.target.value)}>
+              <select className="cc-input cc-select" value={dificultad} onChange={e => setDificultad(e.target.value)}>
                 <option value="Fácil">Fácil</option>
                 <option value="Media">Media</option>
                 <option value="Difícil">Difícil</option>
@@ -312,7 +313,7 @@ export function CreateCampaign() {
       className="cc-filtro-btn-icon"
       onClick={() => setFiltroAbierto(!filtroAbierto)}
     >
-      <i className="fi fi-rr-settings-sliders" style={{ fontSize: '24px', color: 'rgba(255,255,255,0.8)' }}></i>
+      <Settings2 width={24} height={24} className="cc-filtro-icon" />
     </button>
 
       {/* PANEL LATERAL */}
@@ -344,7 +345,9 @@ export function CreateCampaign() {
     
       <div className="cc-mesa-zona">
         <button className="cc-mesa-flecha cc-mesa-flecha--izq" onClick={() => cambiarMapa(-1)}
-          disabled={mapasFiltrados.length <= 1}>◀</button>
+          disabled={mapasFiltrados.length <= 1}>
+          <ArrowLeft width={20} height={20} className="cc-mesa-flecha-icon" />
+        </button>
 
         <div className="cc-mesa-centro">
           {mapaActual ? (
@@ -386,7 +389,9 @@ export function CreateCampaign() {
         </div>
 
         <button className="cc-mesa-flecha cc-mesa-flecha--der" onClick={() => cambiarMapa(1)}
-          disabled={mapasFiltrados.length <= 1}>▶</button>
+          disabled={mapasFiltrados.length <= 1}>
+          <ArrowRight width={20} height={20} className="cc-mesa-flecha-icon" />
+        </button>
       </div>
 
       {mapasSeleccionados.length > 0 && (
