@@ -23,14 +23,18 @@ interface ModoHistoria {
   dificultad: 'Fácil' | 'Media' | 'Difícil' | 'Épica';
   nivelMinimo: number;
   maxJugadores: number;
+  jugadoresActuales?: number;
+  mastersActuales?: number;
+  plazasJugadorLibres?: number;
+  plazasMasterLibres?: number;
   nivelAcceso?: 'BASICA' | 'PREMIUM' | 'VIP';
   active: boolean;
-  master: {
+  master?: {
     id: number;
     nombre: string;
     email: string;
     rol: string;
-  };
+  } | null;
   personajes: Array<{
     id: number;
     usuarioNombre?: string;
@@ -147,6 +151,33 @@ const normalizarDificultad = (texto: string): string => {
     .toLowerCase();
 };
 
+const MAX_JUGADORES_ROL = 4;
+const MAX_MASTER_ROL = 1;
+
+const getJugadoresActuales = (modoHistoria: ModoHistoria): number => {
+  if (typeof modoHistoria.jugadoresActuales === 'number') return modoHistoria.jugadoresActuales;
+  return modoHistoria.personajes.length;
+};
+
+const getMastersActuales = (modoHistoria: ModoHistoria): number => {
+  if (typeof modoHistoria.mastersActuales === 'number') return modoHistoria.mastersActuales;
+  return modoHistoria.master ? 1 : 0;
+};
+
+const getPlazasJugadorLibres = (modoHistoria: ModoHistoria): number => {
+  if (typeof modoHistoria.plazasJugadorLibres === 'number') {
+    return Math.max(0, modoHistoria.plazasJugadorLibres);
+  }
+  return Math.max(0, MAX_JUGADORES_ROL - getJugadoresActuales(modoHistoria));
+};
+
+const getPlazasMasterLibres = (modoHistoria: ModoHistoria): number => {
+  if (typeof modoHistoria.plazasMasterLibres === 'number') {
+    return Math.max(0, modoHistoria.plazasMasterLibres);
+  }
+  return Math.max(0, MAX_MASTER_ROL - getMastersActuales(modoHistoria));
+};
+
 function ModoHistoriaCover({
   titulo,
   imageClassName,
@@ -200,8 +231,10 @@ function ModalModoHistoria({
   onClose: () => void;
   onEntrarModoHistoria: (modoHistoria: ModoHistoria) => void;
 }) {
-  const personajesActivos = modoHistoria.personajes.length;
-  const plazasLibres = modoHistoria.maxJugadores - personajesActivos;
+  const jugadoresActuales = getJugadoresActuales(modoHistoria);
+  const mastersActuales = getMastersActuales(modoHistoria);
+  const plazasJugadorLibres = getPlazasJugadorLibres(modoHistoria);
+  const plazasMasterLibres = getPlazasMasterLibres(modoHistoria);
   const misionesTotales = modoHistoria.misiones.length;
 
   return (
@@ -220,26 +253,32 @@ function ModalModoHistoria({
               {modoHistoria.dificultad}
             </span>
             <h2 className="jg-modal-titulo">{modoHistoria.nombre}</h2>
-            <p className="jg-modal-sistema">{modoHistoria.master?.nombre ?? 'Sin master'} · Nivel mín. {modoHistoria.nivelMinimo}</p>
+            <p className="jg-modal-sistema">
+              <span className="jg-master-accent">{modoHistoria.master?.nombre ?? 'Sin master'}</span>
+              {' · '}Nivel mín. {modoHistoria.nivelMinimo}
+            </p>
           </div>
         </div>
         <div className="jg-modal-body">
           <div className="jg-modal-stats">
             <div className="jg-modal-stat">
               <span className="jg-modal-stat-label">Master</span>
-              <span className="jg-modal-stat-valor">⚔ {modoHistoria.master?.nombre ?? 'Sin master'}</span>
+              <span className="jg-modal-stat-valor jg-master-accent">⚔ {modoHistoria.master?.nombre ?? 'Sin master'}</span>
             </div>
             <div className="jg-modal-stat">
               <span className="jg-modal-stat-label">Misiones</span>
               <span className="jg-modal-stat-valor">📜 {misionesTotales}</span>
             </div>
             <div className="jg-modal-stat">
-              <span className="jg-modal-stat-label">Personajes</span>
-              <span className="jg-modal-stat-valor">👥 {personajesActivos} / {modoHistoria.maxJugadores}</span>
+              <span className="jg-modal-stat-label">Plazas libres</span>
+              <div className="jg-modal-plazas-roles" aria-label="Plazas por rol">
+                <span className="jg-modal-stat-valor">Personajes {jugadoresActuales}/{MAX_JUGADORES_ROL}</span>
+                <span className="jg-modal-stat-valor">Master {mastersActuales}/{MAX_MASTER_ROL}</span>
+              </div>
             </div>
             <div className="jg-modal-stat">
-              <span className="jg-modal-stat-label">Plazas libres</span>
-              <span className="jg-modal-stat-valor">✨ {plazasLibres}</span>
+              <span className="jg-modal-stat-label">Nivel requerido</span>
+              <span className="jg-modal-stat-valor">✨ Nivel {modoHistoria.nivelMinimo}</span>
             </div>
           </div>
           <div className="jg-modal-seccion">
@@ -272,10 +311,10 @@ function ModalModoHistoria({
           </div>
           <button
             className="jg-btn-unirse"
-            disabled={plazasLibres === 0}
+            disabled={plazasJugadorLibres === 0}
             onClick={() => onEntrarModoHistoria(modoHistoria)}
           >
-            {plazasLibres > 0 ? '⚔ Entrar al Modo Historia' : 'Modo Historia Completo'}
+            {plazasJugadorLibres > 0 ? '⚔ Entrar al Modo Historia' : 'Sin plazas de jugador'}
           </button>
         </div>
       </div>
@@ -533,8 +572,14 @@ export function StoryMode() {
           <>
             <div className="jg-grid">
               {modosHistoriaFiltrados.map((modoHistoria, i) => {
-                const personajesActivos = modoHistoria.personajes.length;
-                const plazasLibres = modoHistoria.maxJugadores - personajesActivos;
+                const jugadoresActuales = getJugadoresActuales(modoHistoria);
+                const mastersActuales = getMastersActuales(modoHistoria);
+                const plazasJugadorLibres = getPlazasJugadorLibres(modoHistoria);
+                const jugadorCompleto = plazasJugadorLibres === 0;
+                const masterCompleto = mastersActuales >= MAX_MASTER_ROL;
+                const personajesAsignados = modoHistoria.personajes
+                  .map(personaje => personaje.nombre ?? personaje.usuarioNombre)
+                  .filter((nombre): nombre is string => Boolean(nombre?.trim()));
                 const misionesTotales = modoHistoria.misiones.length;
 
                 return (
@@ -563,14 +608,43 @@ export function StoryMode() {
                       <h3 className="jg-card-nombre">{modoHistoria.nombre}</h3>
                       <p className="jg-card-desc">{modoHistoria.descripcion}</p>
                       <div className="jg-card-footer">
-                        <span className="jg-card-master">⚔ {modoHistoria.master?.nombre ?? 'Sin master'}</span>
-                        <span className={`jg-card-plazas ${plazasLibres === 0 ? 'completa' : ''}`}>
-                          👥 {personajesActivos > 0 ? `${personajesActivos}/${modoHistoria.maxJugadores}` : `0/${modoHistoria.maxJugadores}`}
-                        </span>
+                        <div className="jg-card-footer-row jg-card-footer-row--top">
+                          <span className="jg-card-master jg-master-accent">⚔ {modoHistoria.master?.nombre ?? 'Sin master'}</span>
+                          <div className="jg-card-personajes-asignados" aria-label="Personajes asignados al modo">
+                            {personajesAsignados.length > 0 ? (
+                              personajesAsignados.map((nombre, index) => (
+                                <span key={`${modoHistoria.id}-personaje-${index}`} className="jg-card-personaje-nombre">
+                                  {nombre}
+                                  {index < personajesAsignados.length - 1 && (
+                                    <span className="jg-card-personaje-separador" aria-hidden="true">•</span>
+                                  )}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="jg-card-personaje-nombre jg-card-personaje-vacio">Sin personajes</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                       <div className="jg-card-modo-meta">
-                        <span className="jg-card-modo-nivel">Nv. mín. {modoHistoria.nivelMinimo}</span>
-                        <span className="jg-card-modo-personajes">✨ {plazasLibres > 0 ? `${plazasLibres} plazas libres` : 'Completo'}</span>
+                        <div className="jg-card-footer-row jg-card-footer-row--bottom">
+                          <span className="jg-card-modo-nivel">Nv. mín. {modoHistoria.nivelMinimo}</span>
+                          <div className="jg-card-plazas-roles jg-card-plazas-roles--meta" aria-label="Plazas por rol">
+                            <span className="jg-card-plazas">
+                              <span className="jg-card-plazas-label">Personajes</span>
+                              <span className={`jg-card-plazas-cupo ${jugadorCompleto ? 'completa' : 'disponible'}`}>
+                                {jugadoresActuales}/{MAX_JUGADORES_ROL}
+                              </span>
+                            </span>
+                            <span className="jg-card-plazas-separador" aria-hidden="true">||</span>
+                            <span className="jg-card-plazas">
+                              <span className="jg-card-plazas-label">Master</span>
+                              <span className={`jg-card-plazas-cupo ${masterCompleto ? 'completa' : 'disponible'}`}>
+                                {mastersActuales}/{MAX_MASTER_ROL}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

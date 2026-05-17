@@ -18,6 +18,8 @@ public interface MisionParticipanteRepository extends JpaRepository<MisionPartic
 
     List<MisionParticipante> findByMisionId(Long misionId);
 
+    List<MisionParticipante> findByMisionModoHistoriaId(Long modoHistoriaId);
+
     List<MisionParticipante> findByUsuarioId(Long usuarioId);
 
     boolean existsByMisionIdAndUsuarioId(Long misionId, Long usuarioId);
@@ -35,6 +37,10 @@ public interface MisionParticipanteRepository extends JpaRepository<MisionPartic
     List<MisionParticipante> findByMisionIdAndPersonajeIsNotNull(Long misionId);
 
     boolean existsByMisionModoHistoriaIdAndUsuarioId(Long modoHistoriaId, Long usuarioId);
+
+    @Modifying
+    @Transactional
+    void deleteByMisionId(Long misionId);
 
     @Query("""
         SELECT DISTINCT mp.personaje FROM MisionParticipante mp

@@ -29,6 +29,7 @@ public class TableroWebSocketController {
     private final Map<String, Map<String, JugadorWsDTO>> sessionesCampana = new ConcurrentHashMap<>();
     private final Map<String, Map<String, CampanaTokenStateDTO>> tokensCampana = new ConcurrentHashMap<>();
     private final Map<String, Map<String, Integer>> hpOverridesCampana = new ConcurrentHashMap<>();
+    private final Map<String, PartidaConfigDTO> partidasConfiguradas = new ConcurrentHashMap<>();
 
     public TableroWebSocketController(SimpMessagingTemplate messagingTemplate,
                                       MisionParticipanteRepository misionParticipanteRepository,
@@ -245,6 +246,33 @@ public class TableroWebSocketController {
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/voice", (Object) señal);
     }
 
+    // ── Lobby de preparación de partida ─────────────────────────────────────
+
+    @MessageMapping("/mision/{misionId}/master-listo")
+    public void masterListo(@DestinationVariable String misionId, @Payload PartidaConfigDTO config) {
+        config.setMisionId(misionId);
+        partidasConfiguradas.put(misionId, config);
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/partida-lista", config);
+    }
+
+    @MessageMapping("/mision/{misionId}/master-abort")
+    public void masterAbort(@DestinationVariable String misionId) {
+        partidasConfiguradas.remove(misionId);
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/kicked",
+                (Object) java.util.Map.of("razon", "master_abort"));
+    }
+
+    @MessageMapping("/mision/{misionId}/check-partida-lista")
+    public void checkPartidaLista(@DestinationVariable String misionId) {
+        PartidaConfigDTO config = partidasConfiguradas.get(misionId);
+        if (config != null) {
+            messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/partida-lista", config);
+        } else {
+            messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/master-estado",
+                    (Object) java.util.Map.of("listo", false));
+        }
+    }
+
     private void broadcastJugadores(String campanaId) {
         List<JugadorWsDTO> jugadores = new ArrayList<>(
                 sessionesCampana.getOrDefault(campanaId, new ConcurrentHashMap<>()).values());
@@ -452,5 +480,59 @@ public class TableroWebSocketController {
         public void setRow(int row) { this.row = row; }
         public String getMapaUrl() { return mapaUrl; }
         public void setMapaUrl(String mapaUrl) { this.mapaUrl = mapaUrl; }
+    }
+
+    public static class EnemyTokenConfigDTO {
+        private String instanciaId;
+        private Long enemigoId;
+        private String nombre;
+        private int col;
+        private int row;
+
+        public String getInstanciaId() { return instanciaId; }
+        public void setInstanciaId(String instanciaId) { this.instanciaId = instanciaId; }
+        public Long getEnemigoId() { return enemigoId; }
+        public void setEnemigoId(Long enemigoId) { this.enemigoId = enemigoId; }
+        public String getNombre() { return nombre; }
+        public void setNombre(String nombre) { this.nombre = nombre; }
+        public int getCol() { return col; }
+        public void setCol(int col) { this.col = col; }
+        public int getRow() { return row; }
+        public void setRow(int row) { this.row = row; }
+    }
+
+    public static class TrapTokenConfigDTO {
+        private String instanciaId;
+        private String trapId;
+        private String nombre;
+        private String imageUrl;
+        private int col;
+        private int row;
+
+        public String getInstanciaId() { return instanciaId; }
+        public void setInstanciaId(String instanciaId) { this.instanciaId = instanciaId; }
+        public String getTrapId() { return trapId; }
+        public void setTrapId(String trapId) { this.trapId = trapId; }
+        public String getNombre() { return nombre; }
+        public void setNombre(String nombre) { this.nombre = nombre; }
+        public String getImageUrl() { return imageUrl; }
+        public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+        public int getCol() { return col; }
+        public void setCol(int col) { this.col = col; }
+        public int getRow() { return row; }
+        public void setRow(int row) { this.row = row; }
+    }
+
+    public static class PartidaConfigDTO {
+        private String misionId;
+        private List<EnemyTokenConfigDTO> enemigos;
+        private List<TrapTokenConfigDTO> trampas;
+
+        public String getMisionId() { return misionId; }
+        public void setMisionId(String misionId) { this.misionId = misionId; }
+        public List<EnemyTokenConfigDTO> getEnemigos() { return enemigos; }
+        public void setEnemigos(List<EnemyTokenConfigDTO> enemigos) { this.enemigos = enemigos; }
+        public List<TrapTokenConfigDTO> getTrampas() { return trampas; }
+        public void setTrampas(List<TrapTokenConfigDTO> trampas) { this.trampas = trampas; }
     }
 }

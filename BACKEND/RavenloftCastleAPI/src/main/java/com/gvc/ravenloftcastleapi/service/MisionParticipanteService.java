@@ -35,6 +35,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class MisionParticipanteService {
 
+    public static final int MAX_TOTAL_PARTICIPANTES = 5;
+    public static final int MAX_JUGADORES = 4;
+    public static final int MAX_MASTERS = 1;
+
     private final MisionParticipanteRepository participanteRepository;
     private final UsuarioRepository usuarioRepository;
     private final MisionRepository misionRepository;
@@ -68,6 +72,7 @@ public class MisionParticipanteService {
         }
 
         validarNoDuplicado(misionId, usuarioObjetivoId, null);
+        validarCapacidadPorRol(misionId, dto.rol(), null);
 
         Personaje personaje = resolvePersonajeParaRol(
             dto.rol(),
@@ -136,6 +141,7 @@ public class MisionParticipanteService {
 
         validarGestionParticipante(participante, currentUser);
         validarNoDuplicado(misionId, participante.getUsuario().getId(), participante.getId());
+        validarCapacidadPorRol(misionId, dto.rol(), participante.getId());
 
         Personaje personaje = resolvePersonajeParaRol(
                 dto.rol(),
@@ -214,6 +220,38 @@ public class MisionParticipanteService {
 
         broadcastParticipantes(misionId);
         resetTurnoTrasAbandono(misionId, pjId);
+    }
+
+    @Transactional
+    public void eliminarTodos(String email, Long misionId) {
+        Usuario currentUser = getUsuarioByEmail(email);
+        List<MisionParticipante> participantes = participanteRepository.findByMisionId(misionId);
+
+        boolean esMaster = participantes.stream().anyMatch(p ->
+                p.getUsuario().getId().equals(currentUser.getId()) &&
+                p.getRol() == com.gvc.ravenloftcastleapi.enums.RolParticipante.MASTER);
+
+        if (!esMaster) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el master puede eliminar todos los participantes");
+        }
+
+        Long modoHistoriaId = participantes.isEmpty() ? null : participantes.get(0).getMision().getModoHistoria().getId();
+
+        for (MisionParticipante p : participantes) {
+            Long pjId = p.getPersonaje() != null ? p.getPersonaje().getId() : null;
+            Long usuarioId = p.getUsuario().getId();
+            limpiarModoHistoriaPersonajeSiSinPartidas(modoHistoriaId, pjId, usuarioId);
+        }
+
+        participanteRepository.deleteByMisionId(misionId);
+
+        try {
+            mensajeChatRepository.deleteByMisionId(misionId);
+        } catch (Exception e) {
+            System.err.println("[MasterAbort] Error limpiando chat: " + e.getMessage());
+        }
+
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/jugadores", java.util.Collections.emptyList());
     }
 
     private void limpiarModoHistoriaPersonajeSiSinPartidas(Long modoHistoriaId, Long personajeId, Long usuarioId) {
@@ -353,6 +391,32 @@ public class MisionParticipanteService {
 
         if (yaExiste) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Usuario ya participa en esta mision");
+        }
+    }
+
+    private void validarCapacidadPorRol(Long misionId, RolParticipante rolSolicitado, Long participanteIdExcluido) {
+        List<MisionParticipante> participantes = participanteRepository.findByMisionId(misionId)
+                .stream()
+                .filter(p -> participanteIdExcluido == null || !p.getId().equals(participanteIdExcluido))
+                .toList();
+
+        int totalActual = participantes.size();
+        int jugadoresActuales = (int) participantes.stream().filter(p -> p.getRol() == RolParticipante.JUGADOR).count();
+        int mastersActuales = (int) participantes.stream().filter(p -> p.getRol() == RolParticipante.MASTER).count();
+
+        if (totalActual >= MAX_TOTAL_PARTICIPANTES) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "La partida ya alcanzo el maximo de " + MAX_TOTAL_PARTICIPANTES + " participantes");
+        }
+
+        if (rolSolicitado == RolParticipante.JUGADOR && jugadoresActuales >= MAX_JUGADORES) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "La partida ya tiene el maximo de " + MAX_JUGADORES + " jugadores");
+        }
+
+        if (rolSolicitado == RolParticipante.MASTER && mastersActuales >= MAX_MASTERS) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "La partida ya tiene un master asignado");
         }
     }
 

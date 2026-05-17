@@ -93,5 +93,11 @@ public class MisionParticipanteController {
         misionParticipanteService.eliminarPorPersonaje(getCurrentUserEmail(), misionId, personajeId);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteAll(@PathVariable Long misionId) {
+        misionParticipanteService.eliminarTodos(getCurrentUserEmail(), misionId);
+        return ResponseEntity.noContent().build();
+    }
 }
 

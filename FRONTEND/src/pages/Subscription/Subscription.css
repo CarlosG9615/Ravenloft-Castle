@@ -160,6 +160,15 @@
   color: white;
 }
 
+.plan-type {
+  margin: -0.4rem 0 0.9rem;
+  color: rgba(160, 160, 160, 0.72);
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .plan-price {
   margin: 1.5rem 0;
   display: flex;
