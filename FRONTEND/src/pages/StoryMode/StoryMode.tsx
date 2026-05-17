@@ -272,8 +272,8 @@ function ModalModoHistoria({
             <div className="jg-modal-stat">
               <span className="jg-modal-stat-label">Plazas libres</span>
               <div className="jg-modal-plazas-roles" aria-label="Plazas por rol">
-                <span className="jg-modal-stat-valor">👥 Jugador: {plazasJugadorLibres} libres ({jugadoresActuales}/{MAX_JUGADORES_ROL})</span>
-                <span className="jg-modal-stat-valor">🛡 Master: {plazasMasterLibres} libres ({mastersActuales}/{MAX_MASTER_ROL})</span>
+                <span className="jg-modal-stat-valor">Personajes {jugadoresActuales}/{MAX_JUGADORES_ROL}</span>
+                <span className="jg-modal-stat-valor">Master {mastersActuales}/{MAX_MASTER_ROL}</span>
               </div>
             </div>
             <div className="jg-modal-stat">
