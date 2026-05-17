@@ -222,6 +222,38 @@ public class MisionParticipanteService {
         resetTurnoTrasAbandono(misionId, pjId);
     }
 
+    @Transactional
+    public void eliminarTodos(String email, Long misionId) {
+        Usuario currentUser = getUsuarioByEmail(email);
+        List<MisionParticipante> participantes = participanteRepository.findByMisionId(misionId);
+
+        boolean esMaster = participantes.stream().anyMatch(p ->
+                p.getUsuario().getId().equals(currentUser.getId()) &&
+                p.getRol() == com.gvc.ravenloftcastleapi.enums.RolParticipante.MASTER);
+
+        if (!esMaster) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el master puede eliminar todos los participantes");
+        }
+
+        Long modoHistoriaId = participantes.isEmpty() ? null : participantes.get(0).getMision().getModoHistoria().getId();
+
+        for (MisionParticipante p : participantes) {
+            Long pjId = p.getPersonaje() != null ? p.getPersonaje().getId() : null;
+            Long usuarioId = p.getUsuario().getId();
+            limpiarModoHistoriaPersonajeSiSinPartidas(modoHistoriaId, pjId, usuarioId);
+        }
+
+        participanteRepository.deleteByMisionId(misionId);
+
+        try {
+            mensajeChatRepository.deleteByMisionId(misionId);
+        } catch (Exception e) {
+            System.err.println("[MasterAbort] Error limpiando chat: " + e.getMessage());
+        }
+
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/jugadores", java.util.Collections.emptyList());
+    }
+
     private void limpiarModoHistoriaPersonajeSiSinPartidas(Long modoHistoriaId, Long personajeId, Long usuarioId) {
         if (personajeId == null) return;
         if (!participanteRepository.existsByMisionModoHistoriaIdAndUsuarioId(modoHistoriaId, usuarioId)) {

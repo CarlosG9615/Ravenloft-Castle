@@ -7,7 +7,7 @@ import { getPersonajes } from '../../services/personajeService';
 import { getModoHistoriaImageCandidates } from '../../utils/imageUtils';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import { obtenerNarrativaMision } from './missionNarrative';
-import { buildMissionDetailsPath, buildMissionListPath } from './missionRoutes';
+import { buildCreateMissionPath, buildMissionDetailsPath, buildMissionListPath } from './missionRoutes';
 import { getDificultadColor, getMissionName, normalizarDificultad, normalizarTexto } from './missionUtils';
 import './Mission.css';
 
@@ -854,7 +854,11 @@ function MissionDetailView() {
 											<button
 												type="button"
 												className="mision-modo-btn"
-												onClick={modo.variant === 'personaje' ? abrirModalPersonaje : undefined}
+												onClick={
+													modo.variant === 'master'
+														? () => navigate(buildCreateMissionPath(modoHistoriaId!, misionId!), { state: { mision, modoHistoria } })
+														: abrirModalPersonaje
+												}
 											>
 												{modo.variant === 'master' ? 'Master' : 'Personaje'}
 											</button>

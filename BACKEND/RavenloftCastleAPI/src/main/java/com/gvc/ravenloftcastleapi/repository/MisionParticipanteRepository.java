@@ -38,6 +38,10 @@ public interface MisionParticipanteRepository extends JpaRepository<MisionPartic
 
     boolean existsByMisionModoHistoriaIdAndUsuarioId(Long modoHistoriaId, Long usuarioId);
 
+    @Modifying
+    @Transactional
+    void deleteByMisionId(Long misionId);
+
     @Query("""
         SELECT DISTINCT mp.personaje FROM MisionParticipante mp
         WHERE mp.mision.modoHistoria.id = :modoHistoriaId

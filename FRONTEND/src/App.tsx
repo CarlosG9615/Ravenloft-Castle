@@ -25,6 +25,7 @@ import { Tablero } from './pages/Tablero/Tablero';
 import { TableroStoryMode } from './pages/TableroStoryMode/TableroStoryMode';
 import { RoleSelect } from './pages/RoleSelect/Rolselect';
 import Mission from './pages/Mission/Mission';
+import { CreateMission } from './pages/CreateMission/CreateMission';
 import { buildMissionDetailsPath, buildMissionListPath } from './pages/Mission/missionRoutes';
 
 import './App.css';
@@ -118,6 +119,9 @@ function Layout() {
           } />
           <Route path="/story-mode/:id/mission/:misionId/details" element={
             <PrivateRoute><Mission /></PrivateRoute>
+          } />
+          <Route path="/story-mode/:id/mission/:misionId/create-mission" element={
+            <PrivateRoute><CreateMission /></PrivateRoute>
           } />
 
           <Route path="/create" element={

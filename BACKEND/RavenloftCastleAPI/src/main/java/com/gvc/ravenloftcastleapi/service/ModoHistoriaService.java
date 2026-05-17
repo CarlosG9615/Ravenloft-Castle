@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.gvc.ravenloftcastleapi.dto.autenticacion.UsuarioResponseDTO;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -248,6 +249,24 @@ public class ModoHistoriaService {
             .distinct()
             .count();
 
+        MisionParticipante masterParticipante = participaciones.stream()
+                .filter(p -> p.getRol() == RolParticipante.MASTER)
+                .findFirst()
+                .orElse(null);
+
+        UsuarioResponseDTO masterDTO = null;
+
+        if (masterParticipante != null && masterParticipante.getUsuario() != null) {
+
+            masterDTO = new UsuarioResponseDTO(
+                    masterParticipante.getUsuario().getId(),
+                    masterParticipante.getUsuario().getNombre(),
+                    masterParticipante.getUsuario().getEmail(),
+                    masterParticipante.getRol().name(),
+                    masterParticipante.getUsuario().getAvatar(),
+                    masterParticipante.getUsuario().getFechaRegistro()
+            );
+        }
         int plazasJugadorLibres = Math.max(0, MisionParticipanteService.MAX_JUGADORES - jugadoresActuales);
         int plazasMasterLibres = Math.max(0, MisionParticipanteService.MAX_MASTERS - mastersActuales);
 
@@ -264,7 +283,7 @@ public class ModoHistoriaService {
             .plazasMasterLibres(plazasMasterLibres)
                 .nivelAcceso(modoHistoria.getNivelAcceso())
                 .active(modoHistoria.isActive())
-                .master(null) // TODO: Implementar lÃ³gica para obtener el master
+                .master(masterDTO)
                 .personajes(misionParticipanteRepository
                         .findPersonajesActivosByModoHistoriaId(modoHistoria.getId())
                         .stream()

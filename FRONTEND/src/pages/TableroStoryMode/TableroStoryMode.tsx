@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { PanelLateralStoryMode } from './components/PanelLateralStoryMode';
 import { PanelPartidaStoryMode } from './components/PanelPartidaStoryMode';
 import { TableroCentroStoryMode } from './components/TableroCentroStoryMode';
@@ -34,10 +34,12 @@ export function TableroStoryMode() {
   }
   const fallback = savedRef.current ?? {};
 
-  const modoHistoria = rawState.modoHistoria ?? fallback.modoHistoria ?? null;
-  const mision       = rawState.mision       ?? fallback.mision       ?? null;
-  const personaje    = rawState.personaje     ?? fallback.personaje    ?? null;
-  const jugadorActual = rawState.jugadorActual ?? rawState.personaje ?? fallback.jugadorActual ?? fallback.personaje ?? null;
+  const modoHistoria    = rawState.modoHistoria    ?? fallback.modoHistoria    ?? null;
+  const mision          = rawState.mision          ?? fallback.mision          ?? null;
+  const personaje       = rawState.personaje        ?? fallback.personaje        ?? null;
+  const jugadorActual   = rawState.jugadorActual   ?? rawState.personaje       ?? fallback.jugadorActual ?? fallback.personaje ?? null;
+  const esMaster        = rawState.rol === 'master';
+  const configPartidaInicial = rawState.configPartida ?? null;
 
   useEffect(() => {
     if (mision?.id && jugadorActual) {
@@ -52,19 +54,34 @@ export function TableroStoryMode() {
   const [movimientoRoll, setMovimientoRoll] = useState<number | null>(null);
   const [ataqueRollado, setAtaqueRollado] = useState(false);
 
+  const navigate = useNavigate();
+
   const {
     jugadoresSincronizados,
     conectado,
     tokenMoves,
     turnoActual,
     dadosRoll,
+    masterListo,
+    configPartida,
+    kickedOut,
     sendTokenMove,
     sendFinTurno,
     sendDadoMovimiento,
     sendDadoAtaque,
     sendChatMessage,
-  } = useStoryModeSync(mision?.id, jugadorActual, rawState.jugadores ?? []);
+    sendMasterAbort,
+  } = useStoryModeSync(mision?.id, jugadorActual, rawState.jugadores ?? [], esMaster, configPartidaInicial);
   void conectado;
+
+  const esperandoMaster = !esMaster && masterListo !== true;
+
+  useEffect(() => {
+    if (kickedOut) {
+      sessionStorage.removeItem('tsm_session');
+      navigate('/join/story-mode', { replace: true });
+    }
+  }, [kickedOut, navigate]);
 
   useEffect(() => {
     if (!turnoActual?.turnoActualPersonajeId) {
@@ -113,6 +130,8 @@ export function TableroStoryMode() {
         participantes={participantes}
         abierto={panelAbierto}
         onToggle={() => setPanelAbierto(!panelAbierto)}
+        esMaster={esMaster}
+        onMasterAbort={sendMasterAbort}
         onAbandonarConfirmado={(nombrePersonaje) => {
           sendChatMessage({ autor: 'Sistema', texto: `${nombrePersonaje} abandonó la misión` });
         }}
@@ -130,6 +149,8 @@ export function TableroStoryMode() {
         onParticipantesLoaded={setParticipantes}
         movimientoRoll={movimientoRoll}
         onMovimientoUsed={handleMovimientoUsed}
+        configPartida={configPartida}
+        bloqueado={esperandoMaster}
       />
 
       <PanelPartidaStoryMode
@@ -144,6 +165,18 @@ export function TableroStoryMode() {
         ataqueYaLanzado={ataqueRollado}
         chatSince={chatSince}
       />
+
+      {esperandoMaster && (
+        <div className="tsm-waiting-overlay">
+          <div className="tsm-waiting-modal">
+            <p className="tsm-waiting-text">El master está preparando la partida, por favor espera...</p>
+            <div className="gb-master-loader tsm-waiting-spinner" aria-label="Esperando al master">
+              <span className="dot d1" /><span className="dot d2" /><span className="dot d3" /><span className="dot d4" />
+              <span className="dot d5" /><span className="dot d6" /><span className="dot d7" /><span className="dot d8" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

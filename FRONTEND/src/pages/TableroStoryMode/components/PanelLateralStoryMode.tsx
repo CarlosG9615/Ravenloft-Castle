@@ -51,6 +51,8 @@ interface Props {
   participantes?: ParticipanteInfo[];
   abierto: boolean;
   onToggle: () => void;
+  esMaster?: boolean;
+  onMasterAbort?: () => void;
   onAbandonarConfirmado?: (nombrePersonaje: string) => void;
 }
 
@@ -71,6 +73,8 @@ export function PanelLateralStoryMode({
   participantes = [],
   abierto,
   onToggle,
+  esMaster = false,
+  onMasterAbort,
   onAbandonarConfirmado,
 }: Props) {
   const navigate = useNavigate();
@@ -150,6 +154,28 @@ export function PanelLateralStoryMode({
     }
   };
 
+  const abandonarMisionMaster = async () => {
+    if (!misionId) return;
+
+    setAbandonandoMision(true);
+    setShowAbandonarMisionModal(false);
+
+    try {
+      await fetch(`${API_URL}/api/misiones/${misionId}/participantes`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+    } catch {
+      // continuar aunque falle la limpieza REST
+    } finally {
+      setAbandonandoMision(false);
+    }
+
+    onMasterAbort?.();
+    sessionStorage.removeItem('tsm_session');
+    navigate('/join/story-mode', { replace: true });
+  };
+
   return (
     <div className={`tb-panel ${abierto ? 'abierto' : ''}`}>
       <button className="tb-panel-toggle" onClick={onToggle}>
@@ -178,7 +204,15 @@ export function PanelLateralStoryMode({
           </div>
         )}
 
-        {personaje && (() => {
+        {esMaster ? (
+          <div className="tb-seccion">
+            <span className="tb-seccion-label">Tu rol</span>
+            <div className="tsm-master-badge-row">
+              <span className="tsm-master-badge">⚔ Master</span>
+              <p className="tsm-info-sub tsm-master-hint">Diriges la partida. Los jugadores esperan tus decisiones.</p>
+            </div>
+          </div>
+        ) : personaje && (() => {
           const miParticipante = getParticipanteByPersonajeId(jugadorActual?.personajeId ?? jugadorActual?.id ?? personajeId);
           const miColor = getColorByOrden(miParticipante?.ordenUnion);
           return (
@@ -246,11 +280,15 @@ export function PanelLateralStoryMode({
 
       <ModalAlert
         isOpen={showAbandonarMisionModal}
-        title="ABANDONAR MISIÓN"
-        message={`¿Estás seguro de que deseas abandonar esta misión? Tu personaje se desvinculará de ${mision?.nombre ?? `Misión ${mision?.id ?? '-'}`}.`}
-        confirmText="Abandonar"
+        title={esMaster ? 'TERMINAR PARTIDA' : 'ABANDONAR MISIÓN'}
+        message={
+          esMaster
+            ? `¿Seguro que quieres terminar la partida? Se eliminarán todos los participantes de "${mision?.nombre ?? `Misión ${mision?.id ?? '-'}`}" y los jugadores serán expulsados. Esta acción no se puede deshacer.`
+            : `¿Estás seguro de que deseas abandonar esta misión? Tu personaje se desvinculará de ${mision?.nombre ?? `Misión ${mision?.id ?? '-'}`}.`
+        }
+        confirmText={esMaster ? 'Terminar partida' : 'Abandonar'}
         cancelText="Cancelar"
-        onConfirm={abandonarMision}
+        onConfirm={esMaster ? abandonarMisionMaster : abandonarMision}
         onCancel={() => setShowAbandonarMisionModal(false)}
         showImage={true}
       />

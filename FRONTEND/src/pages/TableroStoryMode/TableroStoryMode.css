@@ -165,6 +165,73 @@
   margin: 0;
 }
 
+/* MASTER BADGE */
+.tsm-master-badge-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tsm-master-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(160, 22, 26, 0.55), rgba(100, 10, 12, 0.65));
+  border: 1px solid rgba(227, 68, 60, 0.5);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'Cinzel', serif;
+  color: #e8d5c4;
+  letter-spacing: 0.06em;
+  align-self: flex-start;
+}
+
+.tsm-master-hint {
+  color: rgba(180, 140, 120, 0.55);
+  font-style: italic;
+}
+
+/* WAITING OVERLAY */
+.tsm-waiting-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+.tsm-waiting-modal {
+  background: rgba(10, 2, 3, 0.96);
+  border: 1px solid rgba(160, 22, 26, 0.45);
+  border-radius: 14px;
+  padding: 36px 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  max-width: 380px;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+}
+
+.tsm-waiting-text {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  color: #e8d5c4;
+  margin: 0;
+  line-height: 1.5;
+  letter-spacing: 0.03em;
+}
+
+.tsm-waiting-spinner {
+  transform: scale(1.4);
+}
+
 /* ABANDONAR MISIÓN */
 .tb-btn-abandonar {
   padding: 10px;
