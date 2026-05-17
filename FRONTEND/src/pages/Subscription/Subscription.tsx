@@ -6,6 +6,12 @@ import { getUserSuscripciones, createStripeCheckoutSession } from '../../service
 import { useState, useEffect } from 'react';
 import { ModalAlert } from '../../components/ModalAlert/ModalAlert';
 
+const PLAN_TYPE_LABELS: Record<'BASICA' | 'PREMIUM' | 'VIP', string> = {
+  BASICA: 'Básica',
+  PREMIUM: 'Premium',
+  VIP: 'VIP',
+};
+
 export function Subscription() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -24,7 +30,7 @@ export function Subscription() {
     }
   }, [user?.id]);
 
-  const handleSelectPlan = async (nombrePlan: string, tipo: 'BASICA' | 'PREMIUM' | 'VIP') => {
+  const handleSelectPlan = async (tipo: 'BASICA' | 'PREMIUM' | 'VIP') => {
     if (!user) {
       navigate('/login');
       return;
@@ -73,6 +79,7 @@ export function Subscription() {
           <div className="plan-header">
             <Sparkles className="plan-icon" size={32} />
             <h2>Héroe</h2>
+            <h3 className="plan-type">{PLAN_TYPE_LABELS.BASICA}</h3>
             <div className="plan-price">
               <span className="currency">€</span>
               <span className="amount">4.99</span>
@@ -89,7 +96,7 @@ export function Subscription() {
           </ul>
           <button
             className="plan-btn featured-btn"
-            onClick={() => activeSubscription?.tipo === 'BASICA' ? navigate('/profile') : handleSelectPlan('Héroe', 'BASICA')}
+            onClick={() => activeSubscription?.tipo === 'BASICA' ? navigate('/profile') : handleSelectPlan('BASICA')}
             disabled={!!activeSubscription && activeSubscription.tipo !== 'BASICA'}
           >
             {activeSubscription?.tipo === 'BASICA' ? 'Plan Actual' : 'Elegir Héroe'}
@@ -106,6 +113,7 @@ export function Subscription() {
           <div className="plan-header">
             <Crown className="plan-icon" size={32} />
             <h2>Dungeon Master</h2>
+            <h3 className="plan-type">{PLAN_TYPE_LABELS.PREMIUM}</h3>
             <div className="plan-price">
               <span className="currency">€</span>
               <span className="amount">9.99</span>
@@ -120,7 +128,7 @@ export function Subscription() {
           </ul>
           <button
             className="plan-btn"
-            onClick={() => activeSubscription?.tipo === 'PREMIUM' ? navigate('/profile') : handleSelectPlan('Dungeon Master', 'PREMIUM')}
+            onClick={() => activeSubscription?.tipo === 'PREMIUM' ? navigate('/profile') : handleSelectPlan('PREMIUM')}
             disabled={!!activeSubscription && activeSubscription.tipo !== 'PREMIUM'}
           >
             {activeSubscription?.tipo === 'PREMIUM' ? 'Plan Actual' : 'Elegir DM'}
@@ -137,6 +145,7 @@ export function Subscription() {
           <div className="plan-header">
             <Gem className="plan-icon" size={32} />
             <h2>Archimago</h2>
+            <h3 className="plan-type">{PLAN_TYPE_LABELS.VIP}</h3>
             <div className="plan-price">
               <span className="currency">€</span>
               <span className="amount">19.99</span>
@@ -154,7 +163,7 @@ export function Subscription() {
           </ul>
           <button
             className="plan-btn"
-            onClick={() => activeSubscription?.tipo === 'VIP' ? navigate('/profile') : handleSelectPlan('Archimago', 'VIP')}
+            onClick={() => activeSubscription?.tipo === 'VIP' ? navigate('/profile') : handleSelectPlan('VIP')}
             disabled={!!activeSubscription && activeSubscription.tipo !== 'VIP'}
           >
             {activeSubscription?.tipo === 'VIP' ? 'Plan Actual' : 'Elegir Archimago'}
