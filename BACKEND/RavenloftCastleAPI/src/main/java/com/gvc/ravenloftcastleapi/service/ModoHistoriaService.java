@@ -23,9 +23,11 @@ import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaUpdateDTO;
 import com.gvc.ravenloftcastleapi.dto.personaje.PersonajeResponseDTO;
 import com.gvc.ravenloftcastleapi.entity.Enemigo;
 import com.gvc.ravenloftcastleapi.entity.Mision;
+import com.gvc.ravenloftcastleapi.entity.MisionParticipante;
 import com.gvc.ravenloftcastleapi.entity.ModoHistoria;
 import com.gvc.ravenloftcastleapi.entity.ModoHistoriaEnemigo;
 import com.gvc.ravenloftcastleapi.entity.Personaje;
+import com.gvc.ravenloftcastleapi.enums.RolParticipante;
 import com.gvc.ravenloftcastleapi.repository.EnemigoRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionParticipanteRepository;
 import com.gvc.ravenloftcastleapi.repository.ModoHistoriaRepository;
@@ -230,6 +232,25 @@ public class ModoHistoriaService {
     }
 
     private ModoHistoriaDetalleDTO mapToDetalleDTO(ModoHistoria modoHistoria) {
+        List<MisionParticipante> participaciones = misionParticipanteRepository.findByMisionModoHistoriaId(modoHistoria.getId());
+
+        int jugadoresActuales = (int) participaciones.stream()
+            .filter(p -> p.getRol() == RolParticipante.JUGADOR)
+            .map(p -> p.getPersonaje() != null ? p.getPersonaje().getId() : null)
+            .filter(id -> id != null)
+            .distinct()
+            .count();
+
+        int mastersActuales = (int) participaciones.stream()
+            .filter(p -> p.getRol() == RolParticipante.MASTER)
+            .map(p -> p.getUsuario() != null ? p.getUsuario().getId() : null)
+            .filter(id -> id != null)
+            .distinct()
+            .count();
+
+        int plazasJugadorLibres = Math.max(0, MisionParticipanteService.MAX_JUGADORES - jugadoresActuales);
+        int plazasMasterLibres = Math.max(0, MisionParticipanteService.MAX_MASTERS - mastersActuales);
+
         return ModoHistoriaDetalleDTO.builder()
                 .id(modoHistoria.getId())
                 .nombre(modoHistoria.getNombre())
@@ -237,6 +258,10 @@ public class ModoHistoriaService {
                 .dificultad(modoHistoria.getDificultad())
                 .nivelMinimo(modoHistoria.getNivelMinimo())
                 .maxJugadores(modoHistoria.getMaxJugadores())
+            .jugadoresActuales(jugadoresActuales)
+            .mastersActuales(mastersActuales)
+            .plazasJugadorLibres(plazasJugadorLibres)
+            .plazasMasterLibres(plazasMasterLibres)
                 .nivelAcceso(modoHistoria.getNivelAcceso())
                 .active(modoHistoria.isActive())
                 .master(null) // TODO: Implementar lÃ³gica para obtener el master
