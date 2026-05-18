@@ -369,7 +369,7 @@
 }
 
 .mision-panel {
-	position: static;
+	position: relative;
 	padding-top: 0;
 	display: grid;
 	gap: 12px;
@@ -385,13 +385,13 @@
 }
 
 .mision-chip-grid {
-	position: absolute;
-	top: 16px;
-	right: 16px;
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
-	justify-content: flex-end;
+	justify-content: flex-start;
+	align-items: center;
+	width: 100%;
+	margin-bottom: 4px;
 	z-index: 2;
 }
 
@@ -692,25 +692,31 @@
 }
 
 .sm-mision-meta-grid {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: flex-end;
-	gap: 8px;
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: max-content;
+	justify-content: start;
+	align-content: start;
+	gap: 4px;
 	margin-top: 12px;
-	align-self: flex-end;
+	align-self: flex-start;
+	width: fit-content;
+	max-width: 100%;
 }
 
 .sm-mision-meta-grid .jg-card-modo-nivel,
 .sm-mision-meta-grid .jg-card-modo-personajes {
 	display: inline-flex;
 	align-items: center;
-	padding: 5px 10px;
+	padding: 3px 7px;
 	border-radius: 999px;
 	border: 1px solid rgba(255, 255, 255, 0.14);
 	background: rgba(0, 0, 0, 0.24);
-	font-size: 11px;
+	font-size: 10px;
 	letter-spacing: 0.35px;
 	color: rgba(255, 255, 255, 0.86);
+	white-space: nowrap;
+	width: max-content;
 }
 
 .sm-mision-meta-dificultad {

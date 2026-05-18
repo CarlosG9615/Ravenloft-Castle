@@ -24,6 +24,10 @@ public class ModoHistoriaDetalleDTO {
     private Dificultad dificultad;
     private int nivelMinimo;
     private int maxJugadores;
+    private int jugadoresActuales;
+    private int mastersActuales;
+    private int plazasJugadorLibres;
+    private int plazasMasterLibres;
     private TipoSuscripcion nivelAcceso;
     private boolean active;
     private UsuarioResponseDTO master;

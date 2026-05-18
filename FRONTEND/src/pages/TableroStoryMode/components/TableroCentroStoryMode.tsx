@@ -4,6 +4,7 @@ import type { BoardToken } from './GameBoard';
 import type { MapConfig } from '../hooks/useBoardGrid';
 import { getAvatarUrl as getAvatarUrlCloudinary } from '../../../utils/imageUtils';
 import { API_URL, authHeaders } from '../../../services/api';
+import type { PartidaConfig } from '../hooks/useStoryModeSync';
 
 const PLAYER_COLORS = ['#C0392B', '#2980B9', '#F39C12', '#27AE60'];
 
@@ -82,6 +83,8 @@ interface Props {
   onParticipantesLoaded?: (participantes: ParticipanteDTO[]) => void;
   movimientoRoll?: number | null;
   onMovimientoUsed?: (steps: number) => void;
+  configPartida?: PartidaConfig | null;
+  bloqueado?: boolean;
 }
 
 const COLORES_CLASES: Record<string, string> = {
@@ -153,6 +156,8 @@ export function TableroCentroStoryMode({
   onParticipantesLoaded,
   movimientoRoll = null,
   onMovimientoUsed,
+  configPartida = null,
+  bloqueado: _bloqueado = false,
 }: Props) {
   const [participantes, setParticipantes] = useState<ParticipanteDTO[]>([]);
 
@@ -347,6 +352,8 @@ export function TableroCentroStoryMode({
         miPersonajeId={jugadorActual?.personajeId?.toString() ?? jugadorActual?.id?.toString()}
         movimientoRoll={movimientoRoll}
         onMovimientoUsed={onMovimientoUsed}
+        enemyTokens={configPartida?.enemigos ?? []}
+        trapTokens={configPartida?.trampas ?? []}
       />
     </div>
   );

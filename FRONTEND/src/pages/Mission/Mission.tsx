@@ -7,7 +7,7 @@ import { getPersonajes } from '../../services/personajeService';
 import { getModoHistoriaImageCandidates } from '../../utils/imageUtils';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import { obtenerNarrativaMision } from './missionNarrative';
-import { buildMissionDetailsPath, buildMissionListPath } from './missionRoutes';
+import { buildCreateMissionPath, buildMissionDetailsPath, buildMissionListPath } from './missionRoutes';
 import { getDificultadColor, getMissionName, normalizarDificultad, normalizarTexto } from './missionUtils';
 import './Mission.css';
 
@@ -33,6 +33,8 @@ type ModoHistoriaState = {
 	descripcion?: string;
 	dificultad?: string;
 	nivelMinimo?: number;
+	jugadoresActuales?: number;
+	plazasJugadorLibres?: number;
 	misiones?: MissionStateItem[];
 };
 
@@ -708,6 +710,35 @@ function MissionDetailView() {
 			return;
 		}
 
+		const modoHistoriaIdNumero = Number(modoHistoriaId);
+		let plazasJugadorLibres =
+			typeof modoHistoria?.plazasJugadorLibres === 'number'
+				? Math.max(0, modoHistoria.plazasJugadorLibres)
+				: null;
+
+		if (Number.isFinite(modoHistoriaIdNumero) && modoHistoriaIdNumero > 0) {
+			try {
+				const capacidadResponse = await fetch(`${API_URL}/api/modos-historia/${modoHistoriaIdNumero}`, {
+					headers: authHeaders(),
+				});
+				if (capacidadResponse.ok) {
+					const modoActual = (await capacidadResponse.json()) as ModoHistoriaState;
+					if (typeof modoActual.plazasJugadorLibres === 'number') {
+						plazasJugadorLibres = Math.max(0, modoActual.plazasJugadorLibres);
+					} else if (typeof modoActual.jugadoresActuales === 'number') {
+						plazasJugadorLibres = Math.max(0, 4 - modoActual.jugadoresActuales);
+					}
+				}
+			} catch {
+				// Si falla la validación previa, el backend aplicará la restricción igualmente.
+			}
+		}
+
+		if (plazasJugadorLibres !== null && plazasJugadorLibres <= 0) {
+			setErrorEntrarMision('No quedan plazas libres para rol jugador en esta partida.');
+			return;
+		}
+
 		setEntrandoAMision(true);
 		setErrorEntrarMision(null);
 
@@ -823,7 +854,11 @@ function MissionDetailView() {
 											<button
 												type="button"
 												className="mision-modo-btn"
-												onClick={modo.variant === 'personaje' ? abrirModalPersonaje : undefined}
+												onClick={
+													modo.variant === 'master'
+														? () => navigate(buildCreateMissionPath(modoHistoriaId!, misionId!), { state: { mision, modoHistoria } })
+														: abrirModalPersonaje
+												}
 											>
 												{modo.variant === 'master' ? 'Master' : 'Personaje'}
 											</button>

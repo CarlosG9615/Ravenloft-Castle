@@ -27,6 +27,29 @@ interface TokenMove {
   row: number;
 }
 
+export interface EnemyTokenConfig {
+  instanciaId: string;
+  enemigoId: number | string;
+  nombre: string;
+  col: number;
+  row: number;
+}
+
+export interface TrapTokenConfig {
+  instanciaId: string;
+  trapId: string;
+  nombre: string;
+  imageUrl: string;
+  col: number;
+  row: number;
+}
+
+export interface PartidaConfig {
+  misionId?: string | number;
+  enemigos: EnemyTokenConfig[];
+  trampas: TrapTokenConfig[];
+}
+
 interface TurnoData {
   turnoActualPersonajeId: string | number | null;
   fase: 'personajes' | 'master';
@@ -48,7 +71,9 @@ const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('
 export function useStoryModeSync(
   misionId: string | number | null | undefined,
   jugadorActual: any,
-  initialJugadores: any[] = []
+  initialJugadores: any[] = [],
+  esMaster = false,
+  configPartidaInicial: PartidaConfig | null = null
 ) {
   const jugadorId = jugadorActual?.id ?? jugadorActual?.personajeId ?? null;
   const jugadorPersonajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
@@ -71,6 +96,9 @@ export function useStoryModeSync(
   const [tokenMoves, setTokenMoves] = useState<TokenMove | null>(null);
   const [turnoActual, setTurnoActual] = useState<TurnoData | null>(null);
   const [dadosRoll, setDadosRoll] = useState<Record<string, DadosRollEntry>>({});
+  const [masterListo, setMasterListo] = useState<boolean | null>(esMaster ? true : null);
+  const [configPartida, setConfigPartida] = useState<PartidaConfig | null>(configPartidaInicial);
+  const [kickedOut, setKickedOut] = useState(false);
   const stompRef = useRef<Client | null>(null);
 
   const sendTokenMove = useCallback((col: number, row: number) => {
@@ -122,6 +150,15 @@ export function useStoryModeSync(
     });
   }, [misionId]);
 
+  const sendMasterAbort = useCallback(() => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/master-abort`,
+      body: JSON.stringify({}),
+    });
+  }, [misionId]);
+
   const sendChatMessage = useCallback((mensaje: { autor: string; colorAutor?: string; texto: string; tipo?: string }) => {
     const client = stompRef.current;
     if (!client?.connected || !misionId) return;
@@ -138,7 +175,7 @@ export function useStoryModeSync(
   }, [misionId]);
 
   useEffect(() => {
-    if (!misionId || !jugadorActual) return;
+    if (!misionId || (!jugadorActual && !esMaster)) return;
     const token = getToken();
     if (!token) return;
 
@@ -231,6 +268,37 @@ export function useStoryModeSync(
             body: JSON.stringify(jugadorPayloadRef.current),
           });
         }
+
+        client.subscribe(`/topic/mision/${misionId}/kicked`, () => {
+          setKickedOut(true);
+        });
+
+        if (esMaster && configPartidaInicial) {
+          client.publish({
+            destination: `/app/mision/${misionId}/master-listo`,
+            body: JSON.stringify(configPartidaInicial),
+          });
+        } else if (!esMaster) {
+          client.subscribe(`/topic/mision/${misionId}/partida-lista`, (frame) => {
+            try {
+              const config: PartidaConfig = JSON.parse(frame.body);
+              setConfigPartida(config);
+              setMasterListo(true);
+            } catch {}
+          });
+
+          client.subscribe(`/topic/mision/${misionId}/master-estado`, (frame) => {
+            try {
+              const data = JSON.parse(frame.body);
+              if (data.listo === false) setMasterListo(false);
+            } catch {}
+          });
+
+          client.publish({
+            destination: `/app/mision/${misionId}/check-partida-lista`,
+            body: JSON.stringify({}),
+          });
+        }
       },
 
       onDisconnect: () => setConectado(false),
@@ -243,7 +311,7 @@ export function useStoryModeSync(
     return () => {
       client.deactivate();
     };
-  }, [misionId, jugadorId, jugadorPersonajeId]);
+  }, [misionId, jugadorId, jugadorPersonajeId, esMaster, configPartidaInicial]);
 
   return {
     jugadoresSincronizados,
@@ -251,11 +319,15 @@ export function useStoryModeSync(
     tokenMoves,
     turnoActual,
     dadosRoll,
+    masterListo,
+    configPartida,
+    kickedOut,
     sendTokenMove,
     sendFinTurno,
     sendIniciarRonda,
     sendDadoMovimiento,
     sendDadoAtaque,
     sendChatMessage,
+    sendMasterAbort,
   };
 }

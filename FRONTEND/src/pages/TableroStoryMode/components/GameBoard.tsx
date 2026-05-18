@@ -28,6 +28,21 @@ export interface BoardToken {
   movement: number;
 }
 
+export interface EnemyBoardToken {
+  instanciaId: string;
+  nombre: string;
+  col: number;
+  row: number;
+}
+
+export interface TrapBoardToken {
+  instanciaId: string;
+  nombre: string;
+  imageUrl: string;
+  col: number;
+  row: number;
+}
+
 interface GameBoardProps {
   mapConfig: MapConfig;
   tokens: BoardToken[];
@@ -39,6 +54,8 @@ interface GameBoardProps {
   miPersonajeId?: string;
   movimientoRoll?: number | null;
   onMovimientoUsed?: (steps: number) => void;
+  enemyTokens?: EnemyBoardToken[];
+  trapTokens?: TrapBoardToken[];
 }
 
 interface Size { width: number; height: number; }
@@ -129,6 +146,45 @@ const ALWAYS_WALKABLE = new Set<string>([
   '9,19','10,19','11,19','12,19','13,19',
   '9,13','10,13','11,13','12,13','13,13','14,13',
 ]);
+
+function getEnemigoImageKey(nombre: string): string {
+  return nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
+}
+
+function EnemyImgNode({ nombre, x, y, radius }: { nombre: string; x: number; y: number; radius: number }) {
+  const key = getEnemigoImageKey(nombre);
+  const [pngImg, pngStatus] = useImage(`/images/enemigos/${key}Enemigo.png`);
+  const [jpgImg, jpgStatus] = useImage(`/images/enemigos/${key}Enemigo.jpg`);
+  const img = pngStatus === 'loaded' && pngImg ? pngImg : jpgStatus === 'loaded' && jpgImg ? jpgImg : null;
+  if (!img) return null;
+  return (
+    <KonvaImage
+      image={img}
+      x={x - radius}
+      y={y - radius}
+      width={radius * 2}
+      height={radius * 2}
+      cornerRadius={radius}
+      listening={false}
+    />
+  );
+}
+
+function TrapImgNode({ url, x, y, radius }: { url: string; x: number; y: number; radius: number }) {
+  const [img] = useImage(url);
+  if (!img) return null;
+  return (
+    <KonvaImage
+      image={img}
+      x={x - radius}
+      y={y - radius}
+      width={radius * 2}
+      height={radius * 2}
+      cornerRadius={radius}
+      listening={false}
+    />
+  );
+}
 
 interface BoardTokenNodeProps {
   token: BoardToken;
@@ -291,7 +347,7 @@ function StoryModeDoorModal({ door, onOpen, onOpenDouble, onCancel }: StoryModeD
   );
 }
 
-export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '', movimientoRoll = null, onMovimientoUsed }: GameBoardProps) {
+export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '', movimientoRoll = null, onMovimientoUsed, enemyTokens = [], trapTokens = [] }: GameBoardProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const panStartRef = useRef<{ pointerX: number; pointerY: number; originX: number; originY: number } | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -912,6 +968,70 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
             );
           })}
         </Layer>
+
+        {/* Layer 4: tokens de enemigos */}
+        {enemyTokens.length > 0 && (
+          <Layer listening={false}>
+            {enemyTokens.map((enemy) => {
+              const px = cellToPixel(enemy.col, enemy.row);
+              const ex = mapOriginX + px.x * renderScale;
+              const ey = mapOriginY + px.y * renderScale;
+              const initials = enemy.nombre.slice(0, 2).toUpperCase();
+              return (
+                <Group key={enemy.instanciaId}>
+                  <Circle
+                    x={ex} y={ey} radius={tokenRadius}
+                    fill="rgba(160,22,26,0.88)"
+                    stroke="#e83030"
+                    strokeWidth={1.5}
+                  />
+                  <EnemyImgNode nombre={enemy.nombre} x={ex} y={ey} radius={tokenRadius} />
+                  <Text
+                    x={ex - tokenRadius} y={ey - tokenRadius}
+                    width={tokenRadius * 2} height={tokenRadius * 2}
+                    text={initials}
+                    align="center" verticalAlign="middle"
+                    fill="#fff" fontStyle="bold"
+                    fontSize={Math.max(8, tokenRadius * 0.7)}
+                    visible={false}
+                  />
+                </Group>
+              );
+            })}
+          </Layer>
+        )}
+
+        {/* Layer 5: tokens de trampas */}
+        {trapTokens.length > 0 && (
+          <Layer listening={false}>
+            {trapTokens.map((trap) => {
+              const px = cellToPixel(trap.col, trap.row);
+              const tx = mapOriginX + px.x * renderScale;
+              const ty = mapOriginY + px.y * renderScale;
+              const initials = trap.nombre.slice(0, 2).toUpperCase();
+              return (
+                <Group key={trap.instanciaId}>
+                  <Circle
+                    x={tx} y={ty} radius={tokenRadius}
+                    fill="rgba(180,100,20,0.88)"
+                    stroke="#e08030"
+                    strokeWidth={1.5}
+                  />
+                  <TrapImgNode url={trap.imageUrl} x={tx} y={ty} radius={tokenRadius} />
+                  <Text
+                    x={tx - tokenRadius} y={ty - tokenRadius}
+                    width={tokenRadius * 2} height={tokenRadius * 2}
+                    text={initials}
+                    align="center" verticalAlign="middle"
+                    fill="#fff" fontStyle="bold"
+                    fontSize={Math.max(8, tokenRadius * 0.7)}
+                    visible={false}
+                  />
+                </Group>
+              );
+            })}
+          </Layer>
+        )}
       </Stage>
 
       {pendingDoor && (
