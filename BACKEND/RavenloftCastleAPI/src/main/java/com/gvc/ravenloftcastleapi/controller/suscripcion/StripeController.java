@@ -1,13 +1,18 @@
 package com.gvc.ravenloftcastleapi.controller.suscripcion;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.gvc.ravenloftcastleapi.dto.suscripcion.StripeCheckoutRequestDTO;
 import com.gvc.ravenloftcastleapi.dto.suscripcion.StripeCheckoutResponseDTO;
 import com.stripe.Stripe;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/stripe")
@@ -21,7 +26,7 @@ public class StripeController {
             @Value("${stripe.secret.key:sk_test_51OEXAMPLEKEY}") String stripeSecretKey,
             @Value("${frontend.url:http://localhost:5173}") String frontendUrl) {
         this.stripeSecretKey = stripeSecretKey;
-        this.frontendUrl = frontendUrl;
+        this.frontendUrl = frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
         Stripe.apiKey = this.stripeSecretKey;
     }
 
@@ -32,15 +37,15 @@ public class StripeController {
             String planName;
 
             switch (request.getTipoPlan().toUpperCase()) {
-                case "PREMIUM":
+                case "BASICA":
                     price = 499L;
                     planName = "Suscripción Héroe (Mensual) - Ravenloft Castle";
                     break;
-                case "VIP":
+                case "PREMIUM":
                     price = 999L;
                     planName = "Suscripción Dungeon Master (Mensual) - Ravenloft Castle";
                     break;
-                case "ARCHIMAGO":
+                case "VIP":
                     price = 1999L;
                     planName = "Suscripción Archimago (Mensual) - Ravenloft Castle";
                     break;

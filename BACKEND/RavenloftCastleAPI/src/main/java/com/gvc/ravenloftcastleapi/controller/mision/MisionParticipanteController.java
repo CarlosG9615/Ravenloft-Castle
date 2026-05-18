@@ -52,6 +52,13 @@ public class MisionParticipanteController {
         return ResponseEntity.ok(misionParticipanteService.listarParticipantesJugadores(getCurrentUserEmail(), misionId));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<MisionParticipanteResponseDTO> getMyParticipacion(@PathVariable Long misionId) {
+        return misionParticipanteService.getMiParticipacion(getCurrentUserEmail(), misionId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/{participanteId}")
     public ResponseEntity<MisionParticipanteResponseDTO> getById(
             @PathVariable Long misionId,
