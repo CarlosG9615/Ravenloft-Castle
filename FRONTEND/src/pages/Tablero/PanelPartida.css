@@ -621,3 +621,55 @@
 .pp-hp-btn:hover {
   background: rgba(255,255,255,0.25);
 } 
+.pp-dados-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(10, 4, 2, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.pp-dado-pick-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #e8d5b7;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Press Start 2P', monospace;
+}
+
+.pp-dado-pick-btn:hover {
+  background: rgba(139, 0, 0, 0.3);
+  border-color: rgba(139, 0, 0, 0.6);
+}
+
+.pp-dado-pick-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pp-emote-btn.active {
+  color: #c0392b;
+}
+.pp-dado-pick-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  display: block;
+  margin: 0 auto 2px;
+}
+
+.pp-dado-pick-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}

@@ -11,6 +11,7 @@ import useImage from 'use-image';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import './Tablero.css';
+import { Hand } from 'lucide-react';
 
 interface Token {
   id: string;
@@ -607,7 +608,7 @@ export function Tablero() {
             <div className="tb-seccion">
               <span className="tb-seccion-label">Herramienta</span>
               <div className="tb-herramientas">
-                <button className={`tb-tool-btn ${herramienta === 'mover'  ? 'active' : ''}`} onClick={() => setHerramienta('mover')}  title="Mover vista">🤚</button>
+                <button className={`tb-tool-btn ${herramienta === 'mover'  ? 'active' : ''}`} onClick={() => setHerramienta('mover')}  title="Mover vista"><Hand /></button>
                 <button className={`tb-tool-btn ${herramienta === 'token'  ? 'active' : ''}`} onClick={() => setHerramienta('token')}  title="Añadir token">⊕</button>
                 <button className={`tb-tool-btn ${herramienta === 'borrar' ? 'active' : ''}`} onClick={() => setHerramienta('borrar')} title="Borrar token">🗑</button>
               </div>
@@ -650,17 +651,21 @@ export function Tablero() {
             <div className="tb-seccion">
               <span className="tb-seccion-label">Combate</span>
               <div className="tb-combat-btns">
-                <button
-                  className={`tb-combat-btn ${panelEnemigos ? 'active' : ''}`}
-                  onClick={() => setPanelEnemigos(!panelEnemigos)}
-                >
+                <div className="tb-combat-item">
                   <img src="/images/gif/enemigo.gif" alt="Enemigos" className="tb-combat-gif" />
-                  <span>Enemigos</span>
-                </button>
-                <button className="tb-combat-btn">
-                  <img src="/images/gif/npc.gif" alt="PJ" className="tb-combat-gif tb-combat-gif-npc" />
-                  <span>Personajes</span>
-                </button>
+                  <button
+                    className={`tb-combat-btn ${panelEnemigos ? 'active' : ''}`}
+                    onClick={() => setPanelEnemigos(!panelEnemigos)}
+                  >
+                    Enemigos
+                  </button>
+                </div>
+                <div className="tb-combat-item">
+                  <img src="/images/gif/npc.gif" alt="Personajes" className="tb-combat-gif tb-combat-gif-npc" />
+                  <button className="tb-combat-btn">
+                    Personajes
+                  </button>
+                </div>
               </div>
             </div>
 

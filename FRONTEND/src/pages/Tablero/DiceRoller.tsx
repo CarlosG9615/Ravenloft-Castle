@@ -31,7 +31,7 @@ export function DiceRoller({ dado, resultado, onAnimacionFin }: Props) {
       const box = new DiceBox({
         assetPath: '/assets/dice-box/',
         container: '#dice-box-container',
-        gravity: 2,
+        gravity: 5,
         mass: 1,
         friction: 0.8,
         restitution: 0,
@@ -58,7 +58,7 @@ export function DiceRoller({ dado, resultado, onAnimacionFin }: Props) {
             canvas.style.top = '0';
             canvas.style.left = '0';
           }
-        window.dispatchEvent(new Event('resize'));
+          window.dispatchEvent(new Event('resize'));
         }, 200);
         console.log('✅ DiceBox listo');
       }).catch((err: any) => console.error('Error init:', err));
@@ -83,15 +83,13 @@ export function DiceRoller({ dado, resultado, onAnimacionFin }: Props) {
     rollSound.play().catch(() => {});
 
     diceBoxRef.current.roll(notation).then((resultados: any[]) => {
-      
       console.log('Resultado DiceBox:', JSON.stringify(resultados));
-      
-      const resultadoReal = resultados?.[0]?.value ?? resultados; 
+      const resultadoReal = resultados?.[0]?.value ?? resultados;
       setTimeout(() => {
         setAnimando(false);
         callbackRef.current(resultadoReal);
         diceBoxRef.current?.clear();
-      }, 1500);
+      }, 4000);
     }).catch(() => {
       setAnimando(false);
       callbackRef.current(resultado ?? 1);
@@ -107,9 +105,8 @@ export function DiceRoller({ dado, resultado, onAnimacionFin }: Props) {
         width: '100vw',
         height: '100vh',
         zIndex: 9999,
-        pointerEvents: animando ? 'all' : 'none',
+        pointerEvents: 'none',
       }} />
-      
     </>,
     document.body
   );

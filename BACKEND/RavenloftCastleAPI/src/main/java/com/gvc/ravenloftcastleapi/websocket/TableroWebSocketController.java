@@ -246,6 +246,11 @@ public class TableroWebSocketController {
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/voice", (Object) señal);
     }
 
+    @MessageMapping("/campana/{campanaId}/dice-roll")
+    public void diceRoll(@DestinationVariable String campanaId, @Payload Map<String, Object> payload) {
+        messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/dice-roll", (Object) payload);
+    }
+
     // ── Lobby de preparación de partida ─────────────────────────────────────
 
     @MessageMapping("/mision/{misionId}/master-listo")
