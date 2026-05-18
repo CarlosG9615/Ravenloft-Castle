@@ -59,6 +59,12 @@ public class MisionParticipanteController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/tiene-master")
+    public ResponseEntity<java.util.Map<String, Boolean>> tieneMaster(@PathVariable Long misionId) {
+        boolean tieneMaster = misionParticipanteService.tieneMaster(misionId);
+        return ResponseEntity.ok(java.util.Map.of("tieneMaster", tieneMaster));
+    }
+
     @GetMapping("/{participanteId}")
     public ResponseEntity<MisionParticipanteResponseDTO> getById(
             @PathVariable Long misionId,

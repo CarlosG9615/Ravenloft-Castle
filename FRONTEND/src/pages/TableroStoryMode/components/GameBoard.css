@@ -219,6 +219,35 @@
   text-align: center;
 }
 
+.gb-master-control {
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border: 1px dashed rgba(241, 196, 15, 0.4);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(241, 196, 15, 0.06);
+}
+
+.gb-master-fin-btn {
+  padding: 7px 14px;
+  border: 1px solid rgba(241, 196, 15, 0.55);
+  border-radius: 8px;
+  background: rgba(139, 0, 0, 0.28);
+  color: rgba(255, 230, 180, 0.98);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.15s;
+}
+
+.gb-master-fin-btn:hover {
+  background: rgba(139, 0, 0, 0.42);
+  transform: translateY(-1px);
+}
+
 .gb-door-modal {
   position: absolute;
   top: 50%;

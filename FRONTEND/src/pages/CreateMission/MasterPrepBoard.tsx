@@ -11,6 +11,7 @@ export interface PlacedEnemy {
   nombre: string;
   col: number;
   row: number;
+  salud?: number;
 }
 
 export interface PlacedTrap {
@@ -31,6 +32,7 @@ interface MasterPrepBoardProps {
   onTrapRemove: (instanciaId: string) => void;
   onTrapMove: (instanciaId: string, col: number, row: number) => void;
   isDraggingFromBench: boolean;
+  onBlockedMove?: () => void;
   showDebugGrid?: boolean;
 }
 
@@ -64,13 +66,70 @@ function useEnemyImage(nombre: string): HTMLImageElement | undefined {
 
 // Celdas reservadas para el spawn de personajes — no se pueden colocar enemigos
 const SPAWN_CELLS = new Set<string>([
-  // Col 12: filas 16→19
   '12,16', '12,17', '12,18', '12,19',
-  // Col 13: filas 16→19
   '13,16', '13,17', '13,18', '13,19',
 ]);
 
 export const isSpawnCell = (col: number, row: number) => SPAWN_CELLS.has(`${col},${row}`);
+
+// Posiciones de spawn reales (historia1) usadas para calcular rango de visión
+const SPAWN_POSITIONS = [
+  { col: 12, row: 18 },
+  { col: 13, row: 18 },
+  { col: 12, row: 19 },
+  { col: 13, row: 19 },
+];
+
+// Bounding boxes de las salas de historia1
+export interface Historia1RoomBounds {
+  colStart: number;
+  rowStart: number;
+  colEnd: number;
+  rowEnd: number;
+}
+
+export const HISTORIA1_ROOMS: Historia1RoomBounds[] = [
+  { colStart: 9,  rowStart: 14, colEnd: 11, rowEnd: 18 },
+  { colStart: 14, rowStart: 14, colEnd: 17, rowEnd: 18 },
+  { colStart: 5,  rowStart: 10, colEnd:  8, rowEnd: 18 },
+  { colStart: 18, rowStart: 15, colEnd: 19, rowEnd: 18 },
+  { colStart: 17, rowStart: 10, colEnd: 19, rowEnd: 14 },
+  { colStart: 20, rowStart: 10, colEnd: 23, rowEnd: 13 },
+  { colStart: 20, rowStart: 14, colEnd: 23, rowEnd: 18 },
+  { colStart:  1, rowStart: 10, colEnd:  4, rowEnd: 18 },
+  { colStart: 10, rowStart:  7, colEnd: 15, rowEnd: 12 },
+  { colStart:  1, rowStart:  5, colEnd:  4, rowEnd:  8 },
+  { colStart:  1, rowStart:  1, colEnd:  4, rowEnd:  4 },
+  { colStart:  5, rowStart:  5, colEnd:  8, rowEnd:  8 },
+  { colStart:  5, rowStart:  1, colEnd:  8, rowEnd:  4 },
+  { colStart:  9, rowStart:  1, colEnd: 11, rowEnd:  5 },
+  { colStart: 14, rowStart:  1, colEnd: 16, rowEnd:  5 },
+  { colStart: 17, rowStart:  1, colEnd: 19, rowEnd:  4 },
+  { colStart: 17, rowStart:  5, colEnd: 18, rowEnd:  8 },
+  { colStart: 19, rowStart:  5, colEnd: 23, rowEnd:  8 },
+  { colStart: 20, rowStart:  1, colEnd: 23, rowEnd:  4 },
+];
+
+function isInHistoria1Room(col: number, row: number): boolean {
+  return HISTORIA1_ROOMS.some(r =>
+    col >= r.colStart && col <= r.colEnd &&
+    row >= r.rowStart && row <= r.rowEnd
+  );
+}
+
+function isInSpawnVisibilityRange(col: number, row: number): boolean {
+  return SPAWN_POSITIONS.some(s =>
+    (s.row === row && Math.abs(s.col - col) <= 4) ||
+    (s.col === col && Math.abs(s.row - row) <= 4)
+  );
+}
+
+export function isProhibitedCell(col: number, row: number, isHistoria1 = false): boolean {
+  if (isSpawnCell(col, row)) return true;
+  if (!isInSpawnVisibilityRange(col, row)) return false;
+  if (isHistoria1 && isInHistoria1Room(col, row)) return false;
+  return true;
+}
 
 function getInitials(nombre: string) {
   return nombre.slice(0, 2).toUpperCase();
@@ -249,9 +308,10 @@ function TrapTokenNode({
 
 export const MasterPrepBoard = forwardRef<MasterPrepBoardHandle, MasterPrepBoardProps>(
   function MasterPrepBoard(
-    { mapConfig, placedEnemies, onEnemyRemove, onEnemyMove, placedTraps, onTrapRemove, onTrapMove, isDraggingFromBench, showDebugGrid = false },
+    { mapConfig, placedEnemies, onEnemyRemove, onEnemyMove, placedTraps, onTrapRemove, onTrapMove, isDraggingFromBench, onBlockedMove, showDebugGrid = false },
     ref
   ) {
+    const isHistoria1 = mapConfig.imageUrl.includes('tableroModHistoria1');
     const wrapperRef = useRef<HTMLDivElement>(null);
     const [stageSize, setStageSize] = useState<Size>({ width: 1, height: 1 });
     const [hoverCell, setHoverCell] = useState<CellPos | null>(null);
@@ -272,8 +332,8 @@ export const MasterPrepBoard = forwardRef<MasterPrepBoardHandle, MasterPrepBoard
     const tokenRadius = Math.max(9, mapConfig.cellSize * renderScale * TOKEN_RADIUS_FACTOR);
 
     // Ref para que useImperativeHandle siempre use los valores actuales
-    const coordsRef = useRef({ mapOriginX, mapOriginY, renderScale });
-    coordsRef.current = { mapOriginX, mapOriginY, renderScale };
+    const coordsRef = useRef({ mapOriginX, mapOriginY, renderScale, isHistoria1 });
+    coordsRef.current = { mapOriginX, mapOriginY, renderScale, isHistoria1 };
 
     const { pixelToCell, cellToPixel } = useBoardGrid(mapConfig);
 
@@ -298,10 +358,10 @@ export const MasterPrepBoard = forwardRef<MasterPrepBoardHandle, MasterPrepBoard
         const rect = canvas.getBoundingClientRect();
         if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom)
           return { ok: false, reason: 'outOfBounds' };
-        const { mapOriginX: ox, mapOriginY: oy, renderScale: rs } = coordsRef.current;
+        const { mapOriginX: ox, mapOriginY: oy, renderScale: rs, isHistoria1: h1 } = coordsRef.current;
         const cell = pixelToCell(clientX - rect.left - ox, clientY - rect.top - oy, rs);
         if (!cell) return { ok: false, reason: 'outOfBounds' };
-        if (isSpawnCell(cell.col, cell.row)) return { ok: false, reason: 'blocked' };
+        if (isProhibitedCell(cell.col, cell.row, h1)) return { ok: false, reason: 'blocked' };
         return { ok: true, col: cell.col, row: cell.row };
       },
     }), [pixelToCell]);
@@ -337,14 +397,18 @@ export const MasterPrepBoard = forwardRef<MasterPrepBoardHandle, MasterPrepBoard
     }, [isDraggingFromBench, pointerToCell]);
 
     const handlePointerUp = useCallback((_e: any) => {
-      if (draggingTokenRef.current && hoverCell && !isSpawnCell(hoverCell.col, hoverCell.row)) {
-        const { instanciaId, type } = draggingTokenRef.current;
-        if (type === 'enemy') onEnemyMove(instanciaId, hoverCell.col, hoverCell.row);
-        else onTrapMove(instanciaId, hoverCell.col, hoverCell.row);
+      if (draggingTokenRef.current && hoverCell) {
+        if (isProhibitedCell(hoverCell.col, hoverCell.row, isHistoria1)) {
+          onBlockedMove?.();
+        } else {
+          const { instanciaId, type } = draggingTokenRef.current;
+          if (type === 'enemy') onEnemyMove(instanciaId, hoverCell.col, hoverCell.row);
+          else onTrapMove(instanciaId, hoverCell.col, hoverCell.row);
+        }
       }
       draggingTokenRef.current = null;
       setHoverCell(null);
-    }, [hoverCell, onEnemyMove, onTrapMove]);
+    }, [hoverCell, isHistoria1, onBlockedMove, onEnemyMove, onTrapMove]);
 
     const handlePointerLeave = useCallback(() => {
       draggingTokenRef.current = null;

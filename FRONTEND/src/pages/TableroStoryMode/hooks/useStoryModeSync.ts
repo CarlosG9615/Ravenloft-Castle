@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { WS_URL } from '../../../services/api';
 
 interface JugadorSync {
   id: string | number;
@@ -33,6 +34,7 @@ export interface EnemyTokenConfig {
   nombre: string;
   col: number;
   row: number;
+  salud?: number;
 }
 
 export interface TrapTokenConfig {
@@ -99,6 +101,7 @@ export function useStoryModeSync(
   const [masterListo, setMasterListo] = useState<boolean | null>(esMaster ? true : null);
   const [configPartida, setConfigPartida] = useState<PartidaConfig | null>(configPartidaInicial);
   const [kickedOut, setKickedOut] = useState(false);
+  const [revealedRooms, setRevealedRooms] = useState<string[]>([]);
   const stompRef = useRef<Client | null>(null);
 
   const sendTokenMove = useCallback((col: number, row: number) => {
@@ -159,6 +162,24 @@ export function useStoryModeSync(
     });
   }, [misionId]);
 
+  const sendRoomRevealed = useCallback((roomId: string) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/room-revealed`,
+      body: JSON.stringify({ roomId }),
+    });
+  }, [misionId]);
+
+  const sendEnemyMove = useCallback((instanciaId: string, col: number, row: number) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/enemy-move`,
+      body: JSON.stringify({ instanciaId, col, row }),
+    });
+  }, [misionId]);
+
   const sendChatMessage = useCallback((mensaje: { autor: string; colorAutor?: string; texto: string; tipo?: string }) => {
     const client = stompRef.current;
     if (!client?.connected || !misionId) return;
@@ -180,7 +201,7 @@ export function useStoryModeSync(
     if (!token) return;
 
     const client = new Client({
-      webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
+      webSocketFactory: () => new (SockJS as any)(`${WS_URL}/ws`),
       reconnectDelay: 5000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
@@ -230,6 +251,8 @@ export function useStoryModeSync(
         client.subscribe(`/topic/mision/${misionId}/turno`, (frame) => {
           try {
             const turnoData: TurnoData = JSON.parse(frame.body);
+            // Debug: trace incoming turno messages to help diagnose desyncs
+            try { console.debug('[WS] /topic/mision/%s/turno ->', misionId, turnoData); } catch (e) {}
             setTurnoActual(turnoData);
           } catch {}
         });
@@ -273,6 +296,48 @@ export function useStoryModeSync(
           setKickedOut(true);
         });
 
+        client.subscribe(`/topic/mision/${misionId}/room-revealed`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (data.roomId) {
+              setRevealedRooms(prev => prev.includes(data.roomId) ? prev : [...prev, data.roomId]);
+            }
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/enemy-move`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (data.instanciaId) {
+              setConfigPartida(prev => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  enemigos: prev.enemigos.map(e =>
+                    e.instanciaId === data.instanciaId
+                      ? { ...e, col: data.col, row: data.row }
+                      : e
+                  ),
+                };
+              });
+            }
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/rooms-state`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (Array.isArray(data.revealedRooms)) {
+              setRevealedRooms(data.revealedRooms);
+            }
+          } catch {}
+        });
+
+        client.publish({
+          destination: `/app/mision/${misionId}/check-rooms-revealed`,
+          body: JSON.stringify({}),
+        });
+
         if (esMaster && configPartidaInicial) {
           client.publish({
             destination: `/app/mision/${misionId}/master-listo`,
@@ -313,6 +378,10 @@ export function useStoryModeSync(
     };
   }, [misionId, jugadorId, jugadorPersonajeId, esMaster, configPartidaInicial]);
 
+  useEffect(() => {
+    try { console.debug('[WS HOOK] turnoActual changed ->', turnoActual); } catch (e) {}
+  }, [turnoActual]);
+
   return {
     jugadoresSincronizados,
     conectado,
@@ -322,6 +391,7 @@ export function useStoryModeSync(
     masterListo,
     configPartida,
     kickedOut,
+    revealedRooms,
     sendTokenMove,
     sendFinTurno,
     sendIniciarRonda,
@@ -329,5 +399,7 @@ export function useStoryModeSync(
     sendDadoAtaque,
     sendChatMessage,
     sendMasterAbort,
+    sendRoomRevealed,
+    sendEnemyMove,
   };
 }

@@ -1,6 +1,5 @@
-// URL base del backend
-// Si no quieres que Vite intercepte, usa puerto 8080 (backend) directo
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+export const API_URL = import.meta.env.VITE_API_URL as string;
+export const WS_URL = import.meta.env.VITE_WS_URL as string;
 
 // Función para obtener token del storage general
 const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');

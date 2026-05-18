@@ -4,6 +4,7 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import useImage from 'use-image';
 import type { MapConfig } from '../hooks/useBoardGrid';
 import { useBoardGrid } from '../hooks/useBoardGrid';
+import { ModalAlert } from '../../../components/ModalAlert/ModalAlert';
 import './GameBoard.css';
 
 // Suprimir errores de canvas de use-image (son warnings, no críticos)
@@ -33,6 +34,7 @@ export interface EnemyBoardToken {
   nombre: string;
   col: number;
   row: number;
+  movement?: number;
 }
 
 export interface TrapBoardToken {
@@ -56,12 +58,29 @@ interface GameBoardProps {
   onMovimientoUsed?: (steps: number) => void;
   enemyTokens?: EnemyBoardToken[];
   trapTokens?: TrapBoardToken[];
+  esMaster?: boolean;
+  revealedRooms?: string[];
+  onRoomRevealed?: (roomId: string) => void;
+  onEnemyMove?: (instanciaId: string, col: number, row: number) => void;
+  onMasterFinTurno?: () => void;
+  nombreMaster?: string;
+  onActiveEnemiesChange?: (ids: Set<string>) => void;
 }
 
 interface Size { width: number; height: number; }
 interface PanPoint { x: number; y: number; }
 type CellPosition = { col: number; row: number };
 type TurnSide = 'personajes' | 'master';
+type MovePreviewKind = 'player' | 'enemy';
+
+interface ConflictState {
+  tokenId: string;
+  tokenName: string;
+  enemyId: string;
+  enemyName: string;
+  attacker: 'personaje' | 'enemigo';
+  defender: 'personaje' | 'enemigo';
+}
 
 type DoorType = 'normal' | 'secret' | 'double';
 
@@ -146,6 +165,22 @@ const ALWAYS_WALKABLE = new Set<string>([
   '9,19','10,19','11,19','12,19','13,19',
   '9,13','10,13','11,13','12,13','13,13','14,13',
 ]);
+
+const ENEMY_MOVEMENT: Record<string, number> = {
+  goblin: 7,
+  zombie: 5,
+};
+
+function getNormalizedName(value: string): string {
+  return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
+}
+
+function getEnemyMovementLimit(nombre: string): number {
+  const normalized = getNormalizedName(nombre);
+  if (normalized.includes('goblin')) return ENEMY_MOVEMENT.goblin;
+  if (normalized.includes('zombie')) return ENEMY_MOVEMENT.zombie;
+  return 4;
+}
 
 function getEnemigoImageKey(nombre: string): string {
   return nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
@@ -347,11 +382,12 @@ function StoryModeDoorModal({ door, onOpen, onOpenDouble, onCancel }: StoryModeD
   );
 }
 
-export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '', movimientoRoll = null, onMovimientoUsed, enemyTokens = [], trapTokens = [] }: GameBoardProps) {
+export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '', movimientoRoll = null, onMovimientoUsed, enemyTokens = [], trapTokens = [], esMaster = false, revealedRooms = [], onRoomRevealed, onEnemyMove, onMasterFinTurno, nombreMaster, onActiveEnemiesChange }: GameBoardProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const panStartRef = useRef<{ pointerX: number; pointerY: number; originX: number; originY: number } | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draggingRef = useRef<{ tokenId: string; originCell: CellPosition; currentCell: CellPosition } | null>(null);
+  const draggingEnemyRef = useRef<{ instanciaId: string; originCell: CellPosition; currentCell: CellPosition } | null>(null);
 
   const [stageSize, setStageSize] = useState<Size>({ width: 1, height: 1 });
   const [mapPan, setMapPan] = useState<PanPoint>({ x: 0, y: 0 });
@@ -366,21 +402,38 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   });
   const [dragOriginCell, setDragOriginCell] = useState<CellPosition | null>(null);
   const [dragCurrentCell, setDragCurrentCell] = useState<CellPosition | null>(null);
+  const [enemyDragOriginCell, setEnemyDragOriginCell] = useState<CellPosition | null>(null);
+  const [enemyDragCurrentCell, setEnemyDragCurrentCell] = useState<CellPosition | null>(null);
   const [animatingTokenId, setAnimatingTokenId] = useState<string | null>(null);
   const [animPath, setAnimPath] = useState<CellPosition[]>([]);
   const [animStep, setAnimStep] = useState(0);
   const [rolledMovement, setRolledMovement] = useState<number | null>(null);
   const [stepsUsed, setStepsUsed] = useState(0);
+  const [enemyConflict, setEnemyConflict] = useState<ConflictState | null>(null);
   const [mapImageReady, setMapImageReady] = useState(false);
   const isHistoria1 = mapConfig.imageUrl.includes('tableroModHistoria1');
-  const activeDoors = isHistoria1 ? DOORS : [];
+  const activeDoors = useMemo(() => isHistoria1 ? DOORS : [], [isHistoria1]);
   const [rooms, setRooms] = useState<Room[]>(isHistoria1 ? ROOMS : []);
   const [pendingDoor, setPendingDoor] = useState<Door | null>(null);
+  const [enemyTokenCells, setEnemyTokenCells] = useState<Record<string, CellPosition>>({});
+  const [activeEnemyIds, setActiveEnemyIds] = useState<Set<string>>(new Set());
+  const prevEnemyKeyRef = useRef<string>('');
+  const [showMasterTurnModal, setShowMasterTurnModal] = useState(false);
 
   const activeTurn = turnoActual?.fase ?? 'personajes';
   const currentTurnTokenId = turnoActual?.turnoActualPersonajeId?.toString() ?? null;
+  const enemyMovementById = useMemo(() => {
+    const next: Record<string, number> = {};
+    for (const enemy of enemyTokens) {
+      next[enemy.instanciaId] = enemy.movement ?? getEnemyMovementLimit(enemy.nombre);
+    }
+    return next;
+  }, [enemyTokens]);
 
   const [mapImage] = useImage(mapConfig.imageUrl);
+  const dismissedConflictKeyRef = useRef('');
+  const currentConflictKeyRef = useRef('');
+  const lastMoveInitiatorRef = useRef<{ type: 'personaje' | 'enemigo'; id: string } | null>(null);
   const isCellBlocked = useCallback((col: number, row: number): boolean => {
     if (ALWAYS_WALKABLE.has(`${col},${row}`)) return false;
 
@@ -502,7 +555,126 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   const openRoomDouble = useCallback((door: Door) => {
     setRooms(prev => prev.map((room) => (room.id === door.roomId ? { ...room, revealed: true } : room)));
     setPendingDoor(null);
-  }, []);
+    onRoomRevealed?.(door.roomId);
+  }, [onRoomRevealed]);
+
+  // Sync rooms revealed by other players (via WS)
+  useEffect(() => {
+    if (revealedRooms.length === 0) return;
+    setRooms(prev => {
+      const hasChanges = prev.some(r => !r.revealed && revealedRooms.includes(r.id));
+      if (!hasChanges) return prev;
+      return prev.map(room => revealedRooms.includes(room.id) ? { ...room, revealed: true } : room);
+    });
+  }, [revealedRooms]);
+
+  // Sync enemy token cell positions from prop (initial + WS updates)
+  useEffect(() => {
+    setEnemyTokenCells(prev => {
+      const next = { ...prev };
+      for (const e of enemyTokens) {
+        if (draggingEnemyRef.current?.instanciaId !== e.instanciaId) {
+          next[e.instanciaId] = { col: e.col, row: e.row };
+        }
+      }
+      return next;
+    });
+  }, [enemyTokens]);
+
+  // Reset activation state when a new enemy configuration is loaded (new game).
+  useEffect(() => {
+    const key = enemyTokens.map(e => e.instanciaId).sort().join(',');
+    if (key !== prevEnemyKeyRef.current) {
+      prevEnemyKeyRef.current = key;
+      setActiveEnemyIds(new Set());
+    }
+  }, [enemyTokens]);
+
+  useEffect(() => {
+    onActiveEnemiesChange?.(activeEnemyIds);
+  }, [activeEnemyIds, onActiveEnemiesChange]);
+
+  // Activate enemies inside a newly-revealed room.
+  // Trigger cells are excluded: even if inside a room's bounding box, they use range activation.
+  useEffect(() => {
+    setActiveEnemyIds(prev => {
+      const next = new Set(prev);
+      let changed = false;
+      for (const room of rooms) {
+        if (!room.revealed) continue;
+        for (const enemy of enemyTokens) {
+          if (next.has(enemy.instanciaId)) continue;
+          const eCell = enemyTokenCells[enemy.instanciaId] ?? { col: enemy.col, row: enemy.row };
+          const isAtTrigger = activeDoors.some(d => d.trigger.col === eCell.col && d.trigger.row === eCell.row);
+          if (!isAtTrigger &&
+              eCell.col >= room.colStart && eCell.col <= room.colEnd &&
+              eCell.row >= room.rowStart && eCell.row <= room.rowEnd) {
+            next.add(enemy.instanciaId);
+            changed = true;
+          }
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [rooms, enemyTokens, enemyTokenCells, activeDoors]);
+
+  // Activate corridor/trigger enemies via proximity (≤4 cells, same row or column).
+  // Enemies inside a closed room are protected — room-based activation handles those.
+  // Trigger cells are never treated as part of a room even if inside its bounding box.
+  useEffect(() => {
+    if (enemyTokens.length === 0) return;
+    setActiveEnemyIds(prev => {
+      const next = new Set(prev);
+      let changed = false;
+      for (const enemy of enemyTokens) {
+        if (next.has(enemy.instanciaId)) continue;
+        const eCell = enemyTokenCells[enemy.instanciaId] ?? { col: enemy.col, row: enemy.row };
+        const isAtTrigger = activeDoors.some(d => d.trigger.col === eCell.col && d.trigger.row === eCell.row);
+        if (!isAtTrigger) {
+          // Guard: skip enemies inside any closed room — room-based activation handles those
+          const inAnyRoom = rooms.some(room =>
+            eCell.col >= room.colStart && eCell.col <= room.colEnd &&
+            eCell.row >= room.rowStart && eCell.row <= room.rowEnd
+          );
+          if (inAnyRoom) continue;
+        }
+        // Activate if any player is within 4 cells in the same row or column
+        for (const pCell of Object.values(tokenCells)) {
+          const sameRow = pCell.row === eCell.row;
+          const sameCol = pCell.col === eCell.col;
+          if (!sameRow && !sameCol) continue;
+          const dist = sameRow
+            ? Math.abs(pCell.col - eCell.col)
+            : Math.abs(pCell.row - eCell.row);
+          if (dist <= 4) {
+            next.add(enemy.instanciaId);
+            changed = true;
+            break;
+          }
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [tokenCells, enemyTokenCells, enemyTokens, rooms, activeDoors]);
+
+  useEffect(() => {
+    setTokenCells(prev => {
+      const next: Record<string, CellPosition> = { ...prev };
+      let changed = false;
+      for (const token of tokens) {
+        if (token.id === miPersonajeId) continue;
+        const cur = prev[token.id];
+        if (!cur) {
+          next[token.id] = { col: token.col, row: token.row };
+          changed = true;
+        } else if (animatingTokenId !== token.id && (cur.col !== token.col || cur.row !== token.row)) {
+          next[token.id] = { col: token.col, row: token.row };
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [tokens, animatingTokenId, miPersonajeId]);
 
   useEffect(() => {
     return () => { if (animTimerRef.current) clearTimeout(animTimerRef.current); };
@@ -537,6 +709,16 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
       );
     });
   }, [tokens, jugadores]);
+
+  // Players only see enemies in revealed rooms; master always sees all
+  const visibleEnemyTokens = useMemo(() => {
+    if (esMaster) return enemyTokens;
+    return enemyTokens.filter(e => activeEnemyIds.has(e.instanciaId));
+  }, [esMaster, enemyTokens, activeEnemyIds]);
+
+  // Master manages the same set of enemies that are actively visible.
+  // Corridor/trigger enemies become manageable only after activation (player proximity or room reveal).
+  const masterCanManageIds = activeEnemyIds;
 
   const endedTurnIds = useMemo(() => {
     const ended = new Set<string>();
@@ -629,6 +811,21 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     return last;
   };
 
+  const getOccupiedKeys = useCallback((excludeTokenId?: string, excludeEnemyId?: string): Set<string> => {
+    const occupied = new Set<string>();
+    for (const token of tokens) {
+      if (token.id === excludeTokenId) continue;
+      const cell = tokenCells[token.id];
+      if (cell) occupied.add(`${cell.col},${cell.row}`);
+    }
+    for (const enemy of enemyTokens) {
+      if (enemy.instanciaId === excludeEnemyId) continue;
+      const cell = enemyTokenCells[enemy.instanciaId] ?? { col: enemy.col, row: enemy.row };
+      occupied.add(`${cell.col},${cell.row}`);
+    }
+    return occupied;
+  }, [enemyTokenCells, enemyTokens, tokenCells, tokens]);
+
   const isPointerInsideMap = (x: number, y: number): boolean => (
     x >= mapOriginX &&
     x <= mapOriginX + mapRenderWidth &&
@@ -637,13 +834,19 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   );
 
   type OverlayEntry = { cell: CellPosition; step: number };
-  let overlayCells: OverlayEntry[] = [];
+  const previewMode: MovePreviewKind | null = enemyDragCurrentCell && enemyDragOriginCell ? 'enemy' : (dragCurrentCell && dragOriginCell ? 'player' : null);
+  const previewCells: OverlayEntry[] = [];
+  const previewFill = previewMode === 'enemy' ? 'rgba(226, 40, 40, 0.42)' : 'rgba(255, 204, 0, 0.45)';
+  const previewStroke = previewMode === 'enemy' ? 'rgba(255, 120, 120, 0.92)' : 'rgba(255, 220, 120, 0.9)';
 
-  if (dragCurrentCell && dragOriginCell) {
+  if (previewMode === 'enemy' && enemyDragOriginCell && enemyDragCurrentCell) {
+    const path = buildPath(enemyDragOriginCell, enemyDragCurrentCell);
+    previewCells.push(...path.slice(1).map((cell, i) => ({ cell, step: i + 1 })));
+  } else if (previewMode === 'player' && dragOriginCell && dragCurrentCell) {
     const path = buildPath(dragOriginCell, dragCurrentCell);
-    overlayCells = path.slice(1).map((cell, i) => ({ cell, step: stepsUsed + i + 1 }));
+    previewCells.push(...path.slice(1).map((cell, i) => ({ cell, step: stepsUsed + i + 1 })));
   } else if (animatingTokenId && animPath.length > 0 && animStep > 0) {
-    overlayCells = animPath.slice(1, animStep + 1).map((cell, i) => ({ cell, step: stepsUsed + i + 1 }));
+    previewCells.push(...animPath.slice(1, animStep + 1).map((cell, i) => ({ cell, step: stepsUsed + i + 1 })));
   }
 
   const startAnimation = (tokenId: string, path: CellPosition[]) => {
@@ -670,6 +873,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
         if (door) {
           const room = rooms.find(r => r.id === door.roomId);
           if (room && !room.revealed) {
+            onTokenMove?.(tokenId, to.col, to.row);
             setPendingDoor(door);
             return;
           }
@@ -699,6 +903,26 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     const pointer = event.target.getStage()?.getPointerPosition();
     if (!pointer) return;
     setIsPointerOnMap(isPointerInsideMap(pointer.x, pointer.y));
+
+    if (draggingEnemyRef.current) {
+      const { instanciaId, originCell } = draggingEnemyRef.current;
+      const enemy = enemyTokens.find(e => e.instanciaId === instanciaId);
+      if (!enemy) return;
+      const localX = pointer.x - mapOriginX;
+      const localY = pointer.y - mapOriginY;
+      const cell = pixelToCell(localX, localY, renderScale);
+      if (cell) {
+        const constrained = constrainToAxis(originCell, cell);
+        const limit = enemyMovementById[instanciaId] ?? getEnemyMovementLimit(enemy.nombre);
+        const localReachable = getReachableCells(originCell.col, originCell.row, limit);
+        const occupiedKeys = getOccupiedKeys(undefined, instanciaId);
+        const clamped = clampToReachable(originCell, constrained, localReachable, occupiedKeys);
+        draggingEnemyRef.current.currentCell = clamped;
+        setEnemyDragCurrentCell(clamped);
+        setEnemyTokenCells(prev => ({ ...prev, [instanciaId]: clamped }));
+      }
+      return;
+    }
 
     if (draggingRef.current) {
       const { originCell, tokenId } = draggingRef.current;
@@ -736,13 +960,31 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   };
 
   const handleStagePointerUp = () => {
+    if (draggingEnemyRef.current) {
+      const { instanciaId, originCell, currentCell } = draggingEnemyRef.current;
+      draggingEnemyRef.current = null;
+      setEnemyDragCurrentCell(null);
+      setEnemyDragOriginCell(null);
+      if (!(currentCell.col === originCell.col && currentCell.row === originCell.row)) {
+        // Mark that the last movement was initiated by an enemy (likely by the master)
+        lastMoveInitiatorRef.current = { type: 'enemigo', id: instanciaId };
+        onEnemyMove?.(instanciaId, currentCell.col, currentCell.row);
+        return;
+      }
+      return;
+    }
+
     if (draggingRef.current) {
       const { tokenId, originCell, currentCell } = draggingRef.current;
       draggingRef.current = null;
       setDragCurrentCell(null);
       setDragOriginCell(null);
       const moved = !(currentCell.col === originCell.col && currentCell.row === originCell.row);
-      if (moved) startAnimation(tokenId, buildPath(originCell, currentCell));
+      if (moved) {
+        // Mark that the last movement was initiated by a personaje (player)
+        lastMoveInitiatorRef.current = { type: 'personaje', id: tokenId };
+        startAnimation(tokenId, buildPath(originCell, currentCell));
+      }
       return;
     }
     panStartRef.current = null;
@@ -761,8 +1003,66 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
       return;
     }
     if (!allTurnsEnded) return;
+    if (esMaster) {
+      setShowMasterTurnModal(prev => !prev);
+      return;
+    }
     setOpenTurnModalTokenId(null);
   };
+
+  useEffect(() => {
+    const tokenPositions = tokens
+      .map((token) => ({ token, cell: tokenCells[token.id] }))
+      .filter((entry): entry is { token: BoardToken; cell: CellPosition } => Boolean(entry.cell));
+
+    const enemyPositions = enemyTokens.map((enemy) => ({
+      enemy,
+      cell: enemyTokenCells[enemy.instanciaId] ?? { col: enemy.col, row: enemy.row },
+    }));
+
+    let detected: ConflictState | null = null;
+
+    for (const { token, cell: tokenCell } of tokenPositions) {
+      const enemy = enemyPositions.find(({ cell }) => {
+        const sameRow = cell.row === tokenCell.row && Math.abs(cell.col - tokenCell.col) === 1;
+        const sameCol = cell.col === tokenCell.col && Math.abs(cell.row - tokenCell.row) === 1;
+        return sameRow || sameCol;
+      });
+
+      if (!enemy) continue;
+
+      const key = `${token.id}:${enemy.enemy.instanciaId}:${tokenCell.col},${tokenCell.row}:${enemy.cell.col},${enemy.cell.row}`;
+      currentConflictKeyRef.current = key;
+      if (dismissedConflictKeyRef.current === key) {
+        setEnemyConflict(null);
+        return;
+      }
+
+      let attackerSide: 'personaje' | 'enemigo' = activeTurn === 'master' ? 'enemigo' : 'personaje';
+      const last = lastMoveInitiatorRef.current;
+      if (last) {
+        if (last.type === 'enemigo' && last.id === enemy.enemy.instanciaId) attackerSide = 'enemigo';
+        else if (last.type === 'personaje' && last.id === token.id) attackerSide = 'personaje';
+      }
+
+      detected = {
+        tokenId: token.id,
+        tokenName: token.initials,
+        enemyId: enemy.enemy.instanciaId,
+        enemyName: enemy.enemy.nombre,
+        attacker: attackerSide,
+        defender: attackerSide === 'personaje' ? 'enemigo' : 'personaje',
+      };
+      break;
+    }
+
+    if (!detected) {
+      currentConflictKeyRef.current = '';
+      dismissedConflictKeyRef.current = '';
+    }
+
+    setEnemyConflict(detected);
+  }, [activeTurn, enemyTokenCells, enemyTokens, tokenCells, tokens]);
 
   const handleAvatarClick = (tokenId: string) => {
     setSelectedTokenId(tokenId);
@@ -785,51 +1085,81 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
         <h3 className="gb-top-title">Ravenloft Castle</h3>
 
         <div className="gb-top-avatars" aria-label="Personajes en partida">
-          {tokens.map((token) => {
-            const isCurrent = token.id === currentTurnTokenId;
-            const ended = endedTurnIds.has(token.id);
-            const isFixedWaitingModal = activeTurn === 'personajes' && isCurrent && !isCurrentTurnTokenMine;
-            const showModal = openTurnModalTokenId === token.id || isFixedWaitingModal;
-            return (
-              <div key={`top-${token.id}`} className="gb-top-avatar-wrap">
+          {activeTurn === 'master'
+            ? (
+              <div className="gb-top-avatar-wrap">
                 <button
                   type="button"
-                  className={`gb-top-avatar ${selectedTokenId === token.id ? 'active' : ''} ${isCurrent && activeTurn === 'personajes' ? 'current' : ''} ${ended ? 'ended' : ''}`}
+                  className="gb-top-avatar current"
                   style={{
-                    borderColor: token.color,
-                    backgroundImage: token.avatarUrl ? `url(${token.avatarUrl})` : undefined,
-                    boxShadow: isCurrent && activeTurn === 'personajes'
-                      ? '0 0 0 3px rgba(255, 255, 255, 0.95), 0 0 10px rgba(255, 255, 255, 0.45)'
-                      : (selectedTokenId === token.id ? `0 0 0 2px ${token.color}55` : undefined)
+                    borderColor: '#f1c40f',
+                    boxShadow: '0 0 0 3px rgba(241,196,15,0.7), 0 0 10px rgba(241,196,15,0.3)',
+                    cursor: esMaster ? 'pointer' : 'default',
                   }}
-                  title={token.initials}
-                  onClick={() => handleAvatarClick(token.id)}
+                  title={esMaster ? (nombreMaster ?? 'Master') : 'Master'}
+                  onClick={() => { if (esMaster) setShowMasterTurnModal(prev => !prev); }}
                 >
-                  {!token.avatarUrl ? token.initials : null}
+                  {esMaster ? (nombreMaster ?? 'M').trim().slice(0, 1).toUpperCase() : 'M'}
                 </button>
-                {showModal && (
-                  <div className="gb-turn-modal" role="dialog" aria-label="Finalizar turno">
-                    {activeTurn === 'master' && <p className="gb-turn-modal-text">Ahora mismo el master está resolviendo sus jugadas.</p>}
-                    {activeTurn === 'personajes' && isCurrent && token.id === miPersonajeId && (
-                      <>
-                        <p className="gb-turn-modal-text">¿Quieres finalizar el turno de este personaje?</p>
-                        <button type="button" className="gb-turn-finalize-btn" onClick={() => finalizeTurn(token.id)}>
-                          Finalizar turno
-                        </button>
-                      </>
-                    )}
-                    {activeTurn === 'personajes' && isCurrent && token.id !== miPersonajeId && (
-                      <div className="gb-turn-modal-waiting">
-                        <p className="gb-turn-modal-text">Esperando a que finalice su turno...</p>
-                        <div className="gb-turn-waiting-loader" aria-label="Esperando fin de turno" />
-                      </div>
-                    )}
-                    {activeTurn === 'personajes' && !isCurrent && <p className="gb-turn-modal-text">Todavía no le toca. Espera su turno.</p>}
+                {showMasterTurnModal && esMaster && (
+                  <div className="gb-turn-modal" role="dialog" aria-label="Finalizar turno del master">
+                    <p className="gb-turn-modal-text">¿Finalizar el turno del master?</p>
+                    <button
+                      type="button"
+                      className="gb-turn-finalize-btn"
+                      onClick={() => { setShowMasterTurnModal(false); onMasterFinTurno?.(); }}
+                    >
+                      Finalizar turno
+                    </button>
                   </div>
                 )}
               </div>
-            );
-          })}
+            )
+            : tokens.map((token) => {
+              const isCurrent = token.id === currentTurnTokenId;
+              const ended = endedTurnIds.has(token.id);
+              const isFixedWaitingModal = activeTurn === 'personajes' && isCurrent && !isCurrentTurnTokenMine;
+              const showModal = openTurnModalTokenId === token.id || isFixedWaitingModal;
+              return (
+                <div key={`top-${token.id}`} className="gb-top-avatar-wrap">
+                  <button
+                    type="button"
+                    className={`gb-top-avatar ${selectedTokenId === token.id ? 'active' : ''} ${isCurrent && activeTurn === 'personajes' ? 'current' : ''} ${ended ? 'ended' : ''}`}
+                    style={{
+                      borderColor: token.color,
+                      backgroundImage: token.avatarUrl ? `url(${token.avatarUrl})` : undefined,
+                      boxShadow: isCurrent && activeTurn === 'personajes'
+                        ? '0 0 0 3px rgba(255, 255, 255, 0.95), 0 0 10px rgba(255, 255, 255, 0.45)'
+                        : (selectedTokenId === token.id ? `0 0 0 2px ${token.color}55` : undefined)
+                    }}
+                    title={token.initials}
+                    onClick={() => handleAvatarClick(token.id)}
+                  >
+                    {!token.avatarUrl ? token.initials : null}
+                  </button>
+                  {showModal && (
+                    <div className="gb-turn-modal" role="dialog" aria-label="Finalizar turno">
+                      {activeTurn === 'personajes' && isCurrent && token.id === miPersonajeId && (
+                        <>
+                          <p className="gb-turn-modal-text">¿Quieres finalizar el turno de este personaje?</p>
+                          <button type="button" className="gb-turn-finalize-btn" onClick={() => finalizeTurn(token.id)}>
+                            Finalizar turno
+                          </button>
+                        </>
+                      )}
+                      {activeTurn === 'personajes' && isCurrent && token.id !== miPersonajeId && (
+                        <div className="gb-turn-modal-waiting">
+                          <p className="gb-turn-modal-text">Esperando a que finalice su turno...</p>
+                          <div className="gb-turn-waiting-loader" aria-label="Esperando fin de turno" />
+                        </div>
+                      )}
+                      {activeTurn === 'personajes' && !isCurrent && <p className="gb-turn-modal-text">Todavía no le toca. Espera su turno.</p>}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          }
         </div>
 
         {activeTurn === 'personajes' && remainingMovement !== null && (
@@ -859,7 +1189,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
           </button>
         </div>
 
-        {activeTurn === 'master' && (
+        {activeTurn === 'master' && !esMaster && (
           <div className="gb-master-box">
             <p className="gb-master-text">El master está resolviendo sus jugadas</p>
             <div className="gb-master-loader" aria-label="Cargando jugadas del master">
@@ -934,7 +1264,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
 
         {/* Layer 3: overlay de movimiento (encima de los tokens para que los números sean visibles) */}
         <Layer listening={false}>
-          {overlayCells.map(({ cell, step }) => {
+          {previewCells.map(({ cell, step }) => {
             const cellX = mapOriginX + (mapConfig.offsetX + cell.col * mapConfig.cellSize) * renderScale;
             const cellY = mapOriginY + (mapConfig.offsetY + cell.row * mapConfig.cellSize) * renderScale;
             return (
@@ -944,8 +1274,8 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
                   y={cellY}
                   width={cellSide}
                   height={cellSide}
-                  fill="rgba(255, 204, 0, 0.45)"
-                  stroke="rgba(255, 220, 120, 0.9)"
+                  fill={previewFill}
+                  stroke={previewStroke}
                   strokeWidth={1.5}
                 />
                 <Text
@@ -970,15 +1300,39 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
         </Layer>
 
         {/* Layer 4: tokens de enemigos */}
-        {enemyTokens.length > 0 && (
-          <Layer listening={false}>
-            {enemyTokens.map((enemy) => {
-              const px = cellToPixel(enemy.col, enemy.row);
+        {visibleEnemyTokens.length > 0 && (
+          <Layer listening={esMaster && activeTurn === 'master'}>
+            {visibleEnemyTokens.map((enemy) => {
+              const cell = enemyTokenCells[enemy.instanciaId] ?? { col: enemy.col, row: enemy.row };
+              const px = cellToPixel(cell.col, cell.row);
               const ex = mapOriginX + px.x * renderScale;
               const ey = mapOriginY + px.y * renderScale;
               const initials = enemy.nombre.slice(0, 2).toUpperCase();
+              const canManage = masterCanManageIds.has(enemy.instanciaId);
+              const canDragEnemy = esMaster && activeTurn === 'master' && canManage;
+              // Inactive enemies (closed room, not yet visible to players) appear dimmed for master
+              const opacity = esMaster && !canManage ? 0.3 : 1;
               return (
-                <Group key={enemy.instanciaId}>
+                <Group
+                  key={enemy.instanciaId}
+                  opacity={opacity}
+                  onMouseDown={(e) => {
+                    if (!canDragEnemy) return;
+                    e.cancelBubble = true;
+                    const origin = enemyTokenCells[enemy.instanciaId] ?? { col: enemy.col, row: enemy.row };
+                    setEnemyDragOriginCell(origin);
+                    setEnemyDragCurrentCell(null);
+                    draggingEnemyRef.current = { instanciaId: enemy.instanciaId, originCell: origin, currentCell: origin };
+                  }}
+                  onTouchStart={(e) => {
+                    if (!canDragEnemy) return;
+                    e.cancelBubble = true;
+                    const origin = enemyTokenCells[enemy.instanciaId] ?? { col: enemy.col, row: enemy.row };
+                    setEnemyDragOriginCell(origin);
+                    setEnemyDragCurrentCell(null);
+                    draggingEnemyRef.current = { instanciaId: enemy.instanciaId, originCell: origin, currentCell: origin };
+                  }}
+                >
                   <Circle
                     x={ex} y={ey} radius={tokenRadius}
                     fill="rgba(160,22,26,0.88)"
@@ -986,6 +1340,17 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
                     strokeWidth={1.5}
                   />
                   <EnemyImgNode nombre={enemy.nombre} x={ex} y={ey} radius={tokenRadius} />
+                  {canManage && esMaster && (
+                    <Circle
+                      x={ex} y={ey}
+                      radius={tokenRadius + 5}
+                      fillEnabled={false}
+                      stroke="rgba(255,68,68,0.7)"
+                      strokeWidth={2}
+                      dash={[4, 3]}
+                      listening={false}
+                    />
+                  )}
                   <Text
                     x={ex - tokenRadius} y={ey - tokenRadius}
                     width={tokenRadius * 2} height={tokenRadius * 2}
@@ -1034,16 +1399,74 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
         )}
       </Stage>
 
+      <ModalAlert
+        isOpen={Boolean(enemyConflict)}
+        title="Conflicto detectado"
+        message={enemyConflict ? `${enemyConflict.attacker === 'personaje' ? 'El personaje' : 'El enemigo'} ha quedado junto a su objetivo.` : ''}
+        confirmText={(() => {
+          if (!enemyConflict) return 'Aceptar';
+          const viewerIsAttacker = (
+            (esMaster && enemyConflict.attacker === 'enemigo') ||
+            (!esMaster && enemyConflict.attacker === 'personaje' && miPersonajeId && miPersonajeId.toString() === enemyConflict.tokenId.toString())
+          );
+          return viewerIsAttacker ? 'Atacar' : 'Defender';
+        })()}
+        cancelText="Cerrar"
+        onConfirm={() => {
+          dismissedConflictKeyRef.current = currentConflictKeyRef.current;
+          setEnemyConflict(null);
+        }}
+        onCancel={() => {
+          dismissedConflictKeyRef.current = currentConflictKeyRef.current;
+          setEnemyConflict(null);
+        }}
+        showImage={false}
+        media={enemyConflict ? (
+          <div className="modal-conflict-avatars">
+            {/* Player avatar */}
+            <div className="modal-conflict-avatar player" title={enemyConflict.tokenName} style={{ borderColor: tokens.find(t => t.id === enemyConflict.tokenId)?.color }}>
+              {(() => {
+                const tk = tokens.find(t => t.id === enemyConflict.tokenId);
+                if (!tk) return <span className="initials">?</span>;
+                if (tk.avatarUrl) return <img src={tk.avatarUrl} alt={tk.initials} />;
+                return <span className="initials">{tk.initials}</span>;
+              })()}
+            </div>
+
+            <div className="modal-conflict-vs">VS</div>
+
+            {/* Enemy avatar */}
+            <div className="modal-conflict-avatar enemy" title={enemyConflict.enemyName}>
+              {(() => {
+                const key = getEnemigoImageKey(enemyConflict.enemyName);
+                const png = `/images/enemigos/${key}Enemigo.png`;
+                const jpg = `/images/enemigos/${key}Enemigo.jpg`;
+                return (
+                  <img
+                    src={png}
+                    alt={enemyConflict.enemyName}
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).src = jpg; }}
+                  />
+                );
+              })()}
+            </div>
+          </div>
+        ) : null}
+      />
+
       {pendingDoor && (
         <StoryModeDoorModal
           door={pendingDoor}
           onOpen={() => {
+            const roomId = pendingDoor.roomId;
             setRooms(prev => prev.map((room) => (
-              room.id === pendingDoor.roomId || (pendingDoor.roomId === 'sala4b' && room.id === 'sala4a')
+              room.id === roomId || (roomId === 'sala4b' && room.id === 'sala4a')
                 ? { ...room, revealed: true }
                 : room
             )));
             setPendingDoor(null);
+            onRoomRevealed?.(roomId);
+            if (roomId === 'sala4b') onRoomRevealed?.('sala4a');
           }}
           onOpenDouble={() => openRoomDouble(pendingDoor)}
           onCancel={() => {

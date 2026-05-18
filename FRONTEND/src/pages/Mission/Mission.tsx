@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { BackButton } from '../../components/BackButton/BackButton';
 import { CharacterSelectModal } from '../../components/CharacterSelectModal/CharacterSelectModal';
+import { ModalAlert } from '../../components/ModalAlert/ModalAlert';
 import { API_URL, authHeaders } from '../../services/api';
 import { getPersonajes } from '../../services/personajeService';
 import { getModoHistoriaImageCandidates } from '../../utils/imageUtils';
@@ -467,6 +468,8 @@ function MissionDetailView() {
 	const [misionesSugeridas, setMisionesSugeridas] = useState<MisionDetalle[]>([]);
 	const [todosModosHistoria, setTodosModosHistoria] = useState<ModoHistoriaState[]>([]);
 	const [personajeAsignado, setPersonajeAsignado] = useState<CharacterLike | null>(null);
+	const [masterCheckLoading, setMasterCheckLoading] = useState(false);
+	const [showMasterOcupadoModal, setShowMasterOcupadoModal] = useState(false);
 	const statsPersonajeSeleccionado = useMemo(
 		() => STAT_KEYS.map(statKey => ({
 			key: statKey,
@@ -639,6 +642,50 @@ function MissionDetailView() {
 			variant: 'personaje',
 		},
 	] as const;
+
+	const irComoMaster = async () => {
+		if (!misionIdNumero || !modoHistoriaId) {
+			navigate(buildCreateMissionPath(modoHistoriaId!, misionId!), { state: { mision, modoHistoria } });
+			return;
+		}
+
+		setMasterCheckLoading(true);
+		try {
+			// 1. Comprobar si el usuario actual ya es master de esta misión
+			const meResponse = await fetch(`${API_URL}/api/misiones/${misionIdNumero}/participantes/me`, {
+				headers: authHeaders(),
+			});
+			if (meResponse.ok) {
+				const participante = (await meResponse.json()) as MisionParticipanteResponse;
+				if (participante.rol === 'MASTER') {
+					navigate('/tablero-story-mode', {
+						state: { rol: 'master', modoHistoria, mision },
+					});
+					return;
+				}
+				// Si existe con otro rol, caemos al flujo normal (CreateMission bloqueará si hay master)
+			} else if (meResponse.status === 404) {
+				// 2. El usuario no participa — comprobar si hay otro master asignado
+				const masterCheckResponse = await fetch(
+					`${API_URL}/api/misiones/${misionIdNumero}/participantes/tiene-master`,
+					{ headers: authHeaders() }
+				);
+				if (masterCheckResponse.ok) {
+					const data = (await masterCheckResponse.json()) as { tieneMaster: boolean };
+					if (data.tieneMaster) {
+						setShowMasterOcupadoModal(true);
+						return;
+					}
+				}
+			}
+		} catch {
+			// Si falla el check, procedemos a CreateMission igualmente
+		} finally {
+			setMasterCheckLoading(false);
+		}
+
+		navigate(buildCreateMissionPath(modoHistoriaId!, misionId!), { state: { mision, modoHistoria } });
+	};
 
 	const abrirModalPersonaje = () => {
 		if (personajeAsignado) {
@@ -854,13 +901,16 @@ function MissionDetailView() {
 											<button
 												type="button"
 												className="mision-modo-btn"
+												disabled={modo.variant === 'master' && masterCheckLoading}
 												onClick={
 													modo.variant === 'master'
-														? () => navigate(buildCreateMissionPath(modoHistoriaId!, misionId!), { state: { mision, modoHistoria } })
+														? irComoMaster
 														: abrirModalPersonaje
 												}
 											>
-												{modo.variant === 'master' ? 'Master' : 'Personaje'}
+												{modo.variant === 'master'
+													? (masterCheckLoading ? 'Comprobando...' : 'Master')
+													: 'Personaje'}
 											</button>
 										</section>
 									))}
@@ -986,6 +1036,15 @@ function MissionDetailView() {
 					</div>
 				</div>
 			)}
+
+			<ModalAlert
+				isOpen={showMasterOcupadoModal}
+				title="PARTIDA YA EN CURSO"
+				message="Esta misión ya tiene un master asignado. Solo puede haber un master por partida. Si quieres participar, únete como personaje."
+				confirmText="Entendido"
+				onConfirm={() => setShowMasterOcupadoModal(false)}
+				showImage={true}
+			/>
 
 		</div>
 	);

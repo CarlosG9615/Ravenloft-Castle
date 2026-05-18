@@ -12,6 +12,7 @@ import { getPersonajes } from '../../services/personajeService';
 import { MagicEdit, AvatarCircle} from 'pixelarticons/react'
 import { Sword } from 'lucide-react';
 import { resolveProfileAvatar } from '../../utils/avatarUtils';
+import { API_URL, authHeaders } from '../../services/api';
 
 const AVATARES = [
   '/images/avatars/caratula.png',
@@ -140,12 +141,7 @@ export function UserProfile() {
     cargarSuscripciones();
 
     // Cargar campañas
-    fetch('http://localhost:8080/api/campanas/mis-campanas', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}`,
-        'Content-Type': 'application/json',
-      }
-    })
+    fetch(`${API_URL}/api/campanas/mis-campanas`, { headers: authHeaders() })
       .then(r => r.json())
       .then(data => setCampanas(Array.isArray(data) ? data : []))
       .catch(() => setCampanas([]));

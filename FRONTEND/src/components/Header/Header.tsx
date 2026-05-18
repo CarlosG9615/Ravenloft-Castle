@@ -6,6 +6,7 @@ import { getMisNotificaciones, marcarComoLeida, marcarTodasComoLeidas } from '..
 import type { NotificacionDTO } from '../../services/notificacionService';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { WS_URL } from '../../services/api';
 import './Header.css';
 import { Bell } from 'lucide-react';
 import { resolveProfileAvatar } from '../../utils/avatarUtils';
@@ -86,7 +87,7 @@ export function Header() {
     cargarNotificaciones();
 
     const client = new Client({
-      webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
+      webSocketFactory: () => new (SockJS as any)(`${WS_URL}/ws`),
       reconnectDelay: 5000,
       onConnect: () => {
         client.subscribe(`/topic/usuario/${user.id}/notificaciones`, (frame) => {
