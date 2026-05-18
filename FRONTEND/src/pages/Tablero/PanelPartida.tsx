@@ -5,7 +5,7 @@ import SockJS from 'sockjs-client';
 import { DiceRoller } from './DiceRoller';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import { Comment, Users, Mic } from 'pixelarticons/react'
-import { Dices } from 'lucide-react';
+import { Dices, Smile } from 'lucide-react';
 import { PerfilPublicoModal } from '../../components/PerfilPublicoModal/PerfilPublicoModal';
 import './PanelPartida.css';
 
@@ -182,7 +182,7 @@ export function PanelPartida({
   ataqueYaLanzado = false,
   chatSince,
 }: Props) {
-  const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'dados' | 'voz'>('chat');
+  const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'voz'>('chat');
   const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [inputChat, setInputChat] = useState('');
   const [modificador, setModificador] = useState(0);
@@ -190,8 +190,10 @@ export function PanelPartida({
   const [dadoActivo, setDadoActivo] = useState<string | null>(null);
   const [resultadoActivo, setResultadoActivo] = useState<number | null>(null);
   const [mostrarEmotes, setMostrarEmotes] = useState(false);
+  const [mostrarDados, setMostrarDados] = useState(false);
   const [perfilPersonajeId, setPerfilPersonajeId] = useState<number | null>(null);
   const [hpOverrides, setHpOverrides] = useState<Record<string, number>>({});
+  const esAnimacionRemota = useRef(false);
 
   const chatRef = useRef<HTMLDivElement>(null);
   const stompRef = useRef<Client | null>(null);
@@ -256,6 +258,19 @@ export function PanelPartida({
           client.subscribe(`/topic/campana/${campanaId}/hp-update`, (frame) => {
             const { jugadorId, hp } = JSON.parse(frame.body);
             setHpOverrides(prev => ({ ...prev, [jugadorId]: hp }));
+          });
+
+          client.subscribe(`/topic/campana/${campanaId}/dice-roll`, (frame) => {
+            const { dado, senderId } = JSON.parse(frame.body);
+            const miId = jugadorActual?.id?.toString() || 'master';
+            if (senderId !== miId) {
+              esAnimacionRemota.current = true;
+              setDadoActivo(null);
+              setTimeout(() => {
+                setDadoActivo(dado);
+                setResultadoActivo(Math.floor(Math.random() * 20) + 1);
+              }, 50);
+            }
           });
 
           client.subscribe(`/topic/campana/${campanaId}/voice`, async (frame) => {
@@ -378,12 +393,28 @@ export function PanelPartida({
   };
 
   const lanzarDado = (_caras: number, label: string) => {
+    if (stompRef.current?.connected && campanaId) {
+      const senderId = jugadorActual?.id?.toString() || 'master';
+      stompRef.current.publish({
+        destination: `/app/campana/${campanaId}/dice-roll`,
+        body: JSON.stringify({ dado: label, resultado: 0, senderId }),
+      });
+    }
     setDadoActivo(label);
     setResultadoActivo(0);
+    setMostrarDados(false);
   };
 
   const handleAnimacionFin = useCallback((resultadoReal: number) => {
     if (dadoActivo === null) return;
+
+    if (esAnimacionRemota.current) {
+      esAnimacionRemota.current = false;
+      setDadoActivo(null);
+      setResultadoActivo(null);
+      return;
+    }
+
     const autorNombre = jugadorActual?.nombre || nombreMaster;
     const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
     const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
@@ -398,6 +429,7 @@ export function PanelPartida({
       timestamp: hora(),
       tirada: { dado: dadoActivo, resultado: resultadoReal, modificador, total },
     };
+
     if (stompRef.current?.connected && campanaId) {
       stompRef.current.publish({
         destination: `/app/campana/${campanaId}/chat.enviar`,
@@ -406,6 +438,7 @@ export function PanelPartida({
     } else {
       setMensajes(prev => [...prev, msg]);
     }
+
     onMovimientoRollResult?.(resultadoReal);
     setDadoActivo(null);
     setResultadoActivo(null);
@@ -572,9 +605,6 @@ export function PanelPartida({
         <button className={`pp-tab ${pestana === 'jugadores' ? 'active' : ''}`} onClick={() => setPestana('jugadores')}>
           <Users width={16} height={16} style={{ marginRight: 4 }} />
         </button>
-        <button className={`pp-tab ${pestana === 'dados' ? 'active' : ''}`} onClick={() => setPestana('dados')}>
-          <Dices width={16} height={16} style={{ marginRight: 4 }} />
-        </button>
         <button className={`pp-tab ${pestana === 'voz' ? 'active' : ''}`} onClick={() => setPestana('voz')}>
           <Mic width={16} height={16} style={{ marginRight: 4 }} />
         </button>
@@ -652,6 +682,23 @@ export function PanelPartida({
           </div>
 
           <div className="pp-chat-input-wrap">
+            {/* PICKER DE DADOS */}
+           {mostrarDados && (
+              <div className="pp-dados-picker">
+                {DADOS.map(({ caras, label }) => (
+                  <button
+                    key={label}
+                    className="pp-dado-pick-btn"
+                    onClick={() => lanzarDado(caras, label)}
+                    disabled={dadoActivo !== null}
+                  >
+                    <img src={`/images/dadoCampana/${label}.png`} alt={label} className="pp-dado-pick-img" />
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* PICKER DE EMOTES */}
             {mostrarEmotes && (
               <div className="pp-emotes-picker">
                 {EMOTES.map(e => (
@@ -672,9 +719,16 @@ export function PanelPartida({
             <div className="pp-chat-input-row">
               <button
                 className="pp-emote-btn"
-                onClick={() => setMostrarEmotes(!mostrarEmotes)}
+                onClick={() => { setMostrarEmotes(!mostrarEmotes); setMostrarDados(false); }}
                 title="Emotes"
-              >🐉</button>
+              ><Smile /></button>
+              <button
+                className={`pp-emote-btn ${mostrarDados ? 'active' : ''}`}
+                onClick={() => { setMostrarDados(!mostrarDados); setMostrarEmotes(false); }}
+                title="Dados"
+              >
+                <Dices width={16} height={16} />
+              </button>
               <textarea
                 className="pp-chat-input"
                 placeholder={conectado ? 'Escribe un mensaje...' : 'Sin conexión al servidor...'}
@@ -767,51 +821,6 @@ export function PanelPartida({
             )}
           </div>
         </div>
-      )}
-
-      {/* ── DADOS ── */}
-      {pestana === 'dados' && (
-        <>
-          {CustomDicePanel ? (
-            <CustomDicePanel
-              dadoActivo={dadoActivo}
-              onLanzarDado={lanzarDado}
-              onAtaqueAnimacionFin={handleAtaqueAnimacionFin}
-              turnoActual={turnoActual}
-              jugadorActual={jugadorActual}
-              movimientoYaLanzado={movimientoYaLanzado}
-              ataqueYaLanzado={ataqueYaLanzado}
-            />
-          ) : (
-            <div className="pp-seccion pp-dados-wrap">
-              <p className="pp-dados-hint">Haz clic en un dado para lanzarlo</p>
-              <div className="pp-dados-grid">
-                {DADOS.map(({ caras, label }) => (
-                  <button
-                    key={label}
-                    className={`pp-dado-btn ${dadoActivo === label ? 'animando' : ''}`}
-                    onClick={() => lanzarDado(caras, label)}
-                    disabled={dadoActivo !== null}
-                  >
-                    <span className="pp-dado-icono">{dadoActivo === label ? '💫' : '⬡'}</span>
-                    <span className="pp-dado-label">{label}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="pp-modificador-wrap">
-                <label className="pp-mod-label">Modificador</label>
-                <div className="pp-mod-controles">
-                  <button className="pp-mod-btn" onClick={() => setModificador(m => m - 1)}>−</button>
-                  <span className="pp-mod-valor">{modificador >= 0 ? `+${modificador}` : modificador}</span>
-                  <button className="pp-mod-btn" onClick={() => setModificador(m => m + 1)}>+</button>
-                </div>
-              </div>
-              <p className="pp-dados-hint" style={{ marginTop: 12 }}>
-                El resultado aparecerá en el chat
-              </p>
-            </div>
-          )}
-        </>
       )}
 
       {/* ── VOZ ── */}
