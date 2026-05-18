@@ -75,6 +75,15 @@ public class TurnoService {
         return new TurnoDTO(participantes.get(0).personajeId(), "personajes");
     }
 
+    @Transactional
+    public void resetTurno(Long misionId) {
+        misionRepository.findById(misionId).ifPresent(mision -> {
+            mision.setTurnoActualPersonajeId(null);
+            mision.setTurnoFase(null);
+            misionRepository.save(mision);
+        });
+    }
+
     private void persistirTurno(Long misionId, TurnoDTO turno) {
         misionRepository.findById(misionId).ifPresent(mision -> {
             mision.setTurnoActualPersonajeId(turno.turnoActualPersonajeId());

@@ -154,3 +154,46 @@
   color: #fff;
   transform: translateY(-2px);
 }
+
+/* Conflict modal avatars */
+.modal-conflict-avatars {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  justify-content: center;
+  width: 100%;
+}
+.modal-conflict-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background-color: #111;
+  border: 3px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.6), inset 0 0 12px rgba(255,255,255,0.02);
+}
+.modal-conflict-avatar.player {
+  border-color: rgba(80,170,240,0.9);
+}
+.modal-conflict-avatar.enemy {
+  border-color: rgba(224,60,60,0.95);
+}
+.modal-conflict-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.modal-conflict-avatar .initials {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.6rem;
+}
+.modal-conflict-vs {
+  color: #fff;
+  opacity: 0.9;
+  font-weight: 800;
+  font-size: 1.1rem;
+}

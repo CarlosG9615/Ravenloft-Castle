@@ -82,10 +82,13 @@ public class MisionParticipanteService {
         );
 
         List<MisionParticipante> existentes = participanteRepository.findByMisionId(mision.getId());
-        int ordenUnion = existentes.size();
+        // Solo los jugadores cuentan para ordenUnion; el master no ocupa slot de color/spawn
+        int ordenUnion = dto.rol() == RolParticipante.JUGADOR
+                ? (int) existentes.stream().filter(p -> p.getRol() == RolParticipante.JUGADOR).count()
+                : existentes.size();
         int spawnCol = 12;
         int spawnRow = 19;
-        if (ordenUnion < SPAWN_POSITIONS.length) {
+        if (dto.rol() == RolParticipante.JUGADOR && ordenUnion < SPAWN_POSITIONS.length) {
             spawnCol = SPAWN_POSITIONS[ordenUnion][0];
             spawnRow = SPAWN_POSITIONS[ordenUnion][1];
         }
@@ -272,20 +275,30 @@ public class MisionParticipanteService {
                 participanteRepository.findParticipantesJugadores(misionId);
         misionRepository.findById(misionId).ifPresent(m -> {
             if (restantes.isEmpty()) {
+                // Última persona: limpiar todo el estado de turno para que la próxima partida empiece desde cero
                 m.setTurnoActualPersonajeId(null);
                 m.setTurnoFase(null);
                 misionRepository.save(m);
+                // Notificar a todos que el turno vuelve a personajes (fase limpia)
+                messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/turno",
+                    new com.gvc.ravenloftcastleapi.dto.mision.TurnoDTO(null, "personajes"));
+                // Limpiar salas reveladas para que la próxima partida empiece con el mapa cerrado
+                Object roomsReset = java.util.Map.of("revealedRooms", java.util.Collections.emptyList());
+                messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/rooms-state", roomsReset);
             } else if ("master".equals(m.getTurnoFase())
                     || !java.util.Objects.equals(personajeIdQueAbandona, m.getTurnoActualPersonajeId())) {
-                // turno activo no afectado: no modificar
+                // Turno activo no afectado: no modificar
+                String fase = m.getTurnoFase() != null ? m.getTurnoFase() : "personajes";
+                messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/turno",
+                    new com.gvc.ravenloftcastleapi.dto.mision.TurnoDTO(m.getTurnoActualPersonajeId(), fase));
             } else {
                 m.setTurnoActualPersonajeId(restantes.get(0).personajeId());
                 m.setTurnoFase("personajes");
                 misionRepository.save(m);
+                messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/turno",
+                    new com.gvc.ravenloftcastleapi.dto.mision.TurnoDTO(
+                        m.getTurnoActualPersonajeId(), m.getTurnoFase()));
             }
-            messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/turno",
-                new com.gvc.ravenloftcastleapi.dto.mision.TurnoDTO(
-                    m.getTurnoActualPersonajeId(), m.getTurnoFase()));
         });
     }
 
@@ -294,6 +307,11 @@ public class MisionParticipanteService {
         Usuario currentUser = getUsuarioByEmail(email);
         return participanteRepository.findByMisionIdAndUsuarioId(misionId, currentUser.getId())
                 .map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean tieneMaster(Long misionId) {
+        return participanteRepository.existsByMisionIdAndRol(misionId, RolParticipante.MASTER);
     }
 
     @Transactional(readOnly = true)

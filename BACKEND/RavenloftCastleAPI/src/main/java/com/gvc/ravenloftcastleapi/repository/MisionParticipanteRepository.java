@@ -28,6 +28,8 @@ public interface MisionParticipanteRepository extends JpaRepository<MisionPartic
 
     boolean existsByMisionIdAndUsuarioIdAndRol(Long misionId, Long usuarioId, com.gvc.ravenloftcastleapi.enums.RolParticipante rol);
 
+    boolean existsByMisionIdAndRol(Long misionId, com.gvc.ravenloftcastleapi.enums.RolParticipante rol);
+
     Optional<MisionParticipante> findByIdAndMisionId(Long id, Long misionId);
 
     Optional<MisionParticipante> findByMisionIdAndUsuarioId(Long misionId, Long usuarioId);
@@ -76,7 +78,9 @@ public interface MisionParticipanteRepository extends JpaRepository<MisionPartic
         JOIN Usuario u ON u.id = mp.usuario.id
         JOIN Personaje p ON p.id = mp.personaje.id
         JOIN Clase c ON c.id = p.clase.id
-        WHERE mp.mision.id = :misionId AND mp.personaje IS NOT NULL
+        WHERE mp.mision.id = :misionId
+          AND mp.personaje IS NOT NULL
+          AND mp.rol = com.gvc.ravenloftcastleapi.enums.RolParticipante.JUGADOR
         ORDER BY mp.ordenUnion ASC
     """)
     List<ParticipanteJugadorDTO> findParticipantesJugadores(@Param("misionId") Long misionId);

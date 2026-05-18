@@ -10,6 +10,7 @@ interface ModalAlertProps {
   onConfirm?: () => void;
   onCancel?: () => void;
   showImage?: boolean;
+  media?: React.ReactNode;
 }
 
 export function ModalAlert({
@@ -21,6 +22,7 @@ export function ModalAlert({
   onConfirm,
   onCancel,
   showImage = true
+  , media
 }: ModalAlertProps) {
   if (!isOpen) return null;
 
@@ -28,7 +30,11 @@ export function ModalAlert({
     <div className="modal-alert-overlay">
       <div className="modal-alert-box">
         <h2 className="modal-alert-title">{title}</h2>
-        {showImage && (
+        {media ? (
+          <div className="modal-alert-image">
+            {media}
+          </div>
+        ) : showImage && (
           <div className="modal-alert-image">
             <img src="/images/icons/rolo_triste.png" alt="Rolo triste" />
           </div>

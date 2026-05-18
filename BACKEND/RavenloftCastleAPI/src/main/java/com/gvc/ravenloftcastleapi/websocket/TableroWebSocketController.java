@@ -30,6 +30,7 @@ public class TableroWebSocketController {
     private final Map<String, Map<String, CampanaTokenStateDTO>> tokensCampana = new ConcurrentHashMap<>();
     private final Map<String, Map<String, Integer>> hpOverridesCampana = new ConcurrentHashMap<>();
     private final Map<String, PartidaConfigDTO> partidasConfiguradas = new ConcurrentHashMap<>();
+    private final Map<String, java.util.Set<String>> revealedRoomsMision = new ConcurrentHashMap<>();
 
     public TableroWebSocketController(SimpMessagingTemplate messagingTemplate,
                                       MisionParticipanteRepository misionParticipanteRepository,
@@ -257,9 +258,48 @@ public class TableroWebSocketController {
 
     @MessageMapping("/mision/{misionId}/master-abort")
     public void masterAbort(@DestinationVariable String misionId) {
+        try {
+            misionParticipanteRepository.deleteByMisionId(Long.valueOf(misionId));
+        } catch (Exception e) {
+            System.err.println("[MasterAbort] Error eliminando participantes de BD: " + e.getMessage());
+        }
+        try {
+            turnoService.resetTurno(Long.valueOf(misionId));
+        } catch (Exception e) {
+            System.err.println("[MasterAbort] Error reseteando turno en BD: " + e.getMessage());
+        }
         partidasConfiguradas.remove(misionId);
-        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/kicked",
-                (Object) java.util.Map.of("razon", "master_abort"));
+        revealedRoomsMision.remove(misionId);
+        // Resetear turno en clientes antes de expulsarlos para que la próxima partida empiece limpia
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/turno",
+            new TurnoDTO(null, "personajes"));
+        Object kickedPayload = java.util.Map.of("razon", "master_abort");
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/kicked", kickedPayload);
+    }
+
+    @MessageMapping("/mision/{misionId}/room-revealed")
+    public void roomRevealed(@DestinationVariable String misionId, @Payload RoomRevealedDTO dto) {
+        revealedRoomsMision.computeIfAbsent(misionId, k -> ConcurrentHashMap.newKeySet()).add(dto.getRoomId());
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/room-revealed", dto);
+    }
+
+    @MessageMapping("/mision/{misionId}/enemy-move")
+    public void enemyMove(@DestinationVariable String misionId, @Payload EnemyMoveWsDTO dto) {
+        PartidaConfigDTO config = partidasConfiguradas.get(misionId);
+        if (config != null && config.getEnemigos() != null) {
+            config.getEnemigos().stream()
+                .filter(e -> dto.getInstanciaId().equals(e.getInstanciaId()))
+                .findFirst()
+                .ifPresent(e -> { e.setCol(dto.getCol()); e.setRow(dto.getRow()); });
+        }
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/enemy-move", dto);
+    }
+
+    @MessageMapping("/mision/{misionId}/check-rooms-revealed")
+    public void checkRoomsRevealed(@DestinationVariable String misionId) {
+        java.util.Set<String> revealed = revealedRoomsMision.getOrDefault(misionId, new java.util.HashSet<>());
+        Object roomsStatePayload = java.util.Map.of("revealedRooms", new java.util.ArrayList<>(revealed));
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/rooms-state", roomsStatePayload);
     }
 
     @MessageMapping("/mision/{misionId}/check-partida-lista")
@@ -268,8 +308,8 @@ public class TableroWebSocketController {
         if (config != null) {
             messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/partida-lista", config);
         } else {
-            messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/master-estado",
-                    (Object) java.util.Map.of("listo", false));
+            Object masterEstadoPayload = java.util.Map.of("listo", false);
+            messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/master-estado", masterEstadoPayload);
         }
     }
 
@@ -488,6 +528,7 @@ public class TableroWebSocketController {
         private String nombre;
         private int col;
         private int row;
+        private Integer salud;
 
         public String getInstanciaId() { return instanciaId; }
         public void setInstanciaId(String instanciaId) { this.instanciaId = instanciaId; }
@@ -499,6 +540,8 @@ public class TableroWebSocketController {
         public void setCol(int col) { this.col = col; }
         public int getRow() { return row; }
         public void setRow(int row) { this.row = row; }
+        public Integer getSalud() { return salud; }
+        public void setSalud(Integer salud) { this.salud = salud; }
     }
 
     public static class TrapTokenConfigDTO {
@@ -534,5 +577,23 @@ public class TableroWebSocketController {
         public void setEnemigos(List<EnemyTokenConfigDTO> enemigos) { this.enemigos = enemigos; }
         public List<TrapTokenConfigDTO> getTrampas() { return trampas; }
         public void setTrampas(List<TrapTokenConfigDTO> trampas) { this.trampas = trampas; }
+    }
+
+    public static class RoomRevealedDTO {
+        private String roomId;
+        public String getRoomId() { return roomId; }
+        public void setRoomId(String roomId) { this.roomId = roomId; }
+    }
+
+    public static class EnemyMoveWsDTO {
+        private String instanciaId;
+        private int col;
+        private int row;
+        public String getInstanciaId() { return instanciaId; }
+        public void setInstanciaId(String instanciaId) { this.instanciaId = instanciaId; }
+        public int getCol() { return col; }
+        public void setCol(int col) { this.col = col; }
+        public int getRow() { return row; }
+        public void setRow(int row) { this.row = row; }
     }
 }

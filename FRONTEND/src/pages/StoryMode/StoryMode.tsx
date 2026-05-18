@@ -267,18 +267,19 @@ function ModalModoHistoria({
             </div>
             <div className="jg-modal-stat">
               <span className="jg-modal-stat-label">Misiones</span>
-              <span className="jg-modal-stat-valor">📜 {misionesTotales}</span>
+              <span className="jg-modal-stat-valor">{misionesTotales}</span>
             </div>
             <div className="jg-modal-stat">
               <span className="jg-modal-stat-label">Plazas libres</span>
               <div className="jg-modal-plazas-roles" aria-label="Plazas por rol">
-                <span className="jg-modal-stat-valor">Personajes {jugadoresActuales}/{MAX_JUGADORES_ROL}</span>
-                <span className="jg-modal-stat-valor">Master {mastersActuales}/{MAX_MASTER_ROL}</span>
+                <span className="jg-modal-stat-valor">{jugadoresActuales}/{MAX_JUGADORES_ROL}</span>
+                <span style={{ margin: '0 4px' }}>/</span>
+                <span className="jg-modal-stat-valor">{mastersActuales}/{MAX_MASTER_ROL}</span>
               </div>
             </div>
             <div className="jg-modal-stat">
               <span className="jg-modal-stat-label">Nivel requerido</span>
-              <span className="jg-modal-stat-valor">✨ Nivel {modoHistoria.nivelMinimo}</span>
+              <span className="jg-modal-stat-valor">Nivel {modoHistoria.nivelMinimo}</span>
             </div>
           </div>
           <div className="jg-modal-seccion">

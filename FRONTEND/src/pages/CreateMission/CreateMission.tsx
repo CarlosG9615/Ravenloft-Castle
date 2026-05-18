@@ -9,7 +9,7 @@ import { TrapBench, TRAP_TYPES } from './TrapBench';
 import type { TrapType } from './TrapBench';
 import { MasterPrepBoard } from './MasterPrepBoard';
 import type { MasterPrepBoardHandle, PlacedEnemy, PlacedTrap } from './MasterPrepBoard';
-import { isSpawnCell } from './MasterPrepBoard';
+import { HISTORIA1_ROOMS, isProhibitedCell } from './MasterPrepBoard';
 import type { MapConfig } from '../TableroStoryMode/hooks/useBoardGrid';
 import { API_URL, authHeaders } from '../../services/api';
 import './CreateMission.css';
@@ -36,6 +36,26 @@ const MAP_BY_DIFFICULTY: Record<string, MapConfig> = {
 function resolveMapConfig(dificultad?: string): MapConfig {
   const key = (dificultad ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   return MAP_BY_DIFFICULTY[key] ?? MAP_BY_DIFFICULTY['media'];
+}
+
+function shuffleInPlace<T>(items: T[]): T[] {
+  for (let i = items.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [items[i], items[j]] = [items[j], items[i]];
+  }
+  return items;
+}
+
+function getRoomCells(room: { colStart: number; rowStart: number; colEnd: number; rowEnd: number }, isHistoria1: boolean) {
+  const cells: { col: number; row: number }[] = [];
+  for (let row = room.rowStart; row <= room.rowEnd; row++) {
+    for (let col = room.colStart; col <= room.colEnd; col++) {
+      if (!isProhibitedCell(col, row, isHistoria1)) {
+        cells.push({ col, row });
+      }
+    }
+  }
+  return cells;
 }
 
 interface DraggingEnemy {
@@ -75,6 +95,7 @@ export function CreateMission() {
   const ghostRef = useRef<HTMLDivElement>(null);
 
   const mapConfig = resolveMapConfig(state.mision?.dificultad);
+  const isHistoria1 = mapConfig.imageUrl.includes('tableroModHistoria1');
 
   useEffect(() => {
     if (!modoHistoriaId) return;
@@ -111,6 +132,7 @@ export function CreateMission() {
               instanciaId: `${prev.entry.enemigo.id}-${Date.now()}`,
               enemigoId: prev.entry.enemigo.id,
               nombre: prev.entry.enemigo.nombre,
+              salud: prev.entry.enemigo.salud,
               col,
               row,
             }];
@@ -197,35 +219,95 @@ export function CreateMission() {
   }, []);
 
   const handleRandomPlace = useCallback(() => {
+    const enemyInstances: Array<{ enemigoId: number; nombre: string; salud?: number }> = [];
+    for (const entry of enemigos) {
+      for (let i = 0; i < entry.cantidad; i++) {
+        enemyInstances.push({
+          enemigoId: entry.enemigo.id,
+          nombre: entry.enemigo.nombre,
+          salud: entry.enemigo.salud,
+        });
+      }
+    }
+
+    if (enemyInstances.length === 0) {
+      setPlacedEnemies([]);
+      return;
+    }
+
+    const baseRandomId = Date.now();
+    const placed: PlacedEnemy[] = [];
+
+    if (isHistoria1) {
+      const roomBuckets = HISTORIA1_ROOMS
+        .map(room => ({ room, cells: shuffleInPlace(getRoomCells(room, true)) }))
+        .filter(bucket => bucket.cells.length > 0);
+
+      const shuffledEnemies = shuffleInPlace([...enemyInstances]);
+      const remainingCells: { col: number; row: number }[] = [];
+
+      let enemyIndex = 0;
+      for (const bucket of shuffleInPlace([...roomBuckets])) {
+        const [firstCell, ...restCells] = bucket.cells;
+        if (firstCell && enemyIndex < shuffledEnemies.length) {
+          const enemy = shuffledEnemies[enemyIndex++];
+          placed.push({
+            instanciaId: `${enemy.enemigoId}-rnd-${baseRandomId}-${placed.length}`,
+            enemigoId: enemy.enemigoId,
+            nombre: enemy.nombre,
+            salud: enemy.salud,
+            col: firstCell.col,
+            row: firstCell.row,
+          });
+        }
+        remainingCells.push(...restCells);
+      }
+
+      const shuffledRemainingCells = shuffleInPlace(remainingCells);
+      while (enemyIndex < shuffledEnemies.length) {
+        const cell = shuffledRemainingCells[enemyIndex - roomBuckets.length];
+        if (!cell) break;
+        const enemy = shuffledEnemies[enemyIndex++];
+        placed.push({
+          instanciaId: `${enemy.enemigoId}-rnd-${baseRandomId}-${placed.length}`,
+          enemigoId: enemy.enemigoId,
+          nombre: enemy.nombre,
+          salud: enemy.salud,
+          col: cell.col,
+          row: cell.row,
+        });
+      }
+
+      setPlacedEnemies(placed);
+      return;
+    }
+
     const { cols, rows } = mapConfig;
     const validCells: { col: number; row: number }[] = [];
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
-        if (!isSpawnCell(col, row)) validCells.push({ col, row });
+        if (!isProhibitedCell(col, row, false)) {
+          validCells.push({ col, row });
+        }
       }
     }
-    // Fisher-Yates shuffle
-    for (let i = validCells.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [validCells[i], validCells[j]] = [validCells[j], validCells[i]];
-    }
-    let idx = 0;
-    const placed: PlacedEnemy[] = [];
-    for (const entry of enemigos) {
-      for (let i = 0; i < entry.cantidad; i++) {
-        if (idx >= validCells.length) break;
-        const { col, row } = validCells[idx++];
-        placed.push({
-          instanciaId: `${entry.enemigo.id}-rnd-${Date.now()}-${i}`,
-          enemigoId: entry.enemigo.id,
-          nombre: entry.enemigo.nombre,
-          col,
-          row,
-        });
-      }
-    }
+
+    const placementCells = shuffleInPlace(validCells);
+    enemyInstances.forEach((enemy, index) => {
+      const cell = placementCells[index];
+      if (!cell) return;
+      placed.push({
+        instanciaId: `${enemy.enemigoId}-rnd-${baseRandomId}-${index}`,
+        enemigoId: enemy.enemigoId,
+        nombre: enemy.nombre,
+        salud: enemy.salud,
+        col: cell.col,
+        row: cell.row,
+      });
+    });
+
     setPlacedEnemies(placed);
-  }, [enemigos, mapConfig]);
+  }, [enemigos, isHistoria1, mapConfig]);
 
   const handleTrapRandomPlace = useCallback(() => {
     const { cols, rows } = mapConfig;
@@ -233,7 +315,7 @@ export function CreateMission() {
     const validCells: { col: number; row: number }[] = [];
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
-        if (!isSpawnCell(col, row) && !occupiedByEnemies.has(`${col},${row}`)) {
+        if (!isProhibitedCell(col, row, isHistoria1) && !occupiedByEnemies.has(`${col},${row}`)) {
           validCells.push({ col, row });
         }
       }
@@ -292,6 +374,7 @@ export function CreateMission() {
             nombre: p.nombre,
             col: p.col,
             row: p.row,
+            salud: p.salud,
           })),
           trampas: placedTraps.map(p => ({
             instanciaId: p.instanciaId,
@@ -368,6 +451,7 @@ export function CreateMission() {
           onTrapRemove={handleTrapRemove}
           onTrapMove={handleTrapMove}
           isDraggingFromBench={isDraggingFromBench}
+          onBlockedMove={() => setShowBlockedModal(true)}
         />
       </div>
 
