@@ -18,10 +18,10 @@ export function Home() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const carouselImages = [
-    { src: '/images/screenshot-join.png',     alt: 'Unirse a Campañas',       desc: 'Encuentra tu grupo de aventureros y únete a campañas épicas.' },
-    { src: '/images/screenshot-misiones.png', alt: 'Misiones',               desc: 'Completa misiones y desafíos para ganar experiencia y recompensas.' },
-    { src: '/images/screenshot-diario.png',   alt: 'Diario de Campaña',      desc: 'Registra cada sesión y guarda los momentos más épicos de tu aventura.' },
-    { src: '/images/screenshot-mapas.png',    alt: 'Mapas Interactivos',     desc: 'Explora mundos detallados con mapas dinámicos y fog of war.' },
+    { src: '/images/carrousel_image1.png', alt: 'Unirse a Campañas', desc: 'Encuentra tu grupo de aventureros y únete a campañas épicas.' },
+    { src: '/images/carrousel_image2.png', alt: 'Misiones', desc: 'Completa misiones y desafíos para ganar experiencia y recompensas.' },
+    { src: '/images/carrousel_image3.png', alt: 'Diario de Campaña', desc: 'Registra cada sesión y guarda los momentos más épicos de tu aventura.' },
+    { src: '/images/carrousel_image4.png', alt: 'Mapas Interactivos', desc: 'Explora mundos detallados con mapas dinámicos y fog of war.' },
   ];
 
   const goTo = useCallback((index: number) => {

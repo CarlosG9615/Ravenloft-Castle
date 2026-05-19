@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './CharacterCreate.css';
 import { BackButton } from '../../components/BackButton/BackButton';
-import { CharacterSheet } from './CharacterSheet';
+import { CharacterSheet, type AttackSpellEntry, type EntryTipo } from './CharacterSheet';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import { createPersonaje, type PersonajeCreatePayload } from '../../services/personajeService';
 import { FileText, Clipboard, ColorsSwatch, Folder  } from 'pixelarticons/react';
@@ -57,6 +57,29 @@ const STAT_LABELS: Record<StatKey, string> = {
 const PUNTOS_ESTANDAR = [15, 14, 13, 12, 10, 8];
 const MAX_PALABRAS = 120;
 
+const DADO_GOLPE_POR_CLASE: Record<string, number> = {
+  'Bárbaro': 12,
+  'Guerrero': 10,
+  'Paladín': 10,
+  'Explorador': 10,
+  'Bardo': 8,
+  'Clérigo': 8,
+  'Druida': 8,
+  'Monje': 8,
+  'Pícaro': 8,
+  'Brujo': 8,
+  'Hechicero': 6,
+  'Mago': 6,
+};
+
+const calcularPuntosGolpeMax = (nombreClase: string, constitucion: number, nivel: number) => {
+  const dadoGolpe = DADO_GOLPE_POR_CLASE[nombreClase] ?? 8;
+  const nivelUno = dadoGolpe + constitucion;
+  if (nivel <= 1) return nivelUno;
+  const incrementoPorNivel = Math.floor(dadoGolpe / 2) + 1 + constitucion;
+  return nivelUno + (nivel - 1) * incrementoPorNivel;
+};
+
 const calcularModificador = (val: number) => {
   const mod = Math.floor((val - 10) / 2);
   return mod >= 0 ? `+${mod}` : `${mod}`;
@@ -70,6 +93,8 @@ const calcularTirada = () => {
 
 const normalizarClase = (nombre: string) =>
   nombre.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+const createEntryId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 const contarPalabras = (texto: string) =>
   texto.trim() === '' ? 0 : texto.trim().split(/\s+/).length;
@@ -98,6 +123,11 @@ export function CharacterCreate() {
     fuerza: null, destreza: null, constitucion: null,
     inteligencia: null, sabiduria: null, carisma: null,
   });
+  const [attackSpellEntries, setAttackSpellEntries] = useState<AttackSpellEntry[]>([]);
+  const [entryTipo, setEntryTipo] = useState<EntryTipo>('ataque');
+  const [entryNombre, setEntryNombre] = useState('');
+  const [entryBonificador, setEntryBonificador] = useState('');
+  const [entryDano, setEntryDano] = useState('');
 
   // Paso 3
   const [avatarSeleccionado, setAvatarSeleccionado] = useState<string | null>(null);
@@ -123,6 +153,11 @@ export function CharacterCreate() {
     return acc;
   }, {} as Record<StatKey, number>);
 
+  const nivelInicial = 1;
+  const puntosGolpeMax = clase
+    ? calcularPuntosGolpeMax(clase, statsFinal.constitucion, nivelInicial)
+    : null;
+
   const palabras = contarPalabras(historia);
   const claseApariencia = clase ? normalizarClase(clase) : normalizarClase(CLASES[0]);
   const avatarsDisponibles = GENEROS.map(genero => `${claseApariencia}${genero}`);
@@ -147,6 +182,29 @@ export function CharacterCreate() {
 
   const asignarTirada = (stat: StatKey, idTirada: number | null) =>
     setTiradaAsignada(prev => ({ ...prev, [stat]: idTirada }));
+
+  const addEntry = () => {
+    const nombreLimpio = entryNombre.trim();
+    const bonifLimpio = entryBonificador.trim();
+    const danoLimpio = entryDano.trim();
+    if (!nombreLimpio || !bonifLimpio || !danoLimpio) return;
+
+    const nuevo: AttackSpellEntry = {
+      id: createEntryId(),
+      nombre: nombreLimpio,
+      bonificador: bonifLimpio,
+      dano: danoLimpio,
+      tipo: entryTipo,
+    };
+
+    setAttackSpellEntries(prev => [...prev, nuevo]);
+    setEntryNombre('');
+    setEntryBonificador('');
+    setEntryDano('');
+  };
+
+  const removeEntry = (id: string) =>
+    setAttackSpellEntries(prev => prev.filter(item => item.id !== id));
 
   const cambiarMetodo = (nuevoMetodo: 'puntos' | 'dados') => {
     setMetodo(nuevoMetodo);
@@ -261,7 +319,7 @@ export function CharacterCreate() {
       nombre: nombre.trim(),
       clase,
       raza,
-      nivel: 1,
+      nivel: nivelInicial,
       statsBase: {
         fuerza: statsBaseBackend.fuerza,
         destreza: statsBaseBackend.destreza,
@@ -279,6 +337,7 @@ export function CharacterCreate() {
         carisma: statsFinal.carisma,
       },
       habilidades: buildHabilidades(),
+      puntosGolpeActual: puntosGolpeMax ?? undefined,
       claseArmadura: 10 + Math.floor((statsFinal.destreza - 10) / 2),
       iniciativa: Math.floor((statsFinal.destreza - 10) / 2),
       velocidad: 30,
@@ -289,7 +348,13 @@ export function CharacterCreate() {
 
     try {
       setGuardando(true);
-      await createPersonaje(payload);
+      const created = await createPersonaje(payload);
+      if (attackSpellEntries.length > 0) {
+        const keyBase = created?.id ?? nombre.trim();
+        if (keyBase) {
+          localStorage.setItem(`rc:attacks-spells:${keyBase}`, JSON.stringify(attackSpellEntries));
+        }
+      }
       navigate('/characters');
     } catch (error) {
       console.error('Error creando personaje:', error);
@@ -343,7 +408,8 @@ export function CharacterCreate() {
         {paso === 1 && (
           <div className="create-card">
             <h4 className="create-section-title mb-4">
-              <FileText width={24} height={24} style={{ color: '#e2b96f' }} /> Identidad del Personaje</h4>
+              <FileText width={24} height={24} style={{ color: '#e2b96f' }} /> Identidad del Personaje
+            </h4>
             <div className="row g-4">
 
               <div className="col-12">
@@ -528,6 +594,90 @@ export function CharacterCreate() {
               </>
             )}
 
+            <div className="create-ataques-block mt-4">
+              <h5 className="create-subsection-title">Ataques y Conjuros</h5>
+              <p className="create-method-desc">Agrega lo que tu personaje sabe usar o lanzar.</p>
+              <div className="row g-3 mt-2">
+                <div className="col-md-3">
+                  <label className="create-label">Tipo</label>
+                  <select
+                    className="form-select create-input"
+                    value={entryTipo}
+                    onChange={(e) => setEntryTipo(e.target.value as EntryTipo)}
+                  >
+                    <option value="ataque">Ataque</option>
+                    <option value="conjuro">Conjuro</option>
+                  </select>
+                </div>
+                <div className="col-md-4">
+                  <label className="create-label">Nombre</label>
+                  <input
+                    type="text"
+                    className="form-control create-input"
+                    placeholder="Ej: Espada larga"
+                    value={entryNombre}
+                    onChange={(e) => setEntryNombre(e.target.value)}
+                  />
+                </div>
+                <div className="col-md-2">
+                  <label className="create-label">Bonificador</label>
+                  <input
+                    type="text"
+                    className="form-control create-input"
+                    placeholder="Ej: +5"
+                    value={entryBonificador}
+                    onChange={(e) => setEntryBonificador(e.target.value)}
+                  />
+                </div>
+                <div className="col-md-3">
+                  <label className="create-label">Daño</label>
+                  <input
+                    type="text"
+                    className="form-control create-input"
+                    placeholder="Ej: 1d8 + Fue"
+                    value={entryDano}
+                    onChange={(e) => setEntryDano(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="d-flex justify-content-end mt-3">
+                <button type="button" className="btn create-btn-primary" onClick={addEntry}>
+                  Agregar
+                </button>
+              </div>
+              <div className="create-ataques-table mt-3">
+                <div className="create-ataques-row create-ataques-header">
+                  <span>Nombre</span>
+                  <span>Bonif.</span>
+                  <span>Daño</span>
+                  <span></span>
+                </div>
+                {attackSpellEntries.length === 0
+                  ? [1, 2].map(i => (
+                      <div key={`empty-${i}`} className="create-ataques-row">
+                        <span>—</span><span>—</span><span>—</span><span></span>
+                      </div>
+                    ))
+                  : attackSpellEntries.map(entry => (
+                      <div key={entry.id} className="create-ataques-row">
+                        <span>{entry.tipo === 'conjuro' ? `Conjuro: ${entry.nombre}` : entry.nombre}</span>
+                        <span>{entry.bonificador}</span>
+                        <span>{entry.dano}</span>
+                        <span>
+                          <button
+                            type="button"
+                            className="create-ataques-delete"
+                            onClick={() => removeEntry(entry.id)}
+                            aria-label={`Eliminar ${entry.nombre}`}
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      </div>
+                    ))}
+              </div>
+            </div>
+
             <div className="d-flex justify-content-between mt-4">
               <button className="btn create-btn-secondary" onClick={() => setPaso(1)}>← Atrás</button>
               <button className="btn create-btn-primary" disabled={!paso2Valido} onClick={() => setPaso(3)}>
@@ -613,6 +763,9 @@ export function CharacterCreate() {
                   historia={historia}
                   imagen={imagenFinal}
                   stats={statsFinal}
+                  puntosGolpeMax={puntosGolpeMax ?? undefined}
+                  entradasAtaquesConjuros={attackSpellEntries}
+                  mostrarFormularioAtaques={false}
                   modo="wizard"
                   onVolver={() => setPaso(3)}
                   onConfirmar={handleConfirmar}
