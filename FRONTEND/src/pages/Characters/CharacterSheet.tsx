@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './CharacterSheet.css';
@@ -17,6 +17,18 @@ interface Stats {
   carisma: number;
 }
 
+type StatKey = keyof Stats;
+
+export type EntryTipo = 'ataque' | 'conjuro';
+
+export interface AttackSpellEntry {
+  id: string;
+  nombre: string;
+  bonificador: string;
+  dano: string;
+  tipo: EntryTipo;
+}
+
 interface CharacterSheetProps {
   // Props opcionales — si no vienen, la ficha muestra inputs vacíos
   nombre?: string;
@@ -26,6 +38,9 @@ interface CharacterSheetProps {
   historia?: string;
   imagen?: string | null;
   stats?: Stats;
+  puntosGolpeMax?: number;
+  entradasAtaquesConjuros?: AttackSpellEntry[];
+  mostrarFormularioAtaques?: boolean;
   // Callbacks para el wizard (paso 4)
   onVolver?: () => void;
   onConfirmar?: () => void;
@@ -76,7 +91,7 @@ const TRASFONDOS: Record<string, { descripcion: string; competencias: string[] }
   'Urchin':           { descripcion: 'Creciste en las calles de una gran ciudad.',                competencias: ['Juego de Manos', 'Sigilo'] },
 };
 
-const HABILIDADES = [
+const HABILIDADES: { nombre: string; stat: StatKey }[] = [
   { nombre: 'Acrobacias',         stat: 'destreza' },
   { nombre: 'Arcanos',            stat: 'inteligencia' },
   { nombre: 'Atletismo',          stat: 'fuerza' },
@@ -103,6 +118,51 @@ const calcMod = (val: number) => {
 const DEFAULT_STATS: Stats = {
   fuerza: 10, destreza: 10, constitucion: 10,
   inteligencia: 10, sabiduria: 10, carisma: 10,
+};
+
+const createEntryId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const formatBonus = (value: number) => (value >= 0 ? `+${value}` : `${value}`);
+
+const buildDefaultEntries = (clase: string, stats: Stats, bonifComp: number): AttackSpellEntry[] => {
+  const modFuerza = Math.floor((stats.fuerza - 10) / 2);
+  const modDestreza = Math.floor((stats.destreza - 10) / 2);
+  const modInt = Math.floor((stats.inteligencia - 10) / 2);
+  const modSab = Math.floor((stats.sabiduria - 10) / 2);
+  const modCar = Math.floor((stats.carisma - 10) / 2);
+
+  const ataque = (nombre: string, bonus: number, dano: string): AttackSpellEntry => ({
+    id: createEntryId(),
+    nombre,
+    bonificador: formatBonus(bonus),
+    dano,
+    tipo: 'ataque',
+  });
+
+  const conjuro = (nombre: string, bonus: number, dano: string): AttackSpellEntry => ({
+    id: createEntryId(),
+    nombre,
+    bonificador: formatBonus(bonus),
+    dano,
+    tipo: 'conjuro',
+  });
+
+  switch (clase) {
+    case 'Bárbaro':
+      return [ataque('Hacha grande', modFuerza + bonifComp, '1d12 + Fue')];
+    case 'Guerrero':
+      return [ataque('Espada larga', modFuerza + bonifComp, '1d8 + Fue')];
+    case 'Pícaro':
+      return [ataque('Daga', modDestreza + bonifComp, '1d4 + Des')];
+    case 'Mago':
+      return [conjuro('Rayo de fuego', modInt + bonifComp, '1d10 fuego')];
+    case 'Clérigo':
+      return [conjuro('Llama sagrada', modSab + bonifComp, '1d8 radiante')];
+    case 'Bardo':
+      return [conjuro('Burla viciosa', modCar + bonifComp, '1d4 psíquico')];
+    default:
+      return [ataque('Ataque básico', modFuerza + bonifComp, '1d6 + Fue')];
+  }
 };
 
 // ── DIARIO ────────────────────────────────────────────────
@@ -181,6 +241,9 @@ export function CharacterSheet({
   historia = '',
   imagen = null,
   stats = DEFAULT_STATS,
+  puntosGolpeMax,
+  entradasAtaquesConjuros,
+  mostrarFormularioAtaques = true,
   onVolver,
   onConfirmar,
   modo = 'view',
@@ -191,6 +254,14 @@ export function CharacterSheet({
   const [personaje, setPersonaje] = useState<PersonajeResponseDTO | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attacks, setAttacks] = useState<AttackSpellEntry[]>([]);
+  const [spells, setSpells] = useState<AttackSpellEntry[]>([]);
+  const [entriesKey, setEntriesKey] = useState<string | null>(null);
+  const [entryTipo, setEntryTipo] = useState<EntryTipo>('ataque');
+  const [entryNombre, setEntryNombre] = useState('');
+  const [entryBonificador, setEntryBonificador] = useState('');
+  const [entryDano, setEntryDano] = useState('');
+  const allowEdits = mostrarFormularioAtaques;
 
   useEffect(() => {
     if (modo !== 'view' || !id) return;
@@ -229,22 +300,141 @@ export function CharacterSheet({
   const alineamientoFinal = personaje?.alineamiento ?? '—';
   const imagenFinal = modo === 'view' ? resolveCartaUrl(personaje?.avatar) : imagen;
 
-  const statsFinales: Stats = personaje
-    ? {
-        fuerza: personaje.fuerza,
-        destreza: personaje.destreza,
-        constitucion: personaje.constitucion,
-        inteligencia: personaje.inteligencia,
-        sabiduria: personaje.sabiduria,
-        carisma: personaje.carisma,
-      }
-    : stats;
+  const statsFinales = useMemo<Stats>(() => (
+    personaje
+      ? {
+          fuerza: personaje.fuerza,
+          destreza: personaje.destreza,
+          constitucion: personaje.constitucion,
+          inteligencia: personaje.inteligencia,
+          sabiduria: personaje.sabiduria,
+          carisma: personaje.carisma,
+        }
+      : stats
+  ), [personaje, stats]);
 
   const trasfondoData = TRASFONDOS[trasfondoFinal];
   const competencias = trasfondoData?.competencias ?? [];
 
+  const bonifComp = personaje?.bonificacionCompetencia ?? 2;
+
+  useEffect(() => {
+    if (modo !== 'view') {
+      setEntriesKey(null);
+      return;
+    }
+    const keyBase = personaje?.id ?? nombreFinal;
+    setEntriesKey(keyBase ? `rc:attacks-spells:${keyBase}` : null);
+  }, [modo, personaje?.id, nombreFinal]);
+
+  useEffect(() => {
+    if (!entradasAtaquesConjuros || entradasAtaquesConjuros.length === 0) return;
+    setAttacks(entradasAtaquesConjuros.filter(entry => entry.tipo === 'ataque'));
+    setSpells(entradasAtaquesConjuros.filter(entry => entry.tipo === 'conjuro'));
+  }, [entradasAtaquesConjuros]);
+
+  useEffect(() => {
+    if (modo !== 'view') return;
+    if (!entriesKey) return;
+    if (entradasAtaquesConjuros && entradasAtaquesConjuros.length > 0) return;
+
+    const raw = localStorage.getItem(entriesKey);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as AttackSpellEntry[];
+        setAttacks(parsed.filter(entry => entry.tipo === 'ataque'));
+        setSpells(parsed.filter(entry => entry.tipo === 'conjuro'));
+        return;
+      } catch {
+        // Si hay datos corruptos, los regeneramos por defecto.
+      }
+    }
+
+    const defaults = buildDefaultEntries(claseFinal, statsFinales, bonifComp);
+    setAttacks(defaults.filter(entry => entry.tipo === 'ataque'));
+    setSpells(defaults.filter(entry => entry.tipo === 'conjuro'));
+  }, [entriesKey, claseFinal, statsFinales, bonifComp, modo, entradasAtaquesConjuros]);
+
+  useEffect(() => {
+    if (modo !== 'view') return;
+    if (!entriesKey) return;
+    const payload = JSON.stringify([...attacks, ...spells]);
+    localStorage.setItem(entriesKey, payload);
+  }, [entriesKey, attacks, spells, modo]);
+
+  const addEntry = () => {
+    const nombreLimpio = entryNombre.trim();
+    const bonifLimpio = entryBonificador.trim();
+    const danoLimpio = entryDano.trim();
+    if (!nombreLimpio || !bonifLimpio || !danoLimpio) return;
+
+    const nuevo: AttackSpellEntry = {
+      id: createEntryId(),
+      nombre: nombreLimpio,
+      bonificador: bonifLimpio,
+      dano: danoLimpio,
+      tipo: entryTipo,
+    };
+
+    if (entryTipo === 'ataque') {
+      setAttacks(prev => [...prev, nuevo]);
+    } else {
+      setSpells(prev => [...prev, nuevo]);
+    }
+
+    setEntryNombre('');
+    setEntryBonificador('');
+    setEntryDano('');
+  };
+
+  const removeEntry = (id: string, tipo: EntryTipo) => {
+    if (tipo === 'ataque') {
+      setAttacks(prev => prev.filter(item => item.id !== id));
+      return;
+    }
+    setSpells(prev => prev.filter(item => item.id !== id));
+  };
+
+  const renderAttacksAndSpells = () => {
+    const rows = [...attacks, ...spells];
+    if (rows.length === 0) {
+      return [1, 2, 3, 4].map((i) => (
+        <div key={`empty-${i}`} className="sf-ataques-row">
+          <span>—</span><span>—</span><span>—</span>
+        </div>
+      ));
+    }
+
+    return rows.map((entry) => (
+      <div
+        key={entry.id}
+        className={`sf-ataques-row ${entry.tipo === 'conjuro' ? 'sf-ataques-row--spell' : ''}`}
+      >
+        <span>{entry.tipo === 'conjuro' ? `Conjuro: ${entry.nombre}` : entry.nombre}</span>
+        <span>{entry.bonificador}</span>
+        <span>
+          {entry.dano}
+          {allowEdits && (
+            <button
+              type="button"
+              className="sf-ataques-delete"
+              onClick={() => removeEntry(entry.id, entry.tipo)}
+              aria-label={`Eliminar ${entry.nombre}`}
+            >
+              ✕
+            </button>
+          )}
+        </span>
+      </div>
+    ));
+  };
+
   const combate = [
-    { label: 'Puntos de Golpe', valor: personaje?.puntosGolpeMax?.toString() ?? '—' },
+    {
+      label: 'Puntos de Golpe',
+      valor: personaje?.puntosGolpeMax?.toString()
+        ?? (typeof puntosGolpeMax === 'number' ? puntosGolpeMax.toString() : '—'),
+    },
     { label: 'Iniciativa',      valor: personaje?.iniciativa?.toString() ?? calcMod(statsFinales.destreza) },
     { label: 'Nivel',           valor: personaje?.nivel?.toString() ?? '1' },
     { label: 'Velocidad',       valor: personaje?.velocidad ? `${personaje.velocidad} pies` : '30 pies' },
@@ -360,7 +550,7 @@ export function CharacterSheet({
               <h3 className="sf-titulo-seccion sf-mt">Habilidades</h3>
               {HABILIDADES.map(hab => {
                 const esPro = competencias.includes(hab.nombre);
-                const val = (statsFinales as any)[hab.stat] ?? 10;
+                const val = statsFinales[hab.stat] ?? 10;
                 const mod = Math.floor((val - 10) / 2) + (esPro ? 2 : 0);
                 return (
                   <div key={hab.nombre} className={`sf-hab-row ${esPro ? 'pro' : ''}`}>
@@ -434,12 +624,60 @@ export function CharacterSheet({
                 <div className="sf-ataques-header">
                   <span>Nombre</span><span>Bonif.</span><span>Daño</span>
                 </div>
-                {[1,2,3,4].map(i => (
-                  <div key={i} className="sf-ataques-row">
-                    <span>—</span><span>—</span><span>—</span>
-                  </div>
-                ))}
+                {renderAttacksAndSpells()}
               </div>
+
+              {/* Alta rapida de ataques/conjuros */}
+              {allowEdits && (
+                <div className="sf-ataques-form">
+                  <div className="sf-ataques-form-row">
+                    <label className="sf-ataques-label">Tipo</label>
+                    <select
+                      className="sf-ataques-input"
+                      value={entryTipo}
+                      onChange={(e) => setEntryTipo(e.target.value as EntryTipo)}
+                    >
+                      <option value="ataque">Ataque</option>
+                      <option value="conjuro">Conjuro</option>
+                    </select>
+                  </div>
+                  <div className="sf-ataques-form-row">
+                    <label className="sf-ataques-label">Nombre</label>
+                    <input
+                      className="sf-ataques-input"
+                      type="text"
+                      value={entryNombre}
+                      onChange={(e) => setEntryNombre(e.target.value)}
+                      placeholder="Ej: Espada larga"
+                    />
+                  </div>
+                  <div className="sf-ataques-form-row">
+                    <label className="sf-ataques-label">Bonificador</label>
+                    <input
+                      className="sf-ataques-input"
+                      type="text"
+                      value={entryBonificador}
+                      onChange={(e) => setEntryBonificador(e.target.value)}
+                      placeholder="Ej: +5"
+                    />
+                  </div>
+                  <div className="sf-ataques-form-row">
+                    <label className="sf-ataques-label">Daño</label>
+                    <input
+                      className="sf-ataques-input"
+                      type="text"
+                      value={entryDano}
+                      onChange={(e) => setEntryDano(e.target.value)}
+                      placeholder="Ej: 1d8 + Fue"
+                    />
+                  </div>
+                  <div className="sf-ataques-form-actions">
+                    <button type="button" className="sf-btn" onClick={addEntry}>
+                      Agregar
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {historiaFinal && (
                 <>
@@ -465,5 +703,4 @@ export function CharacterSheet({
     </div>
   );
 }
-
 

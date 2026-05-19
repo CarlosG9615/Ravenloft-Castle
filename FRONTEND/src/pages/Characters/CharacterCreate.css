@@ -223,6 +223,66 @@
   color: rgba(255,255,255,0.4);
 }
 
+.create-subsection-title {
+  font-family: 'Metal Mania', cursive;
+  font-size: 13px;
+  color: rgba(200,80,60,0.85);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin: 0 0 6px;
+}
+
+.create-ataques-block {
+  border: 1px solid rgba(139,0,0,0.25);
+  border-radius: 12px;
+  padding: 16px;
+  background: rgba(255,255,255,0.02);
+}
+
+.create-ataques-table {
+  border: 1px solid rgba(139,0,0,0.25);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.create-ataques-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+  border-bottom: 1px solid rgba(139,0,0,0.2);
+}
+
+.create-ataques-row:last-child {
+  border-bottom: none;
+}
+
+.create-ataques-header {
+  background: rgba(139,0,0,0.2);
+  font-family: 'Metal Mania', cursive;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: rgba(255,255,255,0.7);
+}
+
+.create-ataques-delete {
+  background: transparent;
+  border: none;
+  color: rgba(255,150,130,0.8);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+
+.create-ataques-delete:hover {
+  color: #ffb199;
+}
+
 /* TIRADAS */
 .create-tirada-tag {
   background: rgba(139,0,0,0.2);
