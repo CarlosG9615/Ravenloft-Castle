@@ -10,10 +10,7 @@ import './Header.css';
 import { Bell } from 'lucide-react';
 import { resolveProfileAvatar } from '../../utils/avatarUtils';
 
-interface NavItem {
-  label: string;
-  route: string;
-}
+
 
 export function Header() {
   const navigate = useNavigate();
@@ -27,16 +24,10 @@ export function Header() {
   const notifRef = useRef<HTMLDivElement>(null);
   const stompRef = useRef<Client | null>(null);
 
+  const [campañasOpen, setCampañasOpen] = useState(false);
+  const campañasRef = useRef<HTMLDivElement>(null);
+
   const noLeidas = notificaciones.filter(n => !n.leida).length;
-
-  const navItems: NavItem[] = [
-    { label: 'Inicio',               route: '/home' },
-    { label: 'Personajes',           route: '/characters' },
-    { label: 'Unirte a una Partida', route: '/join' },
-    { label: 'Crear Sala',           route: '/create' },
-    { label: 'Planes',               route: '/subscription' },
-  ];
-
   const privateRoutes = ['/characters', '/join', '/create', '/tools'];
   const isActive = (route: string) => location.pathname === route;
 
@@ -57,6 +48,9 @@ export function Header() {
       }
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setNotifOpen(false);
+      }
+      if (campañasRef.current && !campañasRef.current.contains(e.target as Node)) {
+        setCampañasOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -147,15 +141,48 @@ export function Header() {
     <header className="header">
 
       <nav className="nav-menu">
-        {navItems.map((item) => (
-          <a
-            key={item.route}
-            className={'nav-link' + (isActive(item.route) ? ' active' : '')}
-            onClick={() => handleNavClick(item.route)}
-          >
-            {item.label}
+        <a className={'nav-link' + (isActive('/home') ? ' active' : '')}
+          onClick={() => handleNavClick('/home')}
+        >
+          Inicio
+        </a>
+        <a className={'nav-link' + (isActive('/characters') ? ' active' : '')}
+        onClick={() => handleNavClick('/characters')}
+        >
+        Personajes
+        </a>
+
+
+        {/* ── DESPLEGABLE CAMPAÑAS ── */}
+  <div className="nav-dropdown-wrap" ref={campañasRef}>
+    
+    <a  className={`nav-link ${campañasOpen ? 'active' : ''}`}
+      onClick={() => setCampañasOpen(!campañasOpen)}
+    >
+      Campañas ▾
+    </a>
+      {campañasOpen && (
+      <div className="nav-dropdown">
+        <a className="nav-dropdown-item" onClick={() => { navigate('/create'); setCampañasOpen(false); }}>
+          Crear Sala
+        </a>
+        <a className="nav-dropdown-item" onClick={() => { navigate('/join'); setCampañasOpen(false); }}>
+          Unirte a una Partida
+        </a>
+        {isLoggedIn && (
+          <a className="nav-dropdown-item" onClick={() => { navigate('/mis-campanas'); setCampañasOpen(false); }}>
+            Mis Campañas
           </a>
-        ))}
+        )}
+      </div>
+    )}
+  </div>
+    <a  className={'nav-link' + (isActive('/subscription') ? ' active' : '')}
+    onClick={() => handleNavClick('/subscription')}
+    >
+    Planes
+  </a>
+
       </nav>
 
       <div className="header-actions">
@@ -271,33 +298,25 @@ export function Header() {
       </div>
 
       {/* MENÚ MÓVIL */}
-      <button
-        className="mobile-menu-btn"
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-      >
-        <span></span><span></span><span></span>
-      </button>
-
       {mobileMenuOpen && (
-        <div className="mobile-menu">
-          {navItems.map((item) => (
-            <a
-              key={item.route}
-              className={'mobile-nav-link' + (isActive(item.route) ? ' active' : '')}
-              onClick={() => handleNavClick(item.route)}
-            >
-              {item.label}
-            </a>
-          ))}
-          {isLoggedIn && (
-            <>
-              <div className="dropdown-divider" style={{ margin: '8px 16px' }} />
-              <a className="mobile-nav-link" onClick={() => { navigate('/profile'); setMobileMenuOpen(false); }}>Mi Perfil</a>
-              <a className="mobile-nav-link mobile-nav-link--danger" onClick={handleLogout}>Cerrar Sesión</a>
-            </>
-          )}
-        </div>
-      )}
+  <div className="mobile-menu">
+    <a className={'mobile-nav-link' + (isActive('/home') ? ' active' : '')} onClick={() => handleNavClick('/home')}>Inicio</a>
+    <a className={'mobile-nav-link' + (isActive('/characters') ? ' active' : '')} onClick={() => handleNavClick('/characters')}>Personajes</a>
+    <a className="mobile-nav-link" onClick={() => handleNavClick('/create')}>Crear Sala</a>
+    <a className="mobile-nav-link" onClick={() => handleNavClick('/join')}>Unirte a una Partida</a>
+    {isLoggedIn && (
+      <a className="mobile-nav-link" onClick={() => { navigate('/mis-campanas'); setMobileMenuOpen(false); }}>Mis Campañas</a>
+    )}
+    <a className={'mobile-nav-link' + (isActive('/subscription') ? ' active' : '')} onClick={() => handleNavClick('/subscription')}>Planes</a>
+    {isLoggedIn && (
+      <>
+        <div className="dropdown-divider" style={{ margin: '8px 16px' }} />
+        <a className="mobile-nav-link" onClick={() => { navigate('/profile'); setMobileMenuOpen(false); }}>Mi Perfil</a>
+        <a className="mobile-nav-link mobile-nav-link--danger" onClick={handleLogout}>Cerrar Sesión</a>
+      </>
+    )}
+  </div>
+)}  
     </header>
   );
 }
