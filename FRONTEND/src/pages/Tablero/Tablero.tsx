@@ -98,6 +98,7 @@ export function Tablero() {
   const jugadorActual   = (location.state as any)?.jugadorActual;
   const jugadoresCampaa = (location.state as any)?.jugadores      ?? [];
   const esMaster        = (location.state as any)?.esMaster       ?? false;
+  const masterNombre    = (location.state as any)?.masterNombre   ?? 'Master';
   const [mapaActualUrl, setMapaActualUrl]       = useState<string>(mapaUrl);
   const [mapasDisponibles, setMapasDisponibles] = useState<string[]>([]);
   const [cargandoMapas, setCargandoMapas]       = useState(false);
@@ -988,7 +989,7 @@ export function Tablero() {
       </div>
 
       <PanelPartida
-        nombreMaster="Tú (Master)"
+        nombreMaster={esMaster ? 'Tú (Master)' : masterNombre}
         jugadores={jugadoresCampaa}
         campanaId={campanaId}
         jugadorActual={jugadorActualConAvatar}

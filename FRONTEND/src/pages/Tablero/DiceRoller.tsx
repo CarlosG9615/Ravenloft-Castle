@@ -89,7 +89,7 @@ export function DiceRoller({ dado, resultado, onAnimacionFin }: Props) {
         setAnimando(false);
         callbackRef.current(resultadoReal);
         diceBoxRef.current?.clear();
-      }, 4000);
+      }, 1500);
     }).catch(() => {
       setAnimando(false);
       callbackRef.current(resultado ?? 1);

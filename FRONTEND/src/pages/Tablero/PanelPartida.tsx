@@ -4,7 +4,7 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { DiceRoller } from './DiceRoller';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
-import { Comment, Users, Mic } from 'pixelarticons/react'
+import { Comment, Users, Mic, Skull, Sword } from 'pixelarticons/react'
 import { Dices, Smile } from 'lucide-react';
 import { PerfilPublicoModal } from '../../components/PerfilPublicoModal/PerfilPublicoModal';
 import './PanelPartida.css';
@@ -194,6 +194,8 @@ export function PanelPartida({
   const [perfilPersonajeId, setPerfilPersonajeId] = useState<number | null>(null);
   const [hpOverrides, setHpOverrides] = useState<Record<string, number>>({});
   const esAnimacionRemota = useRef(false);
+  const jugadoresInicializadosRef = useRef(false);
+  const jugadoresInicialesIdsRef = useRef<Set<string>>(new Set());
 
   const chatRef = useRef<HTMLDivElement>(null);
   const stompRef = useRef<Client | null>(null);
@@ -210,6 +212,8 @@ export function PanelPartida({
       reconnectDelay: 5000,
       onConnect: () => {
         setConectado(true);
+        jugadoresInicializadosRef.current = false;
+        jugadoresInicialesIdsRef.current = new Set();
         if (campanaId) {
           const token = localStorage.getItem('token') || sessionStorage.getItem('token');
           const sinceParam = chatSince ? `?since=${encodeURIComponent(chatSince)}` : '';
@@ -251,8 +255,54 @@ export function PanelPartida({
           });
 
           client.subscribe(`/topic/campana/${campanaId}/jugadores`, (frame) => {
+            console.log('📣 Recibido broadcast jugadores:', frame.body);
             const list = JSON.parse(frame.body);
-            setJugadoresRed(list);
+
+            if (!Array.isArray(list) || list.length === 0) return;
+
+            setJugadoresRed(prev => {
+              if (!jugadoresInicializadosRef.current) {
+                jugadoresInicializadosRef.current = true;
+                jugadoresInicialesIdsRef.current = new Set(
+                  list
+                  .filter((j: any) => j.id?.toString() !== jugadorActual?.id?.toString())
+                  .map((j: any) => j.id?.toString()));
+                return list;
+              }
+
+              const prevIds = new Set(prev.map((j: any) => j.id?.toString()));
+              const newIds = new Set(list.map((j: any) => j.id?.toString()));
+
+              list.forEach((j: any) => {
+                const id = j.id?.toString();
+                if (!prevIds.has(id) && !jugadoresInicialesIdsRef.current.has(id)) {
+                  setMensajes(msgs => [...msgs, {
+                    id: `join-${id}-${Date.now()}`,
+                    autor: 'Sistema',
+                    colorAutor: '#8b0000',
+                    texto: `⚔ ${j.nombre || j.usuarioNombre || 'Un jugador'} ha entrado a la partida`,
+                    tipo: 'sistema' as const,
+                    timestamp: hora(),
+                  }]);
+                }
+              });
+
+              prev.forEach((j: any) => {
+                const id = j.id?.toString();
+                if (!newIds.has(id)) {
+                  setMensajes(msgs => [...msgs, {
+                    id: `leave-${id}-${Date.now()}`,
+                    autor: 'Sistema',
+                    colorAutor: '#8b0000',
+                    texto: `[skull] ${j.nombre || j.usuarioNombre || 'Un jugador'} ha salido de la partida`,
+                    tipo: 'sistema' as const,
+                    timestamp: hora(),
+                  }]);
+                }
+              });
+
+              return list;
+            });
           });
 
           client.subscribe(`/topic/campana/${campanaId}/hp-update`, (frame) => {
@@ -493,6 +543,15 @@ export function PanelPartida({
   });
 
   const jugadoresAMostrar = (jugadoresRed.length > 0 ? jugadoresRed : (jugadores !== undefined ? jugadores : JUGADORES_DEMO))
+      .filter((j: any) => {
+   
+      if (esMaster) {
+      const miId = jugadorActual?.id?.toString();
+      return j.id?.toString() !== miId;
+    }
+    return true;
+  })
+
     .map((j: any, i: number) => {
       const base = jugadoresBasePorId.get(j.id?.toString?.())
         || jugadoresBasePorNombre.get(j.nombre || j.usuarioNombre);
@@ -619,7 +678,12 @@ export function PanelPartida({
                 msg.tipo === 'mensaje' && msg.autor !== (jugadorActual?.nombre || nombreMaster) ? 'otros' : ''
               }`}>
                 {msg.tipo === 'sistema' && (
-                  <span className="pp-msg-sistema">⚔ {msg.texto}</span>
+                  <span className="pp-msg-sistema">
+                    {msg.texto.startsWith('[skull]')
+                      ? <><Skull width={16} height={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />{msg.texto.replace('[skull]', '')}</>
+                      : <><Sword width={16} height={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />{msg.texto}</>
+                    }
+                  </span>
                 )}
                 {msg.tipo === 'mensaje' && (
                   <>
@@ -682,8 +746,7 @@ export function PanelPartida({
           </div>
 
           <div className="pp-chat-input-wrap">
-            {/* PICKER DE DADOS */}
-           {mostrarDados && (
+            {mostrarDados && (
               <div className="pp-dados-picker">
                 {DADOS.map(({ caras, label }) => (
                   <button
@@ -698,7 +761,6 @@ export function PanelPartida({
                 ))}
               </div>
             )}
-            {/* PICKER DE EMOTES */}
             {mostrarEmotes && (
               <div className="pp-emotes-picker">
                 {EMOTES.map(e => (
@@ -748,6 +810,14 @@ export function PanelPartida({
       {pestana === 'jugadores' && (
         <div className="pp-seccion">
           <div className="pp-jugadores-lista">
+            <div className="pp-jugador">
+              <div className="pp-jugador-cabecera">
+                <span className="pp-jugador-dot" style={{ background: colorMaster }} />
+                <div className="pp-jugador-avatar-placeholder">M</div>
+                <span className="pp-jugador-nombre">{nombreMaster}</span>
+                <span className="pp-jugador-clase">Master</span>
+              </div>
+            </div>
             {jugadoresAMostrar.length > 0 ? (
               jugadoresAMostrar.map(j => {
                 const hpReal = hpOverrides[j.id] ?? j.hp;

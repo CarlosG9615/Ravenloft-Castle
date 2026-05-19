@@ -97,3 +97,12 @@ export const unirseACampana = async (campanaId: number, personajeId?: number): P
   });
   if (!response.ok) throw new Error('Error al unirse a la campaña');
 };
+
+export async function getMisCampanas(): Promise<any[]> {
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+  const res = await fetch('http://localhost:8080/api/campanas/mis-campanas', {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error('Error cargando mis campañas');
+  return res.json();
+}

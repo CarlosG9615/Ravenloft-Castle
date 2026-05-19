@@ -29,6 +29,7 @@ import { CreateMission } from './pages/CreateMission/CreateMission';
 import { buildMissionDetailsPath, buildMissionListPath } from './pages/Mission/missionRoutes';
 
 import './App.css';
+import { MisCampanas } from './pages/MisCampanas/MisCampanas';
 
 function Layout() {
   const location = useLocation();
@@ -136,13 +137,16 @@ function Layout() {
         <Route path="/role-select" element={
           <PrivateRoute><RoleSelect /></PrivateRoute>
         } />
-        
+        <Route path="/mis-campanas" element={
+          <PrivateRoute><MisCampanas /></PrivateRoute>
+        } />
 
         </Routes>
       </main>
       {!isAuthPage && !isTablero && <Footer />}
-  
+        
     </>
+
   );
 }
 

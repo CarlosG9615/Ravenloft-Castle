@@ -8,8 +8,6 @@ import { getAvatarUrl, getCampanaUrl, getCartaUrl } from '../../utils/imageUtils
 import { useAuth } from '../../services/AuthContext';
 import { CharacterSelectModal } from '../../components/CharacterSelectModal/CharacterSelectModal';
 
-
-// ── TIPOS ─────────────────────────────────────────────────
 interface Jugador {
   id: number;
   nombre: string;
@@ -79,16 +77,12 @@ const STAT_KEYS = ['fuerza', 'destreza', 'constitucion', 'inteligencia', 'sabidu
 
 const getStatValue = (personaje: Personaje | null, statKey: string) => {
   if (!personaje) return '-';
-
   const desdeFinales = personaje?.statsFinales?.[statKey];
   if (typeof desdeFinales === 'number') return desdeFinales;
-
   const desdeBase = personaje?.statsBase?.[statKey];
   if (typeof desdeBase === 'number') return desdeBase;
-
   const plano = personaje?.[statKey];
   if (typeof plano === 'number') return plano;
-
   return '-';
 };
 
@@ -98,12 +92,10 @@ const getDificultadColor = (dificultad?: string): string => {
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toUpperCase();
-
   if (normalizada === 'FACIL') return DIFICULTAD_COLOR['Fácil'];
   if (normalizada === 'MEDIA') return DIFICULTAD_COLOR.Media;
   if (normalizada === 'DIFICIL') return DIFICULTAD_COLOR['Difícil'];
   if (normalizada === 'EPICA') return DIFICULTAD_COLOR['Épica'];
-
   return 'rgba(90, 90, 90, 0.95)';
 };
 
@@ -113,9 +105,8 @@ const normalizarDificultad = (texto: string): string => {
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toLowerCase();
-};;
+};
 
-// ── MODAL CAMPAÑA ─────────────────────────────────────────
 function ModalCampana({
   campana,
   onClose,
@@ -192,23 +183,19 @@ function ModalCampana({
               </div>
             )}
           </div>
-              <button
-                className={`jg-btn-unirse ${soyMaster ? 'jg-btn-master' : ''}`}
-                disabled={!soyMaster && plazasLibres === 0}
-                onClick={() => {
-                      onJoinCampana(campana, soyMaster);
-                }}
-              >
-                {soyMaster ? '👑 Liderar la campaña' : (plazasLibres > 0 ? '⚔ Unirme a esta Campaña' : 'Campaña Completa')}
-              </button>
-              
+          <button
+            className={`jg-btn-unirse ${soyMaster ? 'jg-btn-master' : ''}`}
+            disabled={!soyMaster && plazasLibres === 0}
+            onClick={() => onJoinCampana(campana, soyMaster)}
+          >
+            {soyMaster ? '👑 Liderar la campaña' : (plazasLibres > 0 ? '⚔ Unirme a esta Campaña' : 'Campaña Completa')}
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-// ── COMPONENTE PRINCIPAL ──────────────────────────────────
 export function JoinGame() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -244,7 +231,7 @@ export function JoinGame() {
           portada: getCampanaUrl(c.nombre),
           masterId: c.masterId,
           master: c.masterNombre || 'Master',
-          jugadores: [], // Sin jugadores por ahora
+          jugadores: [],
           maxJugadores: c.maxJugadores || 10,
           sesiones: c.numSesiones || 0,
           sistema: c.sistema || 'D&D 5e',
@@ -263,11 +250,9 @@ export function JoinGame() {
   useEffect(() => {
     if (!isCharacterModalOpen) return;
     if (personajes.length > 0) return;
-
     const cargarPersonajes = async () => {
       setPersonajesCargando(true);
       setPersonajesError(null);
-
       try {
         const data = await getPersonajes();
         setPersonajes(Array.isArray(data) ? data : []);
@@ -277,7 +262,6 @@ export function JoinGame() {
         setPersonajesCargando(false);
       }
     };
-
     cargarPersonajes();
   }, [isCharacterModalOpen, personajes.length]);
 
@@ -301,15 +285,15 @@ export function JoinGame() {
   };
 
   const crearJugadorBase = (base: { id?: number; nombre?: string; clase?: string; hp?: number; hpMax?: number; avatar?: string }) => ({
-  id: base.id ?? user?.id ?? Date.now(),
-  usuarioId: user?.id ?? null,
-  nombre: base.nombre ?? user?.nombre ?? 'Tu',
-  clase: base.clase ?? 'Aventurero',
-  hp: base.hp ?? base.hpMax ?? 20,
-  hpMax: base.hpMax ?? base.hp ?? 20,
-  conectado: true,
-  avatar: base.avatar,
-});
+    id: base.id ?? user?.id ?? Date.now(),
+    usuarioId: user?.id ?? null,
+    nombre: base.nombre ?? user?.nombre ?? 'Tu',
+    clase: base.clase ?? 'Aventurero',
+    hp: base.hp ?? base.hpMax ?? 20,
+    hpMax: base.hpMax ?? base.hp ?? 20,
+    conectado: true,
+    avatar: base.avatar,
+  });
 
   const confirmarUnionConPersonaje = async () => {
     if (!campanaParaUnirse || !personajeSeleccionado) return;
@@ -334,11 +318,12 @@ export function JoinGame() {
     navigate('/tablero', {
       state: {
         campanaId: campanaParaUnirse.id,
-        campanaNombre: campanaParaUnirse.nombre,
+        campaaNombre: campanaParaUnirse.nombre, // ← corregido
         mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
         jugadores: misJugadores,
         esMaster: false,
         jugadorActual: jugadorRed,
+        masterNombre: campanaParaUnirse.master,
       },
     });
 
@@ -361,11 +346,12 @@ export function JoinGame() {
       navigate('/tablero', {
         state: {
           campanaId: campana.id,
-          campaaNombre: campana.nombre,
+          campaaNombre: campana.nombre, // ← corregido
           mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
           jugadores: campana.jugadores,
           esMaster: true,
           jugadorActual: jugadorMaster,
+          masterNombre: user?.nombre || 'Master',
         }
       });
       return;
@@ -381,15 +367,12 @@ export function JoinGame() {
       </div>
 
       <div className="jg-contenido">
-
-        {/* CABECERA */}
         <div className="jg-header">
           <h1 className="jg-titulo">Unirte a una partida</h1>
           <h2 className="jg-subtitulo">Unete a una aventura</h2>
           <p className="jg-descripcion">Encuentra tu grupo y forja tu leyenda en RavenLoft Castle</p>
         </div>
 
-        {/* CONTROLES */}
         <div className="jg-controles">
           <div className="jg-busqueda-wrap">
             <span className="jg-busqueda-icon">🔍</span>
@@ -413,7 +396,6 @@ export function JoinGame() {
           </div>
         </div>
 
-        {/* TÍTULO DE SECCIÓN */}
         <div className="jg-seccion-titulo-wrap" aria-label="CAMPAÑAS">
           <div className="jg-seccion-titulo-top">
             <div className="jg-seccion-titulo">CAMPAÑAS</div>
@@ -429,7 +411,6 @@ export function JoinGame() {
           <div className="jg-seccion-titulo-linea" />
         </div>
 
-        {/* GRID DE CAMPAÑAS */}
         <div className="jg-grid">
           {campanasFiltradas.map((campana, i) => {
             const plazasLibres = campana.maxJugadores - campana.jugadores.length;
@@ -474,10 +455,8 @@ export function JoinGame() {
             <p>No se encontraron campañas con esos criterios</p>
           </div>
         )}
-
       </div>
 
-      {/* MODALES */}
       {campanaSeleccionada && (
         <ModalCampana
           campana={campanaSeleccionada}
