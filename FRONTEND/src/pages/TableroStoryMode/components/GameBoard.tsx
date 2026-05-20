@@ -69,7 +69,9 @@ interface GameBoardProps {
   onOpenEnemyDetails?: (instanciaId: string) => void;
   onTrapTriggered?: (instanciaId: string, outcome: 'daño' | 'superado') => void;
   blockedCells?: Map<string, string>;
+  revealedTrapIds?: Set<string>;
   onCellBlocked?: (col: number, row: number, imageUrl: string) => void;
+  onPlayerTokenClick?: (token: BoardToken) => void;
 }
 
 interface Size { width: number; height: number; }
@@ -411,7 +413,7 @@ function StoryModeDoorModal({ door, onOpen, onOpenDouble, onCancel }: StoryModeD
   );
 }
 
-export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '', movimientoRoll = null, onMovimientoUsed, enemyTokens = [], trapTokens = [], esMaster = false, revealedRooms = [], onRoomRevealed, onEnemyMove, onMasterFinTurno, nombreMaster, onActiveEnemiesChange, onOpenEnemyDetails, onTrapTriggered, blockedCells: blockedCellsProp, onCellBlocked }: GameBoardProps) {
+export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '', movimientoRoll = null, onMovimientoUsed, enemyTokens = [], trapTokens = [], esMaster = false, revealedRooms = [], onRoomRevealed, onEnemyMove, onMasterFinTurno, nombreMaster, onActiveEnemiesChange, onOpenEnemyDetails, onTrapTriggered, blockedCells: blockedCellsProp, revealedTrapIds, onCellBlocked, onPlayerTokenClick }: GameBoardProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const panStartRef = useRef<{ pointerX: number; pointerY: number; originX: number; originY: number } | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1068,6 +1070,10 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
       .map((token) => ({ token, cell: tokenCells[token.id] }))
       .filter((entry): entry is { token: BoardToken; cell: CellPosition } => Boolean(entry.cell));
 
+    const tokensToCheck = currentTurnTokenId
+      ? tokenPositions.filter(({ token }) => token.id.toString() === currentTurnTokenId.toString())
+      : tokenPositions;
+
     // Fix 2: solo comprobar enemigos activados; los que están en salas cerradas o sin alcanzar no generan conflicto
     const enemyPositions = enemyTokens
       .filter(enemy => activeEnemyIds.has(enemy.instanciaId))
@@ -1078,7 +1084,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
 
     let detected: ConflictState | null = null;
 
-    for (const { token, cell: tokenCell } of tokenPositions) {
+    for (const { token, cell: tokenCell } of tokensToCheck) {
       const enemy = enemyPositions.find(({ cell }) => {
         const sameRow = cell.row === tokenCell.row && Math.abs(cell.col - tokenCell.col) === 1;
         const sameCol = cell.col === tokenCell.col && Math.abs(cell.row - tokenCell.row) === 1;
@@ -1087,7 +1093,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
 
       if (!enemy) continue;
 
-      const key = `${token.id}:${enemy.enemy.instanciaId}:${tokenCell.col},${tokenCell.row}:${enemy.cell.col},${enemy.cell.row}`;
+      const key = `${currentTurnTokenId ?? 'no-turn'}:${token.id}:${enemy.enemy.instanciaId}:${tokenCell.col},${tokenCell.row}:${enemy.cell.col},${enemy.cell.row}`;
       currentConflictKeyRef.current = key;
       if (dismissedConflictKeyRef.current === key) {
         setEnemyConflict(null);
@@ -1118,7 +1124,23 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     }
 
     setEnemyConflict(detected);
-  }, [activeTurn, enemyTokenCells, enemyTokens, tokenCells, tokens, animatingTokenId, enemyDragCurrentCell, activeEnemyIds]);
+  }, [activeTurn, currentTurnTokenId, enemyTokenCells, enemyTokens, tokenCells, tokens, animatingTokenId, enemyDragCurrentCell, activeEnemyIds]);
+
+  useEffect(() => {
+    if (esMaster) return;
+    if (!currentTurnTokenId || !miPersonajeId) {
+      setEnemyConflict(null);
+      currentConflictKeyRef.current = '';
+      dismissedConflictKeyRef.current = '';
+      return;
+    }
+
+    if (currentTurnTokenId.toString() !== miPersonajeId.toString()) {
+      setEnemyConflict(null);
+      currentConflictKeyRef.current = '';
+      dismissedConflictKeyRef.current = '';
+    }
+  }, [currentTurnTokenId, miPersonajeId, esMaster]);
 
   const handleAvatarClick = (tokenId: string) => {
     setSelectedTokenId(tokenId);
@@ -1134,6 +1156,15 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     setOpenTurnModalTokenId(null);
     sendFinTurno?.(tokenId);
   };
+
+  const localConflictTokenId = miPersonajeId ? miPersonajeId.toString() : '';
+
+  const canSeeConflict = Boolean(enemyConflict) && trapState === null && (
+    esMaster || (
+      localConflictTokenId !== '' &&
+      localConflictTokenId === (enemyConflict?.tokenId ?? '').toString()
+    )
+  );
 
   return (
     <div ref={wrapperRef} className="gb-stage-wrap">
@@ -1319,7 +1350,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
                 disabled={ended || activeTurn === 'master'}
                 draggable={canDrag}
                 isCurrentTurn={token.id === currentTurnTokenId && activeTurn === 'personajes'}
-                onSelect={() => { if (animatingTokenId === null) setSelectedTokenId(token.id); }}
+                onSelect={() => { if (animatingTokenId === null) { setSelectedTokenId(token.id); onPlayerTokenClick?.(token); } }}
                 onPointerDown={(event) => {
                   event.cancelBubble = true;
                   if (!canDrag) {
@@ -1445,9 +1476,11 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
         )}
 
         {/* Layer 5: tokens de trampas — solo visibles para el master */}
-        {esMaster && trapTokens.length > 0 && (
+        {trapTokens.length > 0 && (
           <Layer listening={false}>
             {trapTokens.map((trap) => {
+              const canSeeTrap = esMaster || revealedTrapIds?.has(trap.instanciaId);
+              if (!canSeeTrap) return null;
               const px = cellToPixel(trap.col, trap.row);
               const tx = mapOriginX + px.x * renderScale;
               const ty = mapOriginY + px.y * renderScale;
@@ -1478,7 +1511,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
       </Stage>
 
       <ModalAlert
-        isOpen={Boolean(enemyConflict) && trapState === null}
+        isOpen={canSeeConflict}
         title="Conflicto detectado"
         message={enemyConflict ? `${enemyConflict.attacker === 'personaje' ? 'El personaje' : 'El enemigo'} ha quedado junto a su objetivo.` : ''}
         confirmText={(() => {

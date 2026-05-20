@@ -384,28 +384,22 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
   color: rgba(220, 190, 140, 0.9);
 }
 
 .pp-dado-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .pp-dado-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .pp-dado-btn.animando {
-  animation: dadoRoll 0.35s ease infinite alternate;
-  border-color: #f1c40f;
-  background: rgba(241, 196, 15, 0.08);
-}
-
-@keyframes dadoRoll {
-  from { transform: rotate(-8deg) scale(1.05); }
-  to   { transform: rotate(8deg) scale(1.1); }
+  background: rgba(200, 160, 70, 0.18);
+  border-color: rgba(220, 180, 90, 0.65);
+  box-shadow: 0 0 0 1px rgba(220, 180, 90, 0.2), 0 0 14px rgba(220, 180, 90, 0.2);
 }
 
 .pp-dado-icono { font-size: 20px; line-height: 1; }
@@ -584,10 +578,7 @@
   height: 80px;
   object-fit: contain;
   image-rendering: pixelated;
-  transition: transform 0.15s ease;
 }
-.pp-dado-imagen-btn:hover:not(:disabled) .pp-dado-imagen { transform: scale(1.08); }
-.pp-dado-imagen-btn.animando .pp-dado-imagen { animation: dadoRoll 0.35s ease infinite alternate; }
 
 .pp-story-dados-title {
   font-family: 'Metal Mania', cursive;

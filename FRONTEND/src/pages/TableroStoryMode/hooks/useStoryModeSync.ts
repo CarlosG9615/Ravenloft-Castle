@@ -103,7 +103,9 @@ export function useStoryModeSync(
   const [kickedOut, setKickedOut] = useState(false);
   const [revealedRooms, setRevealedRooms] = useState<string[]>([]);
   const [enemyHpMap, setEnemyHpMap] = useState<Record<string, number>>({});
+  const [playerHpMap, setPlayerHpMap] = useState<Record<string, number>>({});
   const [removedTrapIds, setRemovedTrapIds] = useState<Set<string>>(new Set());
+  const [revealedTrapIds, setRevealedTrapIds] = useState<Set<string>>(new Set());
   const [blockedCells, setBlockedCells] = useState<Map<string, string>>(new Map());
   const stompRef = useRef<Client | null>(null);
   const configPartidaRef = useRef<PartidaConfig | null>(configPartidaInicial);
@@ -209,6 +211,24 @@ export function useStoryModeSync(
     client.publish({
       destination: `/app/mision/${misionId}/trap-removed`,
       body: JSON.stringify({ instanciaId }),
+    });
+  }, [misionId]);
+
+  const sendTrapRevealed = useCallback((instanciaId: string) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/trap-revealed`,
+      body: JSON.stringify({ instanciaId }),
+    });
+  }, [misionId]);
+
+  const sendPlayerHpUpdate = useCallback((jugadorId: string, hp: number) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/campana/${misionId}/hp-update`,
+      body: JSON.stringify({ jugadorId, hp }),
     });
   }, [misionId]);
 
@@ -408,11 +428,38 @@ export function useStoryModeSync(
           body: JSON.stringify({}),
         });
 
+        client.subscribe(`/topic/campana/${misionId}/hp-update`, (frame) => {
+          try {
+            const { jugadorId, hp } = JSON.parse(frame.body);
+            if (jugadorId !== undefined && hp !== undefined) {
+              setPlayerHpMap(prev => ({ ...prev, [jugadorId]: hp }));
+            }
+          } catch {}
+        });
+
         client.subscribe(`/topic/mision/${misionId}/trap-removed`, (frame) => {
           try {
             const data = JSON.parse(frame.body);
             if (data.instanciaId) {
               setRemovedTrapIds(prev => new Set([...prev, data.instanciaId]));
+            }
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/trap-revealed`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (data.instanciaId) {
+              setRevealedTrapIds(prev => new Set([...prev, data.instanciaId]));
+            }
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/traps-revealed-state`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (Array.isArray(data.revealedIds)) {
+              setRevealedTrapIds(new Set(data.revealedIds));
             }
           } catch {}
         });
@@ -428,6 +475,11 @@ export function useStoryModeSync(
 
         client.publish({
           destination: `/app/mision/${misionId}/check-removed-traps`,
+          body: JSON.stringify({}),
+        });
+
+        client.publish({
+          destination: `/app/mision/${misionId}/check-traps-revealed`,
           body: JSON.stringify({}),
         });
 
@@ -525,6 +577,7 @@ export function useStoryModeSync(
     kickedOut,
     revealedRooms,
     enemyHpMap,
+    playerHpMap,
     removedTrapIds,
     blockedCells,
     sendTokenMove,
@@ -537,7 +590,10 @@ export function useStoryModeSync(
     sendRoomRevealed,
     sendEnemyMove,
     sendEnemyHpUpdate,
+    sendPlayerHpUpdate,
     sendTrapRemoved,
+    sendTrapRevealed,
     sendCellBlocked,
+    revealedTrapIds,
   };
 }

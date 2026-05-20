@@ -61,6 +61,7 @@ interface Props {
   onCloseEnemyModal?: () => void;
   enemyHpMap?: Record<string, number>;
   onEnemyHpChange?: (instanciaId: string, hp: number) => void;
+  onShowIntro?: () => void;
 }
 
 const ORDER_COLORS = ['#C0392B', '#2980B9', '#F39C12', '#27AE60'];
@@ -116,11 +117,13 @@ export function PanelLateralStoryMode({
   onCloseEnemyModal,
   enemyHpMap = {},
   onEnemyHpChange,
+  onShowIntro,
 }: Props) {
   const navigate = useNavigate();
   const [showAbandonarMisionModal, setShowAbandonarMisionModal] = useState(false);
   const [abandonandoMision, setAbandonandoMision] = useState(false);
   const [enemyPage, setEnemyPage] = useState(0);
+  const [combatPage, setCombatPage] = useState(0);
   const [selectedEnemy, setSelectedEnemy] = useState<EnemyTokenConfig | null>(null);
   const [enemyHp, setEnemyHp] = useState<Record<string, number>>({});
 
@@ -439,6 +442,89 @@ export function PanelLateralStoryMode({
               ) : null}
             </div>
           </div>
+        )}
+
+        {/* Informe de combate */}
+        <div className="tb-seccion">
+          <span className="tb-seccion-label">Informe de combate</span>
+
+          <div className="tsm-combat-report">
+            {combatPage === 0 && (
+              <>
+                <p className="tsm-combat-step-title">Paso 1 — Conflicto Enemigo y Personaje</p>
+                <p className="tsm-combat-step-text">
+                  Cuando un personaje y un enemigo quedan en casillas adyacentes, el tablero detecta
+                  el conflicto automáticamente y muestra un aviso en pantalla.
+                </p>
+                <p className="tsm-combat-step-text">
+                  El aviso indica si debes resolver un <span className="tsm-combat-highlight">Ataque</span> o
+                  una <span className="tsm-combat-highlight">Defensa</span> según quién haya iniciado
+                  el movimiento: quien se acerca primero es el atacante; quien recibe el acercamiento, el defensor.
+                </p>
+              </>
+            )}
+
+            {combatPage === 1 && (
+              <>
+                <p className="tsm-combat-step-title">Paso 2 — Resolución de Tiradas</p>
+                <p className="tsm-combat-step-text">
+                  Tanto el master como el personaje afectado deberéis efectuar una tirada de dados
+                  de <span className="tsm-combat-highlight">ataque</span> y <span className="tsm-combat-highlight">defensa</span> que
+                  aparecerá en el chat. Consultad vuestro perfil de personaje y el modal de enemigo
+                  para saber cuántos dados podéis lanzar en cada momento.
+                </p>
+                <p className="tsm-combat-step-text">
+                  Comparad los resultados en el chat y aplicad los daños que correspondan.
+                </p>
+                <div className="tsm-combat-dice-legend">
+                  <div className="tsm-combat-dice-item">
+                    <img src="/images/dadosModHistoria/daño.png" alt="daño" className="tsm-combat-dice-img" />
+                    <span className="tsm-combat-dice-label bad">Inflige 1 daño</span>
+                  </div>
+                  <div className="tsm-combat-dice-item">
+                    <img src="/images/dadosModHistoria/defensa.png" alt="defensa" className="tsm-combat-dice-img" />
+                    <span className="tsm-combat-dice-label good">Contrarresta 1 daño enemigo</span>
+                  </div>
+                  <div className="tsm-combat-dice-item">
+                    <img src="/images/dadosModHistoria/victoriaEnemigo.png" alt="victoria enemigo" className="tsm-combat-dice-img" />
+                    <span className="tsm-combat-dice-label enemy">Contrarresta 1 daño personaje</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="tsm-combat-pagination">
+            <button
+              type="button"
+              className="tsm-enemies-pag-btn"
+              onClick={() => setCombatPage(p => Math.max(0, p - 1))}
+              disabled={combatPage <= 0}
+              aria-label="Paso anterior"
+            >
+              {'<'}
+            </button>
+            <span className="tsm-enemies-pag-label">Paso {combatPage + 1} / 2</span>
+            <button
+              type="button"
+              className="tsm-enemies-pag-btn"
+              onClick={() => setCombatPage(p => Math.min(1, p + 1))}
+              disabled={combatPage >= 1}
+              aria-label="Paso siguiente"
+            >
+              {'>'}
+            </button>
+          </div>
+        </div>
+
+        {onShowIntro && (
+          <button
+            type="button"
+            className="tb-btn-guia"
+            onClick={onShowIntro}
+          >
+            Ver instrucciones
+          </button>
         )}
 
         <button

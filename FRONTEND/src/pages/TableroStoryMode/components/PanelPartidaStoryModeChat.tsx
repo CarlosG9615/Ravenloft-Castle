@@ -156,6 +156,8 @@ interface Props {
   movimientoYaLanzado?: boolean;
   onAtaqueRollResult?: (cantidadResultados: number) => void;
   ataqueYaLanzado?: boolean;
+  playerHpMap?: Record<string, number>;
+  onPlayerHpUpdate?: (jugadorId: string, hp: number) => void;
 }
 
 export function PanelPartidaStoryModeChat({
@@ -172,6 +174,8 @@ export function PanelPartidaStoryModeChat({
   movimientoYaLanzado = false,
   onAtaqueRollResult,
   ataqueYaLanzado = false,
+  playerHpMap,
+  onPlayerHpUpdate,
 }: Props) {
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'voz'>('chat');
   const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
@@ -183,7 +187,6 @@ export function PanelPartidaStoryModeChat({
   const [mostrarEmotes, setMostrarEmotes] = useState(false);
   const [mostrarDados, setMostrarDados] = useState(false);
   const [perfilPersonajeId, setPerfilPersonajeId] = useState<number | null>(null);
-  const [hpOverrides, setHpOverrides] = useState<Record<string, number>>({});
   const esAnimacionRemota = useRef(false);
   const jugadoresInicializadosRef = useRef(false);
   const jugadoresInicialesIdsRef = useRef<Set<string>>(new Set());
@@ -294,11 +297,6 @@ export function PanelPartidaStoryModeChat({
 
               return list;
             });
-          });
-
-          client.subscribe(`/topic/campana/${campanaId}/hp-update`, (frame) => {
-            const { jugadorId, hp } = JSON.parse(frame.body);
-            setHpOverrides(prev => ({ ...prev, [jugadorId]: hp }));
           });
 
           client.subscribe(`/topic/campana/${campanaId}/dice-roll`, (frame) => {
@@ -461,7 +459,6 @@ export function PanelPartidaStoryModeChat({
     }
     setDadoActivo(label);
     setResultadoActivo(0);
-    setMostrarDados(false);
   };
 
   const handleAnimacionFin = useCallback((resultadoReal: number) => {
@@ -505,6 +502,7 @@ export function PanelPartidaStoryModeChat({
     onMovimientoRollResult?.(resultadoReal);
     setDadoActivo(null);
     setResultadoActivo(null);
+    setMostrarDados(false);
   }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual, onMovimientoRollResult]);
 
   const handleAtaqueAnimacionFin = useCallback((imagenesResultado: string[]) => {
@@ -538,17 +536,12 @@ export function PanelPartidaStoryModeChat({
     onAtaqueRollResult?.(imagenesResultado.length);
     setDadoActivo(null);
     setResultadoActivo(null);
+    setMostrarDados(false);
   }, [dadoActivo, nombreMaster, colorMaster, campanaId, jugadorActual, onAtaqueRollResult]);
 
   const cambiarHp = (jugadorId: string, hpActual: number, hpMax: number, delta: number) => {
     const nuevoHp = Math.max(0, Math.min(hpMax, hpActual + delta));
-    setHpOverrides(prev => ({ ...prev, [jugadorId]: nuevoHp }));
-    if (stompRef.current?.connected && campanaId) {
-      stompRef.current.publish({
-        destination: `/app/campana/${campanaId}/hp-update`,
-        body: JSON.stringify({ jugadorId, hp: nuevoHp }),
-      });
-    }
+    onPlayerHpUpdate?.(jugadorId, nuevoHp);
   };
 
   const jugadoresBase = Array.isArray(jugadores) ? jugadores : [];
@@ -802,6 +795,7 @@ export function PanelPartidaStoryModeChat({
                     turnoActual={turnoActual}
                     jugadorActual={jugadorActual}
                     movimientoYaLanzado={movimientoYaLanzado}
+                    ataqueYaLanzado={ataqueYaLanzado}
                   />
                 ) : null}
               </div>
@@ -855,18 +849,23 @@ export function PanelPartidaStoryModeChat({
       {pestana === 'jugadores' && (
         <div className="pp-seccion">
           <div className="pp-jugadores-lista">
-            {/* Master header removed for Story Mode */}
+            {/* Tarjeta del Master */}
+            <div className="pp-jugador pp-jugador--master">
+              <div className="pp-jugador-cabecera">
+                <span className="pp-jugador-dot" style={{ background: '#f1c40f' }} />
+                <span className="pp-master-avatar">M</span>
+                <span className="pp-jugador-nombre" style={{ color: '#f1c40f' }}>{nombreMaster}</span>
+                <span className="pp-master-badge-tag">Master</span>
+              </div>
+            </div>
+
             {jugadoresAMostrar.length > 0 ? (
               jugadoresAMostrar.map(j => {
-                const hpReal = hpOverrides[j.id] ?? j.hp;
-                const stats = [
-                  { label: 'FUE', valor: j.fuerza ?? 10 },
-                  { label: 'DES', valor: j.destreza ?? 10 },
-                  { label: 'CON', valor: j.constitucion ?? 10 },
-                  { label: 'INT', valor: j.inteligencia ?? 10 },
-                  { label: 'SAB', valor: j.sabiduria ?? 10 },
-                  { label: 'CAR', valor: j.carisma ?? 10 },
-                ];
+                const hpReal = playerHpMap?.[j.id] ?? j.hp;
+                const sumaAtaque  = (j.fuerza ?? 10) + (j.destreza ?? 10) + (j.constitucion ?? 10);
+                const sumaDefensa = (j.inteligencia ?? 10) + (j.sabiduria ?? 10) + (j.carisma ?? 10);
+                const dadosAtaque  = sumaAtaque  <= 30 ? 1 : sumaAtaque  <= 50 ? 2 : 3;
+                const dadosDefensa = sumaDefensa <= 30 ? 1 : sumaDefensa <= 50 ? 2 : 3;
                 return (
                   <div key={j.id} className={`pp-jugador ${j.conectado ? '' : 'desconectado'}`}>
                     <div className="pp-jugador-cabecera">
@@ -908,16 +907,16 @@ export function PanelPartidaStoryModeChat({
                       <span className="pp-jugador-hp-num">{hpReal}/{j.hpMax}</span>
                     </div>
                     <div className="pp-jugador-stats">
-                      {stats.map(({ label, valor }) => {
-                        const mod = Math.floor((valor - 10) / 2);
-                        return (
-                          <div key={label} className="pp-jugador-stat">
-                            <span className="pp-jugador-stat-label">{label}</span>
-                            <span className="pp-jugador-stat-valor">{valor}</span>
-                            <span className="pp-jugador-stat-mod">{mod >= 0 ? `+${mod}` : mod}</span>
-                          </div>
-                        );
-                      })}
+                      <div className="pp-jugador-stat pp-jugador-stat--ata">
+                        <span className="pp-jugador-stat-label">ATA</span>
+                        <span className="pp-jugador-stat-valor">{dadosAtaque}</span>
+                        <span className="pp-jugador-stat-mod">{dadosAtaque === 1 ? '1 dado' : `${dadosAtaque} dados`}</span>
+                      </div>
+                      <div className="pp-jugador-stat pp-jugador-stat--def">
+                        <span className="pp-jugador-stat-label">DEF</span>
+                        <span className="pp-jugador-stat-valor">{dadosDefensa}</span>
+                        <span className="pp-jugador-stat-mod">{dadosDefensa === 1 ? '1 dado' : `${dadosDefensa} dados`}</span>
+                      </div>
                     </div>
                   </div>
                 );

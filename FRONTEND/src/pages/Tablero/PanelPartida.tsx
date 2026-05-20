@@ -157,12 +157,6 @@ interface Props {
   campanaId?: number | string;
   jugadorActual?: any;
   esMaster?: boolean;
-  dicesComponent?: React.ComponentType<any>;
-  turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
-  onMovimientoRollResult?: (resultado: number) => void;
-  movimientoYaLanzado?: boolean;
-  onAtaqueRollResult?: (cantidadResultados: number) => void;
-  ataqueYaLanzado?: boolean;
   chatSince?: string | null;
 }
 
@@ -174,12 +168,6 @@ export function PanelPartida({
   campanaId,
   jugadorActual,
   esMaster = false,
-  dicesComponent: CustomDicePanel,
-  turnoActual,
-  onMovimientoRollResult,
-  movimientoYaLanzado = false,
-  onAtaqueRollResult,
-  ataqueYaLanzado = false,
   chatSince,
 }: Props) {
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'voz'>('chat');
@@ -502,39 +490,9 @@ export function PanelPartida({
       setMensajes(prev => [...prev, msg]);
     }
 
-    onMovimientoRollResult?.(resultadoReal);
     setDadoActivo(null);
     setResultadoActivo(null);
-  }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual, onMovimientoRollResult]);
-
-  const handleAtaqueAnimacionFin = useCallback((imagenesResultado: string[]) => {
-    if (!CustomDicePanel || dadoActivo === null) return;
-    const dado = dadoActivo.replace(/^ataque-/, '');
-    const autorNombre = jugadorActual?.nombre || nombreMaster;
-    const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
-    const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
-    const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
-    const msg: MensajeChat = {
-      id: Date.now().toString(),
-      autor: autorNombre,
-      colorAutor: autorColor,
-      texto: '',
-      tipo: 'tirada',
-      timestamp: hora(),
-      tirada: { dado, resultado: 0, modificador: 0, total: 0, imagenes: imagenesResultado },
-    };
-    if (stompRef.current?.connected && campanaId) {
-      stompRef.current.publish({
-        destination: `/app/campana/${campanaId}/chat.enviar`,
-        body: JSON.stringify({ ...msg, personajeId, usuarioId }),
-      });
-    } else {
-      setMensajes(prev => [...prev, msg]);
-    }
-    onAtaqueRollResult?.(imagenesResultado.length);
-    setDadoActivo(null);
-    setResultadoActivo(null);
-  }, [dadoActivo, nombreMaster, colorMaster, campanaId, jugadorActual, onAtaqueRollResult]);
+  }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual]);
 
   const cambiarHp = (jugadorId: string, hpActual: number, hpMax: number, delta: number) => {
     const nuevoHp = Math.max(0, Math.min(hpMax, hpActual + delta));

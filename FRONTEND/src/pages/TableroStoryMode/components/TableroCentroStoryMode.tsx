@@ -94,9 +94,11 @@ interface Props {
   onActiveEnemiesChange?: (ids: Set<string>) => void;
   onOpenEnemyDetails?: (instanciaId: string) => void;
   removedTrapIds?: Set<string>;
+  revealedTrapIds?: Set<string>;
   blockedCells?: Map<string, string>;
   onCellBlocked?: (col: number, row: number, imageUrl: string) => void;
   onTrapTriggered?: (instanciaId: string, outcome: 'daño' | 'superado') => void;
+  onPlayerTokenClick?: (token: import('./GameBoard').BoardToken) => void;
 }
 
 const COLORES_CLASES: Record<string, string> = {
@@ -179,9 +181,11 @@ export function TableroCentroStoryMode({
   onActiveEnemiesChange,
   onOpenEnemyDetails,
   removedTrapIds,
+  revealedTrapIds,
   blockedCells,
   onCellBlocked,
   onTrapTriggered,
+  onPlayerTokenClick,
 }: Props) {
   const [participantes, setParticipantes] = useState<ParticipanteDTO[]>([]);
 
@@ -388,7 +392,9 @@ export function TableroCentroStoryMode({
         onOpenEnemyDetails={onOpenEnemyDetails}
         onTrapTriggered={onTrapTriggered}
         blockedCells={blockedCells}
+        revealedTrapIds={revealedTrapIds}
         onCellBlocked={onCellBlocked}
+        onPlayerTokenClick={onPlayerTokenClick}
       />
     </div>
   );

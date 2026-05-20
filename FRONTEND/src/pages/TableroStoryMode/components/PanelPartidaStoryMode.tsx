@@ -14,6 +14,8 @@ interface Props {
   movimientoYaLanzado?: boolean;
   onAtaqueRollResult?: (cantidadResultados: number) => void;
   ataqueYaLanzado?: boolean;
+  playerHpMap?: Record<string, number>;
+  onPlayerHpUpdate?: (jugadorId: string, hp: number) => void;
 }
 
 export function PanelPartidaStoryMode({
@@ -28,6 +30,8 @@ export function PanelPartidaStoryMode({
   movimientoYaLanzado = false,
   onAtaqueRollResult,
   ataqueYaLanzado = false,
+  playerHpMap,
+  onPlayerHpUpdate,
 }: Props) {
   const location = useLocation();
   const isStoryModeRoute = location.pathname.includes('tablero-story-mode') || location.pathname.includes('story-mode');
@@ -46,6 +50,8 @@ export function PanelPartidaStoryMode({
       movimientoYaLanzado={movimientoYaLanzado}
       onAtaqueRollResult={onAtaqueRollResult}
       ataqueYaLanzado={ataqueYaLanzado}
+      playerHpMap={playerHpMap}
+      onPlayerHpUpdate={onPlayerHpUpdate}
     />
   );
 }

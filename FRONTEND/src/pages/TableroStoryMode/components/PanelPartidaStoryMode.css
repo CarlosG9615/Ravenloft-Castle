@@ -13,9 +13,7 @@
   display: flex;
   flex-direction: column;
   z-index: 100;
-  font-family: 'Press Start 2P', monospace;
 }
-
 .pp-tabs {
   display: flex;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -252,6 +250,40 @@
   transition: border-color 0.2s;
 }
 
+.pp-jugador--master {
+  background: rgba(241, 196, 15, 0.08);
+  border-color: rgba(241, 196, 15, 0.4);
+  box-shadow: 0 0 10px rgba(241, 196, 15, 0.08);
+}
+
+.pp-master-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(241, 196, 15, 0.18);
+  border: 2px solid rgba(241, 196, 15, 0.55);
+  color: #f1c40f;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pp-master-badge-tag {
+  margin-left: auto;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(241, 196, 15, 0.75);
+  background: rgba(241, 196, 15, 0.1);
+  border: 1px solid rgba(241, 196, 15, 0.28);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+
 .pp-jugador.desconectado { opacity: 0.5; }
 
 .pp-jugador-cabecera { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
@@ -321,43 +353,62 @@
 
 .pp-jugador-hp-num { font-size: 8px; color: rgba(220, 190, 140, 0.7); width: 36px; text-align: right; flex-shrink: 0; font-family: 'Press Start 2P', monospace; }
 
-/* ── STATS JUGADOR ── */
+/* ── STATS JUGADOR (ATA / DEF) ── */
 .pp-jugador-stats {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 4px;
-  margin-top: 8px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .pp-jugador-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
+  border-radius: 10px;
+  padding: 10px 8px 8px;
+  gap: 4px;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 6px;
-  padding: 4px 2px;
-  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pp-jugador-stat--ata {
+  background: rgba(180, 30, 20, 0.14);
+  border-color: rgba(200, 60, 40, 0.3);
+}
+
+.pp-jugador-stat--def {
+  background: rgba(20, 80, 180, 0.14);
+  border-color: rgba(50, 110, 210, 0.3);
 }
 
 .pp-jugador-stat-label {
-  font-size: 6px;
-  color: rgba(200, 170, 120, 0.6);
+  font-size: 9px;
+  letter-spacing: 2px;
   font-family: 'Press Start 2P', monospace;
-  letter-spacing: 0.3px;
+  color: rgba(200, 170, 120, 0.65);
 }
+
+.pp-jugador-stat--ata .pp-jugador-stat-label { color: rgba(220, 110, 90, 0.85); }
+.pp-jugador-stat--def .pp-jugador-stat-label { color: rgba(100, 160, 230, 0.85); }
 
 .pp-jugador-stat-valor {
-  font-size: 11px;
+  font-size: 28px;
   font-weight: 700;
-  color: rgba(220, 190, 140, 0.95);
   font-family: 'Press Start 2P', monospace;
+  color: rgba(220, 190, 140, 0.95);
+  line-height: 1;
 }
 
+.pp-jugador-stat--ata .pp-jugador-stat-valor { color: rgba(235, 130, 110, 0.98); }
+.pp-jugador-stat--def .pp-jugador-stat-valor { color: rgba(120, 180, 245, 0.98); }
+
 .pp-jugador-stat-mod {
-  font-size: 7px;
-  color: rgba(200, 170, 120, 0.7);
+  font-size: 6px;
   font-family: 'Press Start 2P', monospace;
+  color: rgba(200, 170, 120, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .pp-dados-wrap { display: flex; flex-direction: column; gap: 16px; }
@@ -384,28 +435,22 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
   color: rgba(220, 190, 140, 0.9);
 }
 
 .pp-dado-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .pp-dado-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .pp-dado-btn.animando {
-  animation: dadoRoll 0.35s ease infinite alternate;
-  border-color: #f1c40f;
-  background: rgba(241, 196, 15, 0.08);
-}
-
-@keyframes dadoRoll {
-  from { transform: rotate(-8deg) scale(1.05); }
-  to   { transform: rotate(8deg) scale(1.1); }
+  background: rgba(200, 160, 70, 0.18);
+  border-color: rgba(220, 180, 90, 0.65);
+  box-shadow: 0 0 0 1px rgba(220, 180, 90, 0.2), 0 0 14px rgba(220, 180, 90, 0.2);
 }
 
 .pp-dado-icono { font-size: 20px; line-height: 1; }
@@ -481,6 +526,153 @@
 .pp-mic-btn.activo {
   background: rgba(30, 5, 5, 0.7);
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ── MODAL JUGADOR ── */
+.pp-player-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2500;
+  backdrop-filter: blur(5px);
+}
+
+.pp-player-modal {
+  width: min(92vw, 340px);
+  border: 1px solid;
+  border-radius: 18px;
+  padding: 24px 22px 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pp-player-modal-portrait {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  border-radius: 50%;
+  border: 3px solid;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.pp-player-modal-portrait img,
+.pp-player-modal-portrait .pp-jugador-avatar,
+.pp-player-modal-portrait .pp-jugador-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.pp-player-modal-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.pp-player-modal-clase {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: rgba(200, 170, 120, 0.6);
+  margin: 0;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.pp-player-modal-hp {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pp-player-modal-combat {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pp-player-modal-combat-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 8px;
+}
+
+.pp-player-modal-combat-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  font-weight: 700;
+}
+
+.pp-player-modal-dice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.pp-player-modal-dice-img {
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+  background: transparent;
+}
+
+.pp-player-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pp-player-search-feedback {
+  margin: 0;
+  color: #ff6b6b;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  line-height: 1.7;
+  letter-spacing: 0.3px;
+  text-shadow: 0 0 8px rgba(255, 107, 107, 0.25);
+}
+
+.pp-player-modal-action-btn {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(18, 5, 5, 0.82);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pp-player-modal-action-btn:hover:not(:disabled) {
+  background: rgba(30, 8, 8, 0.92);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.pp-player-modal-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pp-player-modal-action-btn--close {
+  border-color: rgba(192, 57, 43, 0.45);
 }
 
 .pp-voz-wrap {
@@ -610,10 +802,7 @@
   height: 80px;
   object-fit: contain;
   image-rendering: pixelated;
-  transition: transform 0.15s ease;
 }
-.pp-dado-imagen-btn:hover:not(:disabled) .pp-dado-imagen { transform: scale(1.08); }
-.pp-dado-imagen-btn.animando .pp-dado-imagen { animation: dadoRoll 0.35s ease infinite alternate; }
 
 .pp-story-dados-title {
   font-family: 'Metal Mania', cursive;
