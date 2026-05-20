@@ -361,30 +361,54 @@ export function CreateMission() {
       }
     }
 
+    const configPartida = {
+      misionId,
+      enemigos: placedEnemies.map(p => ({
+        instanciaId: p.instanciaId,
+        enemigoId: p.enemigoId,
+        nombre: p.nombre,
+        col: p.col,
+        row: p.row,
+        salud: p.salud,
+      })),
+      trampas: placedTraps.map(p => ({
+        instanciaId: p.instanciaId,
+        trapId: p.trapId,
+        nombre: p.nombre,
+        imageUrl: p.imageUrl,
+        col: p.col,
+        row: p.row,
+      })),
+    };
+
+    // Guardar configPartida en el backend
+    if (misionId) {
+      try {
+        await fetch(`${API_URL}/api/misiones/${misionId}/config-partida`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify(configPartida),
+        });
+      } catch (e) {
+        console.error('Error guardando configPartida en backend:', e);
+        // No bloquear si falla el guardado del backend
+      }
+    }
+
+    // Guardar configPartida en sessionStorage también para acceso rápido
+    try {
+      sessionStorage.setItem(
+        `mission_config_${misionId}`,
+        JSON.stringify(configPartida)
+      );
+    } catch {}
+
     navigate('/tablero-story-mode', {
       state: {
         rol: 'master',
         modoHistoria: state.modoHistoria,
         mision: { ...state.mision, id: misionId },
-        configPartida: {
-          misionId,
-          enemigos: placedEnemies.map(p => ({
-            instanciaId: p.instanciaId,
-            enemigoId: p.enemigoId,
-            nombre: p.nombre,
-            col: p.col,
-            row: p.row,
-            salud: p.salud,
-          })),
-          trampas: placedTraps.map(p => ({
-            instanciaId: p.instanciaId,
-            trapId: p.trapId,
-            nombre: p.nombre,
-            imageUrl: p.imageUrl,
-            col: p.col,
-            row: p.row,
-          })),
-        },
+        configPartida,
       },
     });
   }, [navigate, state, misionId, placedEnemies, placedTraps]);

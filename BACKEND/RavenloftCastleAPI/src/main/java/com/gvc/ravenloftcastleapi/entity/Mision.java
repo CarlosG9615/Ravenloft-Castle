@@ -47,6 +47,9 @@ public class Mision {
     @Column(name = "turno_fase", length = 20)
     private String turnoFase;
 
+    @Column(name = "config_partida", columnDefinition = "LONGTEXT")
+    private String configPartida;
+
     @OneToMany(mappedBy = "mision", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MisionEscenario> escenarios;
 

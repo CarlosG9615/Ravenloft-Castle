@@ -348,3 +348,53 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* ── Contenido media del modal de cepo ──────────────────────── */
+.gb-trap-media {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.gb-trap-dice-legend {
+  display: flex;
+  gap: 28px;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.gb-trap-dice-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.gb-trap-dice-img {
+  width: 62px;
+  height: 62px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.gb-trap-dice-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.gb-trap-dice-label.bad {
+  color: #e74c3c;
+}
+
+.gb-trap-dice-label.good {
+  color: #2ecc71;
+}
