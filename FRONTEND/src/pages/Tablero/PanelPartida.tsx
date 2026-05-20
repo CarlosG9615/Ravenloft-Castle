@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, MutableRefObject } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { DiceRoller } from './DiceRoller';
@@ -158,6 +158,8 @@ interface Props {
   jugadorActual?: any;
   esMaster?: boolean;
   chatSince?: string | null;
+  // ── NUEVO: ref que Tablero pasa para que registremos nuestra función de tirada ──
+  lanzarDadoCaracteristicaRef?: MutableRefObject<((label: string, mod: number) => void) | null>;
 }
 
 export function PanelPartida({
@@ -169,6 +171,7 @@ export function PanelPartida({
   jugadorActual,
   esMaster = false,
   chatSince,
+  lanzarDadoCaracteristicaRef,
 }: Props) {
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'voz'>('chat');
   const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
@@ -181,6 +184,11 @@ export function PanelPartida({
   const [mostrarDados, setMostrarDados] = useState(false);
   const [perfilPersonajeId, setPerfilPersonajeId] = useState<number | null>(null);
   const [hpOverrides, setHpOverrides] = useState<Record<string, number>>({});
+
+  // ── Estados para tirada de característica ──
+  const [pendingLabel, setPendingLabel] = useState<string | null>(null);
+  const [pendingMod, setPendingMod]     = useState<number | null>(null);
+
   const esAnimacionRemota = useRef(false);
   const jugadoresInicializadosRef = useRef(false);
   const jugadoresInicialesIdsRef = useRef<Set<string>>(new Set());
@@ -194,6 +202,26 @@ export function PanelPartida({
   const [usuariosVoz, setUsuariosVoz] = useState<string[]>([]);
   const [jugadoresRed, setJugadoresRed] = useState<any[]>(jugadores || []);
   const lastSentAvatarRef = useRef<string | null>(null);
+
+  // ── Registrar nuestra función en el ref de Tablero ──
+  useEffect(() => {
+    if (!lanzarDadoCaracteristicaRef) return;
+    lanzarDadoCaracteristicaRef.current = (label: string, mod: number) => {
+      setPendingLabel(label);
+      setPendingMod(mod);
+      // Activar DiceRoller con d20
+      setDadoActivo('d20');
+      setResultadoActivo(0);
+      // Notificar animación a los demás jugadores
+      if (stompRef.current?.connected && campanaId) {
+        const senderId = jugadorActual?.id?.toString() || 'jugador';
+        stompRef.current.publish({
+          destination: `/app/campana/${campanaId}/dice-roll`,
+          body: JSON.stringify({ dado: 'd20', resultado: 0, senderId }),
+        });
+      }
+    };
+  }, [lanzarDadoCaracteristicaRef, campanaId, jugadorActual]);
 
   useEffect(() => {
     const client = new Client({
@@ -456,6 +484,7 @@ export function PanelPartida({
     setMostrarDados(false);
   };
 
+  // ── handleAnimacionFin: gestiona tanto dados normales como tiradas de característica ──
   const handleAnimacionFin = useCallback((resultadoReal: number) => {
     if (dadoActivo === null) return;
 
@@ -470,7 +499,13 @@ export function PanelPartida({
     const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
     const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
     const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
-    const total = resultadoReal + modificador;
+
+    // Si viene de una característica usa su mod y label, si no usa el modificador manual
+    const esTiradaCaracteristica = pendingLabel !== null && pendingMod !== null;
+    const modFinal  = esTiradaCaracteristica ? pendingMod!  : modificador;
+    const dadoFinal = esTiradaCaracteristica ? `d20 (${pendingLabel})` : dadoActivo;
+    const total     = resultadoReal + modFinal;
+
     const msg: MensajeChat = {
       id: Date.now().toString(),
       autor: autorNombre,
@@ -478,7 +513,7 @@ export function PanelPartida({
       texto: '',
       tipo: 'tirada',
       timestamp: hora(),
-      tirada: { dado: dadoActivo, resultado: resultadoReal, modificador, total },
+      tirada: { dado: dadoFinal, resultado: resultadoReal, modificador: modFinal, total },
     };
 
     if (stompRef.current?.connected && campanaId) {
@@ -490,9 +525,13 @@ export function PanelPartida({
       setMensajes(prev => [...prev, msg]);
     }
 
+    // Limpiar pending de característica
+    setPendingLabel(null);
+    setPendingMod(null);
+
     setDadoActivo(null);
     setResultadoActivo(null);
-  }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual]);
+  }, [dadoActivo, modificador, pendingLabel, pendingMod, nombreMaster, colorMaster, campanaId, jugadorActual]);
 
   const cambiarHp = (jugadorId: string, hpActual: number, hpMax: number, delta: number) => {
     const nuevoHp = Math.max(0, Math.min(hpMax, hpActual + delta));
@@ -515,42 +554,40 @@ export function PanelPartida({
 
   const jugadoresAMostrar = (jugadoresRed.length > 0 ? jugadoresRed : (jugadores !== undefined ? jugadores : JUGADORES_DEMO))
       .filter((j: any) => {
-   
-      if (esMaster) {
-      const miId = jugadorActual?.id?.toString();
-      return j.id?.toString() !== miId;
-    }
-    return true;
-  })
-
-    .map((j: any, i: number) => {
-      const base = jugadoresBasePorId.get(j.id?.toString?.())
-        || jugadoresBasePorNombre.get(j.nombre || j.usuarioNombre);
-      return {
-        id: j.id?.toString() || i.toString(),
-        usuarioId: j.usuarioId ?? j.usuario_id ?? null,
-        nombre: j.nombre || j.usuarioNombre || 'Aventurero',
-        clase: j.clase || base?.clase || 'Desconocida',
-        avatar: j.avatar
-          || j.foto
-          || base?.avatar
-          || (jugadorActual?.id?.toString?.() === j.id?.toString?.() ? jugadorActual?.avatar : null)
-          || (jugadorActual?.nombre && (jugadorActual.nombre === j.nombre || jugadorActual.nombre === j.usuarioNombre)
-            ? jugadorActual?.avatar
-            : null)
-          || null,
-        hp: j.hp || base?.hp || 10,
-        hpMax: j.hpMax || base?.hpMax || 10,
-        color: j.color || base?.color || COLORES_CLASES[j.clase || base?.clase] || '#4a90d9',
-        conectado: j.conectado !== false,
-        fuerza: j.fuerza ?? base?.fuerza,
-        destreza: j.destreza ?? base?.destreza,
-        constitucion: j.constitucion ?? base?.constitucion,
-        inteligencia: j.inteligencia ?? base?.inteligencia,
-        sabiduria: j.sabiduria ?? base?.sabiduria,
-        carisma: j.carisma ?? base?.carisma,
-      };
-    });
+        if (esMaster) {
+          const miId = jugadorActual?.id?.toString();
+          return j.id?.toString() !== miId;
+        }
+        return true;
+      })
+      .map((j: any, i: number) => {
+        const base = jugadoresBasePorId.get(j.id?.toString?.())
+          || jugadoresBasePorNombre.get(j.nombre || j.usuarioNombre);
+        return {
+          id: j.id?.toString() || i.toString(),
+          usuarioId: j.usuarioId ?? j.usuario_id ?? null,
+          nombre: j.nombre || j.usuarioNombre || 'Aventurero',
+          clase: j.clase || base?.clase || 'Desconocida',
+          avatar: j.avatar
+            || j.foto
+            || base?.avatar
+            || (jugadorActual?.id?.toString?.() === j.id?.toString?.() ? jugadorActual?.avatar : null)
+            || (jugadorActual?.nombre && (jugadorActual.nombre === j.nombre || jugadorActual.nombre === j.usuarioNombre)
+              ? jugadorActual?.avatar
+              : null)
+            || null,
+          hp: j.hp || base?.hp || 10,
+          hpMax: j.hpMax || base?.hpMax || 10,
+          color: j.color || base?.color || COLORES_CLASES[j.clase || base?.clase] || '#4a90d9',
+          conectado: j.conectado !== false,
+          fuerza: j.fuerza ?? base?.fuerza,
+          destreza: j.destreza ?? base?.destreza,
+          constitucion: j.constitucion ?? base?.constitucion,
+          inteligencia: j.inteligencia ?? base?.inteligencia,
+          sabiduria: j.sabiduria ?? base?.sabiduria,
+          carisma: j.carisma ?? base?.carisma,
+        };
+      });
 
   const crearPeerConnection = (peerId: string): RTCPeerConnection => {
     const pc = new RTCPeerConnection({
@@ -807,14 +844,7 @@ export function PanelPartida({
             {jugadoresAMostrar.length > 0 ? (
               jugadoresAMostrar.map(j => {
                 const hpReal = hpOverrides[j.id] ?? j.hp;
-                const stats = [
-                  { label: 'FUE', valor: j.fuerza ?? 10 },
-                  { label: 'DES', valor: j.destreza ?? 10 },
-                  { label: 'CON', valor: j.constitucion ?? 10 },
-                  { label: 'INT', valor: j.inteligencia ?? 10 },
-                  { label: 'SAB', valor: j.sabiduria ?? 10 },
-                  { label: 'CAR', valor: j.carisma ?? 10 },
-                ];
+                
                 return (
                   <div key={j.id} className={`pp-jugador ${j.conectado ? '' : 'desconectado'}`}>
                     <div className="pp-jugador-cabecera">
@@ -855,18 +885,7 @@ export function PanelPartida({
                       )}
                       <span className="pp-jugador-hp-num">{hpReal}/{j.hpMax}</span>
                     </div>
-                    <div className="pp-jugador-stats">
-                      {stats.map(({ label, valor }) => {
-                        const mod = Math.floor((valor - 10) / 2);
-                        return (
-                          <div key={label} className="pp-jugador-stat">
-                            <span className="pp-jugador-stat-label">{label}</span>
-                            <span className="pp-jugador-stat-valor">{valor}</span>
-                            <span className="pp-jugador-stat-mod">{mod >= 0 ? `+${mod}` : mod}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    
                   </div>
                 );
               })

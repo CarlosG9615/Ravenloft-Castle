@@ -707,3 +707,20 @@
   background: rgba(139, 0, 0, 0.25);
   border-color: rgba(139, 0, 0, 0.7);
 }
+/* ── TIRADA DE CARACTERÍSTICA ── */
+.tb-ficha-stat--clickable {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s, transform 0.1s;
+}
+.tb-ficha-stat--clickable:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.07);
+}
+.tb-ficha-stat--clickable:hover .tb-ficha-stat-label {
+  color: #f0c040;
+}
+.tb-ficha-stat--clickable:active {
+  transform: scale(0.96);
+  background: rgba(240, 192, 64, 0.15);
+}
