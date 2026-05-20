@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { WS_URL } from '../../../services/api';
+import { WS_URL, API_URL, authHeaders } from '../../../services/api';
 
 interface JugadorSync {
   id: string | number;
@@ -195,6 +195,35 @@ export function useStoryModeSync(
     });
   }, [misionId]);
 
+  // Recuperar configPartida del backend si no viene en los parámetros
+  useEffect(() => {
+    if (!misionId || configPartida || (!esMaster && !misionId)) return;
+
+    const recuperarConfig = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/misiones/${misionId}/config-partida`, {
+          headers: authHeaders(),
+        });
+
+        if (response.ok && response.status !== 204) {
+          const config: PartidaConfig = await response.json();
+          setConfigPartida(config);
+        }
+      } catch (e) {
+        console.debug('[useStoryModeSync] No se pudo recuperar configPartida del backend:', e);
+        // Intentar recuperar del sessionStorage como fallback
+        try {
+          const saved = sessionStorage.getItem(`mission_config_${misionId}`);
+          if (saved) {
+            setConfigPartida(JSON.parse(saved));
+          }
+        } catch {}
+      }
+    };
+
+    recuperarConfig();
+  }, [misionId, esMaster]);
+
   useEffect(() => {
     if (!misionId || (!jugadorActual && !esMaster)) return;
     const token = getToken();
@@ -338,10 +367,10 @@ export function useStoryModeSync(
           body: JSON.stringify({}),
         });
 
-        if (esMaster && configPartidaInicial) {
+        if (esMaster && configPartida) {
           client.publish({
             destination: `/app/mision/${misionId}/master-listo`,
-            body: JSON.stringify(configPartidaInicial),
+            body: JSON.stringify(configPartida),
           });
         } else if (!esMaster) {
           client.subscribe(`/topic/mision/${misionId}/partida-lista`, (frame) => {
@@ -376,7 +405,7 @@ export function useStoryModeSync(
     return () => {
       client.deactivate();
     };
-  }, [misionId, jugadorId, jugadorPersonajeId, esMaster, configPartidaInicial]);
+  }, [misionId, jugadorId, jugadorPersonajeId, esMaster, configPartida]);
 
   useEffect(() => {
     try { console.debug('[WS HOOK] turnoActual changed ->', turnoActual); } catch (e) {}

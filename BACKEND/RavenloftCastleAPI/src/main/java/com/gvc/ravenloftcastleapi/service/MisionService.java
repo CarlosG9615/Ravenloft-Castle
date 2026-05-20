@@ -222,5 +222,28 @@ public class MisionService {
                 me.getDificultad()
         );
     }
+
+    @Transactional
+    public void guardarConfigPartida(Long misionId, String configJson) {
+        Mision mision = misionRepository.findById(misionId)
+                .orElseThrow(() -> new RuntimeException("Misión no encontrada con id: " + misionId));
+        mision.setConfigPartida(configJson);
+        misionRepository.save(mision);
+    }
+
+    @Transactional(readOnly = true)
+    public String obtenerConfigPartida(Long misionId) {
+        Mision mision = misionRepository.findById(misionId)
+                .orElseThrow(() -> new RuntimeException("Misión no encontrada con id: " + misionId));
+        return mision.getConfigPartida();
+    }
+
+    @Transactional
+    public void limpiarConfigPartida(Long misionId) {
+        Mision mision = misionRepository.findById(misionId)
+                .orElseThrow(() -> new RuntimeException("Misión no encontrada con id: " + misionId));
+        mision.setConfigPartida(null);
+        misionRepository.save(mision);
+    }
 }
 

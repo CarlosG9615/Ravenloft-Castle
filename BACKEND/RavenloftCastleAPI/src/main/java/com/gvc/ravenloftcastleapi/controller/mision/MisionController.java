@@ -78,4 +78,29 @@ public class MisionController {
         MisionDetalleDTO misionActualizada = misionService.actualizarDificultadEscenario(misionId, escenarioId, dificultad);
         return ResponseEntity.ok(misionActualizada);
     }
+
+    @PostMapping("/{id}/config-partida")
+    public ResponseEntity<Void> guardarConfigPartida(
+            @PathVariable Long id,
+            @RequestBody String configPartida) {
+        try {
+            misionService.guardarConfigPartida(id, configPartida);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+
+    @GetMapping("/{id}/config-partida")
+    public ResponseEntity<String> obtenerConfigPartida(@PathVariable Long id) {
+        try {
+            String configJson = misionService.obtenerConfigPartida(id);
+            if (configJson == null || configJson.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+            return ResponseEntity.ok(configJson);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
 }

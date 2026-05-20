@@ -42,7 +42,6 @@ export function TableroStoryMode() {
   const personaje       = rawState.personaje        ?? fallback.personaje        ?? null;
   const jugadorActual   = rawState.jugadorActual   ?? rawState.personaje       ?? fallback.jugadorActual ?? fallback.personaje ?? null;
   const esMaster        = rawState.rol === 'master';
-  const configPartidaInicial = rawState.configPartida ?? null;
 
   const nombreMaster = personaje?.nombre ?? jugadorActual?.nombre ?? 'Personaje';
 
@@ -55,8 +54,21 @@ export function TableroStoryMode() {
   const [connectionTimedOut, setConnectionTimedOut] = useState(false);
   const [connectionSecondsLeft, setConnectionSecondsLeft] = useState(120);
   const [activeEnemyIds, setActiveEnemyIds] = useState<Set<string>>(new Set());
+  const [configPartidaInitial, setConfigPartidaInitial] = useState(rawState.configPartida ?? null);
 
   const navigate = useNavigate();
+
+  // Recuperar configPartida del sessionStorage si el master reingresa sin ella en location.state
+  useEffect(() => {
+    if (!configPartidaInitial && esMaster && mision?.id) {
+      try {
+        const saved = sessionStorage.getItem(`mission_config_${mision.id}`);
+        if (saved) {
+          setConfigPartidaInitial(JSON.parse(saved));
+        }
+      } catch {}
+    }
+  }, [esMaster, mision?.id, configPartidaInitial]);
 
   const {
     jugadoresSincronizados,
@@ -77,7 +89,7 @@ export function TableroStoryMode() {
     sendMasterAbort,
     sendRoomRevealed,
     sendEnemyMove,
-  } = useStoryModeSync(mision?.id, jugadorActual, rawState.jugadores ?? [], esMaster, configPartidaInicial);
+  } = useStoryModeSync(mision?.id, jugadorActual, rawState.jugadores ?? [], esMaster, configPartidaInitial);
   void conectado;
 
   useEffect(() => {
@@ -87,6 +99,9 @@ export function TableroStoryMode() {
   }, [mision?.id, jugadorActual?.id ?? jugadorActual?.personajeId]);
 
   const esperandoMaster = !esMaster && masterListo !== true;
+  
+  // Detectar si la partida ya existe (hay otros jugadores/master) vs. siendo creada
+  const partidaYaExiste = jugadoresSincronizados.length > 0;
 
   useEffect(() => {
     if (kickedOut) {
@@ -260,7 +275,11 @@ export function TableroStoryMode() {
       {esperandoMaster && !connectionTimedOut && (
         <div className="tsm-waiting-overlay">
           <div className="tsm-waiting-modal">
-            <p className="tsm-waiting-text">El master está preparando la partida, por favor espera...</p>
+            <p className="tsm-waiting-text">
+              {partidaYaExiste
+                ? 'Esperando la conexión del master para poder jugar...'
+                : 'El master está preparando la partida, por favor espera...'}
+            </p>
             <p className="tsm-waiting-text">Tiempo restante: {formatConnectionTime(connectionSecondsLeft)}</p>
             <div className="gb-master-loader tsm-waiting-spinner" aria-label="Esperando al master">
               <span className="dot d1" /><span className="dot d2" /><span className="dot d3" /><span className="dot d4" />

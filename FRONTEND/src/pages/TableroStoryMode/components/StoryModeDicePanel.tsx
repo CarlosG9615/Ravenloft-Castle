@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { StoryModeDiceRoller } from './StoryModeDiceRoller';
 
 interface StoryModeDicePanelProps {
@@ -30,6 +31,8 @@ export function StoryModeDicePanel({
   movimientoYaLanzado = false,
   ataqueYaLanzado = false,
 }: StoryModeDicePanelProps) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const isMyTurn =
     turnoActual?.fase === 'personajes' &&
     (turnoActual?.turnoActualPersonajeId?.toString() === jugadorActual?.personajeId?.toString() ||
@@ -37,6 +40,17 @@ export function StoryModeDicePanel({
   const dadoAtaque = dadoActivo?.startsWith('ataque-')
     ? DADOS_ATAQUE.find(d => 'ataque-' + d.label === dadoActivo) ?? null
     : null;
+
+  const playDiceSound = () => {
+    try {
+      if (!audioRef.current) {
+        audioRef.current = new Audio('/public/sounds/diceroll/dado.wav');
+      }
+      // Reset time to start para poder reproducir múltiples veces sin esperar
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+    } catch {}
+  };
 
   return (
     <>
@@ -65,7 +79,7 @@ export function StoryModeDicePanel({
               onClick={() => {
                 for (let i = 0; i < cantidadResultados; i++) {
                   setTimeout(() => {
-                    new Audio('/public/sounds/diceroll/dado.wav').play().catch(() => {});
+                    playDiceSound();
                   }, i * 350);
                 }
                 onLanzarDado(caras, 'ataque-' + label);

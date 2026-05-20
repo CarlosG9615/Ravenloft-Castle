@@ -29,7 +29,7 @@ export function Header() {
   const campañasRef = useRef<HTMLDivElement>(null);
 
   const noLeidas = notificaciones.filter(n => !n.leida).length;
-  const privateRoutes = ['/characters', '/join', '/create', '/tools'];
+  const privateRoutes = ['/characters', '/join', '/join/story-mode', '/create', '/tools'];
   const isActive = (route: string) => location.pathname === route;
 
   const cargarNotificaciones = useCallback(async () => {
@@ -164,20 +164,25 @@ export function Header() {
     </a>
       {campañasOpen && (
       <div className="nav-dropdown">
-        <a className="nav-dropdown-item" onClick={() => { navigate('/create'); setCampañasOpen(false); }}>
+        <a className="nav-dropdown-item" onClick={() => handleNavClick('/create')}>
           Crear Sala
         </a>
-        <a className="nav-dropdown-item" onClick={() => { navigate('/join'); setCampañasOpen(false); }}>
+        <a className="nav-dropdown-item" onClick={() => handleNavClick('/join')}>
           Unirte a una Partida
         </a>
         {isLoggedIn && (
-          <a className="nav-dropdown-item" onClick={() => { navigate('/mis-campanas'); setCampañasOpen(false); }}>
+          <a className="nav-dropdown-item" onClick={() => { handleNavClick('/mis-campanas'); setCampañasOpen(false); }}>
             Mis Campañas
           </a>
         )}
       </div>
     )}
   </div>
+    <a className={'nav-link' + (isActive('/join/story-mode') ? ' active' : '')}
+    onClick={() => handleNavClick('/join/story-mode')}
+    >
+    Modo Historia
+  </a>
     <a  className={'nav-link' + (isActive('/subscription') ? ' active' : '')}
     onClick={() => handleNavClick('/subscription')}
     >
@@ -308,6 +313,7 @@ export function Header() {
     {isLoggedIn && (
       <a className="mobile-nav-link" onClick={() => { navigate('/mis-campanas'); setMobileMenuOpen(false); }}>Mis Campañas</a>
     )}
+    <a className={'mobile-nav-link' + (isActive('/join/story-mode') ? ' active' : '')} onClick={() => handleNavClick('/join/story-mode')}>Modo Historia</a>
     <a className={'mobile-nav-link' + (isActive('/subscription') ? ' active' : '')} onClick={() => handleNavClick('/subscription')}>Planes</a>
     {isLoggedIn && (
       <>
