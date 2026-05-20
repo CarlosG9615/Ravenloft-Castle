@@ -1,0 +1,604 @@
+/* ================================
+   CHARACTER SHEET — Pergamino Claro
+   ================================ */
+
+.sf-page {
+  background: #0a0203;
+  min-height: 100vh;
+  padding: 24px 20px 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+/* ── BARRA DE ACCIONES ── */
+.sf-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1000px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sf-tabs { display: flex; gap: 4px; }
+
+.sf-tab {
+  font-family: 'Metal Mania', cursive;
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 9px 20px;
+  border-radius: 6px 6px 0 0;
+  border: 1px solid rgba(120,80,30,0.3);
+  border-bottom: none;
+  background: rgba(120,80,30,0.06);
+  color: rgba(200,170,120,0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sf-tab:hover { color: rgba(200,170,120,0.8); background: rgba(120,80,30,0.1); }
+
+.sf-tab.active {
+  background: rgba(120,80,30,0.18);
+  color: rgba(220,190,140,0.95);
+  border-color: rgba(120,80,30,0.5);
+}
+
+.sf-btn-group { display: flex; gap: 10px; }
+
+.sf-btn {
+  font-family: 'Metal Mania', cursive;
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 9px 20px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid;
+}
+
+.sf-btn-back {
+  background: transparent;
+  border-color: rgba(120,80,30,0.3);
+  color: rgba(200,170,120,0.6);
+}
+.sf-btn-back:hover { border-color: rgba(120,80,30,0.6); color: rgba(220,190,140,0.9); }
+
+.sf-btn-print {
+  background: rgba(120,80,30,0.12);
+  border-color: rgba(120,80,30,0.45);
+  color: rgba(200,160,80,0.85);
+}
+.sf-btn-print:hover { background: rgba(120,80,30,0.22); color: rgba(220,180,100,1); }
+
+.sf-btn-delete {
+  background: transparent;
+  border: 1px solid #8b0000;
+  color: #8b0000;
+  transition: all 0.3s ease;
+}
+.sf-btn-delete:hover {
+  background: #8b0000;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(139,0,0,0.3);
+}
+
+.sf-btn-confirm {
+  background: linear-gradient(135deg, #8b0000, #c0392b);
+  border-color: rgba(200,50,30,0.6);
+  color: white;
+  box-shadow: 0 4px 15px rgba(139,0,0,0.35);
+}
+.sf-btn-confirm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(200,50,30,0.5);
+}
+
+/* ── PERGAMINO BASE — FONDO CLARO ── */
+.sf-pergamino {
+  width: 100%;
+  max-width: 1000px;
+  position: relative;
+  background:
+    radial-gradient(ellipse at 10% 5%, rgba(255,245,220,0.8) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 95%, rgba(230,200,150,0.4) 0%, transparent 50%),
+    linear-gradient(160deg, #f7edd8 0%, #f0e2c4 35%, #eddcbb 65%, #e8d5b0 100%);
+  border: 2px solid rgba(120,80,30,0.5);
+  border-radius: 6px;
+  padding: 100px 48px 52px;
+  box-shadow:
+    0 0 0 1px rgba(120,80,30,0.15),
+    0 8px 40px rgba(0,0,0,0.5),
+    inset 0 0 80px rgba(180,130,60,0.08);
+}
+
+/* ── ESQUINAS CON LOGO ── */
+.sf-corner {
+  position: absolute;
+  width: 500px;
+  height: auto;
+  opacity: 1;
+  filter: drop-shadow(0 2px 4px rgba(80,40,10,0.25));
+  z-index: 2;
+}
+
+.sf-corner--tl { top: -10px;    left: -10px; }
+.sf-corner--tr { top: -10px;    right: -10px; }
+.sf-corner--bl { bottom: 8px; left: 8px;    transform: scaleY(-1); }
+.sf-corner--br { bottom: 8px; right: 8px;   transform: scale(-1); }
+
+/* ── CABECERA ── */
+.sf-cabecera {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.sf-cabecera-linea {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(100,60,20,0.5), transparent);
+}
+
+.sf-cabecera-centro { text-align: center; flex-shrink: 0; }
+
+.sf-ficha-label {
+  font-family: 'Metal Mania', cursive;
+  font-size: 11px;
+  color: rgba(100,60,20,0.6);
+  text-transform: uppercase;
+  letter-spacing: 5px;
+  margin-bottom: 4px;
+}
+
+.sf-nombre {
+  font-family: 'Metal Mania', cursive;
+  font-size: 34px;
+  color: #2a1005;
+  letter-spacing: 4px;
+  text-shadow: 1px 1px 0 rgba(180,130,60,0.3);
+  margin: 0 0 4px;
+}
+
+.sf-raza-clase {
+  font-size: 13px;
+  color: rgba(100,60,20,0.7);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* ── CUERPO PRINCIPAL ── */
+.sf-cuerpo {
+  display: grid;
+  grid-template-columns: 200px 1fr 220px;
+  gap: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.sf-titulo-seccion {
+  font-family: 'Metal Mania', cursive;
+  font-size: 13px;
+  color: rgba(100,60,20,0.8);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-bottom: 1px solid rgba(120,80,30,0.35);
+  padding-bottom: 5px;
+  margin-bottom: 8px;
+}
+
+.sf-mt { margin-top: 16px; }
+
+/* ── STATS ── */
+.sf-stat-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border: 1px solid rgba(120,80,30,0.25);
+  border-radius: 5px;
+  margin-bottom: 4px;
+  background: rgba(180,130,60,0.08);
+}
+
+.sf-stat-nombre {
+  font-size: 12px;
+  color: rgba(80,45,10,0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex: 1;
+}
+
+.sf-stat-valor {
+  font-size: 20px;
+  font-weight: bold;
+  color: #1a0a02;
+  width: 32px;
+  text-align: center;
+}
+
+.sf-stat-mod {
+  font-size: 13px;
+  color: #8b0000;
+  width: 28px;
+  text-align: right;
+  font-weight: 700;
+}
+
+/* ── HABILIDADES ── */
+.sf-hab-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  font-size: 12px;
+  color: rgba(80,45,10,0.6);
+  border-radius: 3px;
+}
+
+.sf-hab-row.pro {
+  color: #1a0a02;
+  background: rgba(120,80,30,0.1);
+  font-weight: 600;
+}
+
+.sf-hab-dot { font-size: 8px; color: rgba(120,80,30,0.5); flex-shrink: 0; }
+.sf-hab-row.pro .sf-hab-dot { color: #8b0000; }
+.sf-hab-nombre { flex: 1; }
+.sf-hab-mod { font-weight: 700; font-size: 12px; color: rgba(139,0,0,0.7); }
+.sf-hab-row.pro .sf-hab-mod { color: #8b0000; }
+
+/* ── FOTO ── */
+.sf-col-centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.sf-foto-marco {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+}
+
+.sf-foto-img {
+  width: 100%;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  display: block;
+  border-radius: 4px;
+}
+
+.sf-foto-vacia {
+  width: 100%;
+  aspect-ratio: 3/4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  color: rgba(120,80,30,0.2);
+  background: rgba(120,80,30,0.06);
+  border-radius: 4px;
+}
+
+.sf-foto-svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ── COMBATE ── */
+.sf-combate-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
+}
+
+.sf-combate-box {
+  background: rgba(180,130,60,0.1);
+  border: 1px solid rgba(120,80,30,0.3);
+  border-radius: 7px;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.sf-combate-label {
+  font-size: 10px;
+  color: rgba(100,60,20,0.65);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+}
+
+.sf-combate-valor {
+  font-family: 'Metal Mania', cursive;
+  font-size: 22px;
+  color: #1a0a02;
+}
+
+/* ── IDENTIDAD / ATAQUES ── */
+.sf-dato-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(120,80,30,0.18);
+  font-size: 12px;
+}
+
+.sf-dato-label {
+  color: rgba(100,60,20,0.6);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.sf-dato-valor {
+  color: #1a0a02;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sf-competencias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+
+.sf-comp-tag {
+  background: rgba(139,0,0,0.1);
+  border: 1px solid rgba(139,0,0,0.3);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 11px;
+  color: #6b1010;
+  font-weight: 600;
+}
+
+.sf-ataques-tabla {
+  border: 1px solid rgba(120,80,30,0.3);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.sf-ataques-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  background: rgba(120,80,30,0.15);
+  padding: 6px 10px;
+  font-family: 'Metal Mania', cursive;
+  font-size: 10px;
+  color: rgba(80,45,10,0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(120,80,30,0.25);
+}
+
+.sf-ataques-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(120,80,30,0.1);
+  color: rgba(80,45,10,0.45);
+}
+
+.sf-ataques-row:last-child { border-bottom: none; }
+
+.sf-ataques-row span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sf-ataques-form {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(120,80,30,0.2);
+  border-radius: 6px;
+  background: rgba(180,130,60,0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  box-shadow: inset 0 0 18px rgba(120,80,30,0.08);
+}
+
+.sf-ataques-form-row {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sf-ataques-label {
+  font-size: 11px;
+  color: rgba(100,60,20,0.65);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.sf-ataques-input {
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(120,80,30,0.35);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: #1a0a02;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+.sf-ataques-input::placeholder {
+  color: rgba(80,45,10,0.45);
+}
+
+.sf-ataques-form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sf-ataques-delete {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: rgba(139,0,0,0.75);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+
+.sf-ataques-delete:hover {
+  color: #8b0000;
+}
+
+/* ── DIARIO ── */
+.sf-diario { padding-top: 100px; }
+
+.sf-diario-campos {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.sf-diario-campo { display: flex; align-items: center; gap: 12px; }
+
+.sf-diario-campo-label {
+  font-family: 'Metal Mania', cursive;
+  font-size: 14px;
+  color: rgba(80,45,10,0.75);
+  white-space: nowrap;
+  letter-spacing: 1px;
+}
+
+.sf-diario-linea-larga {
+  flex: 1;
+  height: 1px;
+  border-bottom: 1px solid rgba(120,80,30,0.4);
+}
+
+.sf-diario-sep {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.sf-sep-linea { flex: 1; height: 1px; background: rgba(120,80,30,0.35); }
+
+.sf-sep-texto {
+  font-family: 'Metal Mania', cursive;
+  font-size: 13px;
+  color: rgba(80,45,10,0.7);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sf-diario-notas {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.sf-diario-nota-linea { display: flex; align-items: center; gap: 10px; }
+
+.sf-nota-dot { font-size: 9px; color: rgba(139,0,0,0.55); flex-shrink: 0; }
+
+.sf-nota-linea {
+  flex: 1;
+  height: 1px;
+  border-bottom: 1px solid rgba(120,80,30,0.32);
+}
+
+.sf-diario-ornamento {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.sf-orn-svg { width: 160px; height: auto; }
+
+/* ── PRINT ── */
+@media print {
+  body { background: white !important; margin: 0; padding: 0; }
+  .no-print { display: none !important; }
+
+  .sf-page { background: white !important; padding: 0 !important; }
+
+  .sf-pergamino {
+    background: #f7edd8 !important;
+    border: 1px solid #a07840 !important;
+    box-shadow: none !important;
+    max-width: 100%;
+    padding: 80px 32px 40px !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .sf-nombre { color: #1a0a02 !important; text-shadow: none !important; }
+  .sf-raza-clase, .sf-ficha-label, .sf-titulo-seccion { color: #5a3a10 !important; }
+  .sf-stat-valor, .sf-combate-valor, .sf-dato-valor { color: #111 !important; }
+  .sf-stat-mod, .sf-hab-mod { color: #8b0000 !important; }
+  .sf-stat-nombre, .sf-dato-label, .sf-historia { color: #555 !important; }
+  .sf-corner { opacity: 0.8; }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .sf-cuerpo { grid-template-columns: 1fr; }
+  .sf-col-centro { order: -1; }
+  .sf-corner { width: 80px; }
+  .sf-pergamino { padding: 90px 24px 40px; }
+}
+/* ── DECORACIÓN ESQUINAS DIARIO ── */
+.sf-corner-deco {
+  position: absolute;
+  width: 320px;
+  height: auto;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.sf-corner-deco--bl {
+  bottom: -150px;
+  left: -90px;
+}
+
+.sf-corner-deco--br {
+  bottom: -150px;
+  right: -90px;
+  transform: scaleX(-1);
+}
+/* ── MARCO SVG ÉLFICO ── */
+
+
+
+

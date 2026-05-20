@@ -1,0 +1,145 @@
+.mc-page {
+  min-height: 100vh;
+  background: #0a0203;
+  padding: 40px 32px;
+  color: #e8d5b7;
+}
+
+.mc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.mc-titulo {
+  font-family: 'Metal Mania', cursive;
+  font-size: 28px;
+  color: white;
+  letter-spacing: 2px;
+  margin: 0;
+}
+
+.mc-btn-crear {
+  background: rgba(139, 0, 0, 0.6);
+  border: 1px solid rgba(139, 0, 0, 0.8);
+  border-radius: 8px;
+  color: #e8d5b7;
+  font-size: 13px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Metal Mania', cursive;
+  letter-spacing: 1px;
+}
+
+.mc-btn-crear:hover {
+  background: rgba(139, 0, 0, 0.9);
+}
+
+.mc-cargando {
+  text-align: center;
+  color: rgba(232, 213, 183, 0.5);
+  font-size: 14px;
+  margin-top: 40px;
+}
+
+.mc-vacio {
+  text-align: center;
+  margin-top: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: rgba(232, 213, 183, 0.5);
+}
+
+.mc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.mc-card {
+  background: rgba(15, 8, 3, 0.8);
+  border: 1px solid rgba(139, 0, 0, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mc-card:hover {
+  border-color: rgba(139, 0, 0, 0.7);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(139, 0, 0, 0.2);
+}
+
+.mc-card-imagen {
+  position: relative;
+  height: 180px;
+  overflow: hidden;
+}
+
+.mc-card-imagen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mc-card-imagen-placeholder {
+  width: 100%;
+  height: 100%;
+  background: rgba(139, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+}
+
+.mc-card-estado {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.mc-card-estado--activa { background: rgba(46, 204, 113, 0.3); color: #2ecc71; border: 1px solid #2ecc71; }
+.mc-card-estado--inactiva { background: rgba(149, 165, 166, 0.3); color: #95a5a6; border: 1px solid #95a5a6; }
+.mc-card-estado--pausada { background: rgba(243, 156, 18, 0.3); color: #f39c12; border: 1px solid #f39c12; }
+
+.mc-card-info {
+  padding: 16px;
+}
+
+.mc-card-nombre {
+  font-family: 'Metal Mania', cursive;
+  font-size: 16px;
+  color: white;
+  margin: 0 0 8px;
+  letter-spacing: 1px;
+}
+
+.mc-card-desc {
+  color: rgba(232, 213, 183, 0.6);
+  font-size: 12px;
+  margin: 0 0 12px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mc-card-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: rgba(232, 213, 183, 0.5);
+  font-size: 11px;
+}

@@ -1,0 +1,1830 @@
+.mision-page {
+	position: relative;
+	min-height: 100vh;
+	padding: 28px clamp(14px, 3.5vw, 40px) 34px;
+	background: #0a0203;
+	overflow: hidden;
+}
+
+.mision-bg {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	background:
+		radial-gradient(circle at 8% 12%, rgba(160, 22, 26, 0.16), transparent 38%),
+		radial-gradient(circle at 88% 85%, rgba(82, 14, 18, 0.2), transparent 42%),
+		linear-gradient(180deg, rgba(12, 4, 5, 0.96), rgba(9, 2, 3, 0.98));
+}
+
+.mision-bg-overlay {
+	position: absolute;
+	inset: 0;
+	background:
+		linear-gradient(90deg, rgba(10, 2, 3, 0.85), rgba(10, 2, 3, 0.68)),
+		repeating-linear-gradient(
+			135deg,
+			rgba(255, 255, 255, 0.02) 0,
+			rgba(255, 255, 255, 0.02) 2px,
+			transparent 2px,
+			transparent 16px
+		);
+}
+
+.mision-nav-buttons {
+	position: fixed;
+	top: 80px;
+	left: 24px;
+	z-index: 100;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	align-items: flex-start;
+}
+
+.mision-abandonar-btn {
+	background: rgba(56, 10, 11, 0.9);
+	border: 1px solid rgba(227, 68, 60, 0.85);
+	color: rgba(255, 237, 235, 0.98);
+	font-size: 12px;
+	font-weight: bold;
+	line-height: 1;
+	cursor: pointer;
+	padding: 10px 14px;
+	border-radius: 999px;
+	transition: all 0.2s ease;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-width: 168px;
+	min-height: 40px;
+	box-shadow: 0 10px 24px rgba(0, 0, 0, 0.26);
+}
+
+.mision-abandonar-btn:hover:not(:disabled) {
+	background: rgba(110, 20, 22, 0.96);
+	border-color: rgba(255, 108, 97, 1);
+	color: #fff;
+	transform: scale(1.05);
+}
+
+.mision-abandonar-btn:active:not(:disabled) {
+	transform: scale(0.98);
+}
+
+.mision-abandonar-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.mision-abandonar-btn-icon {
+	font-size: 16px;
+	line-height: 1;
+	font-weight: 900;
+}
+
+.mision-abandonar-btn-text {
+	white-space: nowrap;
+	letter-spacing: 0.2px;
+}
+
+.mision-layout {
+	position: relative;
+	z-index: 1;
+	max-width: 1280px;
+	margin: 58px auto 0;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 210px;
+	gap: 0;
+	align-items: start;
+}
+
+.mision-contenido {
+	position: relative;
+	max-width: none;
+	margin: 0;
+	padding: clamp(16px, 3vw, 28px);
+	border-radius: 0;
+	border-top: 1px solid rgba(160, 45, 28, 0.36);
+	border-bottom: 0;
+	border-left: 0;
+	border-right: 0;
+	background: linear-gradient(180deg, rgba(18, 6, 8, 0.88), rgba(10, 2, 3, 0.92));
+	box-shadow:
+		inset 18px 0 22px -24px rgba(0, 0, 0, 0.75),
+		inset -18px 0 22px -24px rgba(0, 0, 0, 0.75),
+		0 18px 38px rgba(0, 0, 0, 0.34);
+}
+
+.mision-contenido::after {
+	content: none;
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 1px;
+	height: 14px;
+	background: rgba(18, 6, 8, 0.95);
+	pointer-events: none;
+}
+
+.mision-header {
+	margin-bottom: 18px;
+	border-bottom: 0;
+	padding-bottom: 14px;
+}
+
+.mision-kicker {
+	margin: 0 0 8px;
+	font-size: 12px;
+	letter-spacing: 1.1px;
+	text-transform: uppercase;
+	color: rgba(255, 199, 169, 0.84);
+}
+
+.mision-titulo {
+	margin: 0;
+	font-family: 'Metal Mania', cursive;
+	font-size: clamp(30px, 4.4vw, 46px);
+	line-height: 1.1;
+	color: #fff;
+	letter-spacing: 1px;
+	text-shadow: 0 0 14px rgba(139, 0, 0, 0.25);
+}
+
+.mision-cuerpo-placeholder {
+	min-height: 360px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	padding: 20px;
+	border-radius: 0;
+	border: 1px dashed rgba(255, 255, 255, 0.2);
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent);
+}
+
+.mision-detalle-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+	gap: 16px;
+}
+
+.mision-relato {
+	padding: 18px;
+	border-radius: 0;
+	border: 0;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.15));
+}
+
+.mision-seccion-titulo {
+	margin: 0;
+	font-family: 'Metal Mania', cursive;
+	letter-spacing: 0.8px;
+	font-size: 26px;
+	color: rgba(255, 245, 240, 0.96);
+}
+
+.mision-sinopsis-parrafo {
+	margin: 0 0 12px;
+	line-height: 1.78;
+	font-size: 15px;
+	color: rgba(255, 240, 230, 0.9);
+}
+
+.mision-capitulos-lateral {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	padding-top: 0;
+	margin-top: 0;
+	margin-left: -1px;
+	align-self: start;
+	border-radius: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.mision-capitulo-btn {
+	width: 100%;
+	padding: 12px 12px;
+	border-radius: 0;
+	border-top: 1px solid rgba(120, 34, 21, 0.22);
+	border-bottom: 1px solid rgba(120, 34, 21, 0.22);
+	border-left: 0;
+	border-right: 0;
+	margin-bottom: -1px;
+	background: transparent;
+	color: rgba(255, 255, 255, 0.55);
+	font-size: 12px;
+	letter-spacing: 0.55px;
+	font-family: 'Metal Mania', cursive;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	text-align: left;
+	box-shadow:
+		inset 10px 0 14px -16px rgba(0, 0, 0, 0.75),
+		inset -10px 0 14px -16px rgba(0, 0, 0, 0.75);
+}
+
+.mision-capitulo-btn:first-child {
+	border-top-color: rgba(160, 45, 28, 0.4);
+}
+
+.mision-capitulo-btn:hover {
+	border-top-color: rgba(200, 50, 30, 0.5);
+	border-bottom-color: rgba(200, 50, 30, 0.5);
+	background: rgba(139, 0, 0, 0.14);
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.mision-capitulo-btn.is-active {
+	background: rgba(139, 0, 0, 0.3);
+	border-top-color: rgba(200, 50, 30, 0.7);
+	border-bottom-color: rgba(200, 50, 30, 0.7);
+	color: #fff;
+}
+
+.mision-video-wrap {
+	display: flex;
+	justify-content: center;
+	margin: 18px 0 14px;
+}
+
+.mision-video-placeholder {
+	width: min(100%, 760px);
+	min-height: 240px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	padding: 24px;
+	border-radius: 0;
+	border: 0;
+	background:
+		radial-gradient(circle at top, rgba(200, 50, 30, 0.18), transparent 46%),
+		linear-gradient(180deg, rgba(38, 12, 14, 0.94), rgba(12, 4, 5, 0.98));
+	box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+	text-align: center;
+}
+
+.mision-video-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 68px;
+	height: 68px;
+	border-radius: 0;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	background: rgba(0, 0, 0, 0.25);
+	color: rgba(255, 255, 255, 0.95);
+	font-size: 28px;
+	padding-left: 2px;
+}
+
+.mision-video-placeholder p {
+	margin: 0;
+	font-size: 14px;
+	letter-spacing: 0.3px;
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.mision-modos-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14px;
+	margin-bottom: 14px;
+}
+
+.mision-modo-card {
+	padding: 18px;
+	border-radius: 0;
+	border: 0;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(0, 0, 0, 0.16));
+	min-height: 220px;
+	box-shadow: 0 10px 22px rgba(0, 0, 0, 0.14);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+}
+
+.mision-modo-card h3 {
+	margin: 0 0 10px;
+	font-family: 'Metal Mania', cursive;
+	letter-spacing: 0.8px;
+	font-size: 22px;
+	color: rgba(255, 245, 240, 0.96);
+}
+
+.mision-modo-card p {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.72;
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.mision-modo-btn {
+	margin-top: 14px;
+	padding: 8px 16px;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	font-family: 'Metal Mania', cursive;
+	font-size: 12px;
+	letter-spacing: 0.6px;
+	background: rgba(0, 0, 0, 0.24);
+	color: rgba(255, 255, 255, 0.9);
+	cursor: pointer;
+	align-self: center;
+	transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.mision-modo-btn:hover {
+	transform: translateY(-1px);
+}
+
+.mision-modo-card-master .mision-modo-btn {
+	border-color: rgba(243, 156, 18, 0.48);
+	background: rgba(243, 156, 18, 0.13);
+	color: rgba(255, 232, 187, 0.98);
+}
+
+.mision-modo-card-master .mision-modo-btn:hover {
+	border-color: rgba(243, 156, 18, 0.72);
+	background: rgba(243, 156, 18, 0.18);
+}
+
+.mision-modo-card-personaje .mision-modo-btn {
+	border-color: rgba(200, 50, 30, 0.7);
+	background: rgba(139, 0, 0, 0.3);
+	color: #fff;
+}
+
+.mision-modo-card-personaje .mision-modo-btn:hover {
+	border-color: rgba(255, 107, 53, 0.8);
+	background: rgba(139, 0, 0, 0.42);
+}
+
+.mision-panel {
+	position: relative;
+	padding-top: 0;
+	display: grid;
+	gap: 12px;
+}
+
+.mision-chip {
+	padding: 8px 12px;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.85);
+	background: rgba(0, 0, 0, 0.24);
+}
+
+.mision-chip-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: flex-start;
+	align-items: center;
+	width: 100%;
+	margin-bottom: 4px;
+	z-index: 2;
+}
+
+.mision-chip-dificultad {
+	background: rgba(0, 0, 0, 0.24);
+}
+
+.mision-chip-estado.is-completada {
+	border-color: rgba(46, 204, 113, 0.45);
+	color: rgba(202, 255, 220, 0.95);
+	background: rgba(46, 204, 113, 0.14);
+}
+
+.mision-chip-estado.is-pendiente {
+	border-color: rgba(243, 156, 18, 0.44);
+	color: rgba(255, 232, 187, 0.95);
+	background: rgba(243, 156, 18, 0.13);
+}
+
+.mision-bloque {
+	padding: 16px;
+	border-radius: 0;
+	background: rgba(255, 255, 255, 0.03);
+	border: 0;
+	box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+}
+
+.mision-bloque h3 {
+	margin: 0 0 10px;
+	font-family: 'Metal Mania', cursive;
+	font-size: 20px;
+	letter-spacing: 0.8px;
+	color: rgba(255, 245, 240, 0.95);
+}
+
+.mision-bloque ul {
+	margin: 0;
+	padding-left: 18px;
+	color: rgba(255, 245, 240, 0.82);
+	line-height: 1.65;
+}
+
+.mision-bloque li + li {
+	margin-top: 8px;
+}
+
+.mision-recompensa p {
+	margin: 0;
+	line-height: 1.72;
+	color: rgba(255, 245, 240, 0.86);
+}
+
+.mision-estado {
+	min-height: 260px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	font-size: 18px;
+	color: rgba(255, 245, 240, 0.86);
+}
+
+.mision-estado-error {
+	color: rgba(255, 190, 190, 0.95);
+}
+
+.mission-level-gate-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 200;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 18px;
+	background: rgba(0, 0, 0, 0.65);
+	backdrop-filter: blur(8px);
+}
+
+.mission-level-gate-box {
+	width: min(100%, 560px);
+	padding: 28px;
+	border-radius: 18px;
+	background: linear-gradient(180deg, rgba(28, 8, 10, 0.98), rgba(14, 4, 5, 0.98));
+	border: 1px solid rgba(200, 50, 30, 0.34);
+	box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+	text-align: center;
+}
+
+.mission-level-gate-title {
+	margin: 0 0 18px;
+	font-family: 'Metal Mania', cursive;
+	font-size: 34px;
+	letter-spacing: 1px;
+	color: #fff;
+}
+
+.mission-level-gate-image {
+	display: flex;
+	justify-content: center;
+	margin-bottom: 16px;
+}
+
+.mission-level-gate-image img {
+	width: 120px;
+	height: auto;
+	filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.28));
+}
+
+.mission-level-gate-content {
+	display: grid;
+	gap: 14px;
+	text-align: left;
+	color: rgba(255, 245, 240, 0.9);
+}
+
+.mission-level-gate-content p {
+	margin: 0;
+	line-height: 1.7;
+}
+
+.mission-level-gate-list {
+	margin: 0;
+	padding-left: 18px;
+	display: grid;
+	gap: 10px;
+}
+
+.mission-level-gate-link {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: rgba(255, 195, 175, 0.98);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+	text-align: left;
+	text-decoration: underline;
+	text-decoration-color: rgba(255, 195, 175, 0.45);
+	text-underline-offset: 3px;
+}
+
+.mission-level-gate-link:hover {
+	color: #fff;
+	text-decoration-color: rgba(255, 255, 255, 0.8);
+}
+
+.mission-level-gate-actions {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 10px;
+}
+
+.mission-level-gate-btn {
+	padding: 10px 16px;
+	border-radius: 999px;
+	border: 1px solid rgba(200, 50, 30, 0.4);
+	background: rgba(139, 0, 0, 0.26);
+	color: #fff;
+	font-family: 'Metal Mania', cursive;
+	letter-spacing: 0.8px;
+	cursor: pointer;
+	transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.mission-level-gate-btn:hover {
+	transform: translateY(-1px);
+	background: rgba(139, 0, 0, 0.38);
+}
+
+.sm-page {
+	min-height: 100vh;
+	background: #0a0203;
+}
+
+.sm-bg {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.sm-bg-image {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: center;
+	filter: saturate(0.92) contrast(1.04);
+}
+
+.sm-bg-overlay {
+	position: absolute;
+	inset: 0;
+	background:
+		linear-gradient(90deg, rgba(10, 2, 3, 0.9) 0%, rgba(10, 2, 3, 0.68) 45%, rgba(10, 2, 3, 0.35) 100%),
+		linear-gradient(180deg, rgba(10, 2, 3, 0.24) 0%, rgba(10, 2, 3, 0.54) 100%),
+		radial-gradient(circle at top right, rgba(139, 0, 0, 0.14), transparent 45%),
+		radial-gradient(circle at bottom left, rgba(50, 6, 8, 0.22), transparent 55%);
+}
+
+.sm-contenido {
+	padding-top: 32px;
+}
+
+.sm-titulo-wrap {
+	margin-top: 10px;
+	margin-bottom: 18px;
+}
+
+.sm-header {
+	margin-bottom: 30px;
+}
+
+.sm-controles {
+	justify-content: space-between;
+	margin-bottom: 14px;
+}
+
+.sm-controles .jg-filtros {
+	justify-content: flex-start;
+}
+
+.sm-mision-card {
+	position: relative;
+	border-color: rgba(139, 0, 0, 0.28);
+	display: grid;
+	grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+	gap: 0;
+	width: 100%;
+	min-height: 260px;
+	padding: 0;
+	text-align: left;
+	appearance: none;
+	-webkit-appearance: none;
+	overflow: hidden;
+}
+
+.sm-mision-orden-badge {
+	position: absolute;
+	top: 12px;
+	left: 12px;
+	z-index: 5;
+	width: 34px;
+	height: 34px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	background: linear-gradient(180deg, rgba(14, 5, 6, 0.92), rgba(8, 2, 3, 0.94));
+	color: #fff;
+	font-family: 'Metal Mania', cursive;
+	font-size: 14px;
+	letter-spacing: 0.4px;
+	text-shadow: 0 0 8px rgba(0, 0, 0, 0.55);
+	box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+	pointer-events: none;
+}
+
+.sm-mision-hero {
+	background:
+		radial-gradient(circle at top, rgba(200, 50, 30, 0.18), transparent 46%),
+		linear-gradient(180deg, rgba(36, 10, 12, 0.96), rgba(12, 4, 5, 0.98));
+	aspect-ratio: auto;
+	min-height: 260px;
+	border-top-right-radius: 0;
+	border-bottom-left-radius: 10px;
+}
+
+.sm-contenido .jg-grid {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
+.sm-contenido .jg-card-info {
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+	padding: 16px 18px;
+	min-width: 0;
+	height: 100%;
+}
+
+.sm-contenido .jg-card-nombre {
+	font-size: 18px;
+	line-height: 1.2;
+	margin-top: 0;
+	margin-bottom: 10px;
+}
+
+.sm-contenido .jg-card-desc {
+	font-size: 13px;
+	line-height: 1.55;
+	margin-bottom: auto;
+	line-clamp: 3;
+	-webkit-line-clamp: 3;
+}
+
+.sm-mision-meta-grid {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: max-content;
+	justify-content: start;
+	align-content: start;
+	gap: 4px;
+	margin-top: 12px;
+	align-self: flex-start;
+	width: fit-content;
+	max-width: 100%;
+}
+
+.sm-mision-meta-grid .jg-card-modo-nivel,
+.sm-mision-meta-grid .jg-card-modo-personajes {
+	display: inline-flex;
+	align-items: center;
+	padding: 3px 7px;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	background: rgba(0, 0, 0, 0.24);
+	font-size: 10px;
+	letter-spacing: 0.35px;
+	color: rgba(255, 255, 255, 0.86);
+	white-space: nowrap;
+	width: max-content;
+}
+
+.sm-mision-meta-dificultad {
+	border-width: 2px;
+	border-style: solid;
+}
+
+.sm-mision-completada {
+	border-color: rgba(46, 204, 113, 0.45);
+	color: rgba(202, 255, 220, 0.95);
+	background: rgba(46, 204, 113, 0.14);
+}
+
+.sm-mision-pendiente {
+	border-color: rgba(243, 156, 18, 0.44);
+	color: rgba(255, 232, 187, 0.95);
+	background: rgba(243, 156, 18, 0.13);
+}
+
+.sm-paginacion {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 20px;
+	margin-top: 26px;
+	padding-bottom: 24px;
+}
+
+.sm-paginacion-numero {
+	min-width: 36px;
+	text-align: center;
+	font-family: 'Metal Mania', cursive;
+	font-size: 22px;
+	color: rgba(255, 255, 255, 0.93);
+	text-shadow: 0 0 10px rgba(0, 0, 0, 0.55);
+	line-height: 1;
+}
+
+.sm-paginacion-flecha {
+	width: 60px;
+	height: 44px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 10px;
+	border: 1px solid rgba(200, 50, 30, 0.46);
+	background: linear-gradient(180deg, rgba(28, 9, 10, 0.9), rgba(12, 3, 4, 0.92));
+	color: #fff;
+	font-family: 'Metal Mania', cursive;
+	font-size: 34px;
+	font-weight: 700;
+	line-height: 1;
+	cursor: default;
+	transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.sm-paginacion-flecha.is-active {
+	cursor: pointer;
+}
+
+.sm-paginacion-flecha.is-active:hover {
+	transform: translateY(-1px);
+	border-color: rgba(255, 107, 53, 0.75);
+	background: linear-gradient(180deg, rgba(45, 12, 14, 0.94), rgba(18, 5, 6, 0.96));
+}
+
+.sm-paginacion-flecha.is-inactive {
+	opacity: 0.45;
+	transform: none;
+}
+
+@media (max-width: 920px) {
+	.sm-mision-card {
+		grid-template-columns: 1fr;
+	}
+
+	.sm-mision-hero {
+		min-height: 220px;
+		border-top-right-radius: 10px;
+		border-bottom-left-radius: 0;
+	}
+
+	.sm-paginacion {
+		margin-top: 20px;
+		padding-bottom: 18px;
+		gap: 14px;
+	}
+
+	.sm-paginacion-flecha {
+		width: 54px;
+		height: 42px;
+		font-size: 30px;
+	}
+}
+
+.sm-back-btn {
+	margin-top: 14px;
+	padding: 8px 14px;
+	border-radius: 8px;
+	border: 1px solid rgba(255, 107, 53, 0.45);
+	background: rgba(139, 0, 0, 0.25);
+	color: #fff;
+	cursor: pointer;
+	font-family: 'Metal Mania', cursive;
+	letter-spacing: 0.8px;
+}
+
+.sm-back-btn:hover {
+	background: rgba(139, 0, 0, 0.36);
+}
+.mision-page {
+	position: relative;
+	min-height: 100vh;
+	padding: 28px clamp(14px, 3.5vw, 40px) 34px;
+	background: #0a0203;
+	overflow: hidden;
+}
+
+.mision-bg {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	background:
+		radial-gradient(circle at 8% 12%, rgba(160, 22, 26, 0.16), transparent 38%),
+		radial-gradient(circle at 88% 85%, rgba(82, 14, 18, 0.2), transparent 42%),
+		linear-gradient(180deg, rgba(12, 4, 5, 0.96), rgba(9, 2, 3, 0.98));
+}
+
+.mision-bg-overlay {
+	position: absolute;
+	inset: 0;
+	background:
+		linear-gradient(90deg, rgba(10, 2, 3, 0.85), rgba(10, 2, 3, 0.68)),
+		repeating-linear-gradient(
+			135deg,
+			rgba(255, 255, 255, 0.02) 0,
+			rgba(255, 255, 255, 0.02) 2px,
+			transparent 2px,
+			transparent 16px
+		);
+}
+
+.mision-nav-buttons {
+	position: fixed;
+	top: 80px;
+	left: 24px;
+	z-index: 100;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	align-items: flex-start;
+}
+
+.mision-abandonar-btn {
+	background: rgba(56, 10, 11, 0.9);
+	border: 1px solid rgba(227, 68, 60, 0.85);
+	color: rgba(255, 237, 235, 0.98);
+	font-size: 12px;
+	font-weight: bold;
+	line-height: 1;
+	cursor: pointer;
+	padding: 10px 14px;
+	border-radius: 999px;
+	transition: all 0.2s ease;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-width: 168px;
+	min-height: 40px;
+	box-shadow: 0 10px 24px rgba(0, 0, 0, 0.26);
+}
+
+.mision-abandonar-btn:hover:not(:disabled) {
+	background: rgba(110, 20, 22, 0.96);
+	border-color: rgba(255, 108, 97, 1);
+	color: #fff;
+	transform: scale(1.05);
+}
+
+.mision-abandonar-btn:active:not(:disabled) {
+	transform: scale(0.98);
+}
+
+.mision-abandonar-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.mision-abandonar-btn-icon {
+	font-size: 16px;
+	line-height: 1;
+	font-weight: 900;
+}
+
+.mision-abandonar-btn-text {
+	white-space: nowrap;
+	letter-spacing: 0.2px;
+}
+
+.mision-layout {
+	position: relative;
+	z-index: 1;
+	max-width: 1280px;
+	margin: 58px auto 0;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 210px;
+	gap: 0;
+	align-items: start;
+}
+
+.mision-contenido {
+	position: relative;
+	max-width: none;
+	margin: 0;
+	padding: clamp(16px, 3vw, 28px);
+	border-radius: 0;
+	border-top: 1px solid rgba(160, 45, 28, 0.36);
+	border-bottom: 0;
+	border-left: 0;
+	border-right: 0;
+	background: linear-gradient(180deg, rgba(18, 6, 8, 0.88), rgba(10, 2, 3, 0.92));
+	box-shadow:
+		inset 18px 0 22px -24px rgba(0, 0, 0, 0.75),
+		inset -18px 0 22px -24px rgba(0, 0, 0, 0.75),
+		0 18px 38px rgba(0, 0, 0, 0.34);
+}
+
+.mision-contenido::after {
+	content: none;
+	position: absolute;
+	top: 0;
+	right: 0;
+	width: 1px;
+	height: 14px;
+	background: rgba(18, 6, 8, 0.95);
+	pointer-events: none;
+}
+
+.mision-header {
+	margin-bottom: 18px;
+	border-bottom: 0;
+	padding-bottom: 14px;
+}
+
+.mision-kicker {
+	margin: 0 0 8px;
+	font-size: 12px;
+	letter-spacing: 1.1px;
+	text-transform: uppercase;
+	color: rgba(255, 199, 169, 0.84);
+}
+
+.mision-titulo {
+	margin: 0;
+	font-family: 'Metal Mania', cursive;
+	font-size: clamp(30px, 4.4vw, 46px);
+	line-height: 1.1;
+	color: #fff;
+	letter-spacing: 1px;
+	text-shadow: 0 0 14px rgba(139, 0, 0, 0.25);
+}
+
+.mision-cuerpo-placeholder {
+	min-height: 360px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	padding: 20px;
+	border-radius: 0;
+	border: 1px dashed rgba(255, 255, 255, 0.2);
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent);
+}
+
+.mision-detalle-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+	gap: 16px;
+}
+
+.mision-relato {
+	padding: 18px;
+	border-radius: 0;
+	border: 0;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.15));
+}
+
+.mision-seccion-titulo {
+	margin: 0;
+	font-family: 'Metal Mania', cursive;
+	letter-spacing: 0.8px;
+	font-size: 26px;
+	color: rgba(255, 245, 240, 0.96);
+}
+
+.mision-sinopsis-parrafo {
+	margin: 0 0 12px;
+	line-height: 1.78;
+	font-size: 15px;
+	color: rgba(255, 240, 230, 0.9);
+}
+
+.mision-capitulos-lateral {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	padding-top: 0;
+	margin-top: 0;
+	margin-left: -1px;
+	align-self: start;
+	border-radius: 0;
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.mision-capitulo-btn {
+	width: 100%;
+	padding: 12px 12px;
+	border-radius: 0;
+	border-top: 1px solid rgba(120, 34, 21, 0.22);
+	border-bottom: 1px solid rgba(120, 34, 21, 0.22);
+	border-left: 0;
+	border-right: 0;
+	margin-bottom: -1px;
+	background: transparent;
+	color: rgba(255, 255, 255, 0.55);
+	font-size: 12px;
+	letter-spacing: 0.55px;
+	font-family: 'Metal Mania', cursive;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	text-align: left;
+	box-shadow:
+		inset 10px 0 14px -16px rgba(0, 0, 0, 0.75),
+		inset -10px 0 14px -16px rgba(0, 0, 0, 0.75);
+}
+
+.mision-capitulo-btn:first-child {
+	border-top-color: rgba(160, 45, 28, 0.4);
+}
+
+.mision-capitulo-btn:hover {
+	border-top-color: rgba(200, 50, 30, 0.5);
+	border-bottom-color: rgba(200, 50, 30, 0.5);
+	background: rgba(139, 0, 0, 0.14);
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.mision-capitulo-btn.is-active {
+	background: rgba(139, 0, 0, 0.3);
+	border-top-color: rgba(200, 50, 30, 0.7);
+	border-bottom-color: rgba(200, 50, 30, 0.7);
+	color: #fff;
+}
+
+.mision-video-wrap {
+	display: flex;
+	justify-content: center;
+	margin: 18px 0 14px;
+}
+
+.mision-video-placeholder {
+	width: min(100%, 760px);
+	min-height: 240px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	padding: 24px;
+	border-radius: 0;
+	border: 0;
+	background:
+		radial-gradient(circle at top, rgba(200, 50, 30, 0.18), transparent 46%),
+		linear-gradient(180deg, rgba(38, 12, 14, 0.94), rgba(12, 4, 5, 0.98));
+	box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+	text-align: center;
+}
+
+.mision-video-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 68px;
+	height: 68px;
+	border-radius: 0;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	background: rgba(0, 0, 0, 0.25);
+	color: rgba(255, 255, 255, 0.95);
+	font-size: 28px;
+	padding-left: 2px;
+}
+
+.mision-video-placeholder p {
+	margin: 0;
+	font-size: 14px;
+	letter-spacing: 0.3px;
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.mision-modos-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 14px;
+	margin-bottom: 14px;
+}
+
+.mision-modo-card {
+	padding: 18px;
+	border-radius: 0;
+	border: 0;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(0, 0, 0, 0.16));
+	min-height: 220px;
+	box-shadow: 0 10px 22px rgba(0, 0, 0, 0.14);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+}
+
+.mision-modo-card h3 {
+	margin: 0 0 10px;
+	font-family: 'Metal Mania', cursive;
+	letter-spacing: 0.8px;
+	font-size: 22px;
+	color: rgba(255, 245, 240, 0.96);
+}
+
+.mision-modo-card p {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.72;
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.mision-modo-btn {
+	margin-top: 14px;
+	padding: 8px 16px;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	font-family: 'Metal Mania', cursive;
+	font-size: 12px;
+	letter-spacing: 0.6px;
+	background: rgba(0, 0, 0, 0.24);
+	color: rgba(255, 255, 255, 0.9);
+	cursor: pointer;
+	align-self: center;
+	transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.mision-modo-btn:hover {
+	transform: translateY(-1px);
+}
+
+.mision-modo-card-master .mision-modo-btn {
+	border-color: rgba(243, 156, 18, 0.48);
+	background: rgba(243, 156, 18, 0.13);
+	color: rgba(255, 232, 187, 0.98);
+}
+
+.mision-modo-card-master .mision-modo-btn:hover {
+	border-color: rgba(243, 156, 18, 0.72);
+	background: rgba(243, 156, 18, 0.18);
+}
+
+.mision-modo-card-personaje .mision-modo-btn {
+	border-color: rgba(200, 50, 30, 0.7);
+	background: rgba(139, 0, 0, 0.3);
+	color: #fff;
+}
+
+.mision-modo-card-personaje .mision-modo-btn:hover {
+	border-color: rgba(255, 107, 53, 0.8);
+	background: rgba(139, 0, 0, 0.42);
+}
+
+.mision-panel {
+	position: static;
+	padding-top: 0;
+	display: grid;
+	gap: 12px;
+}
+
+.mision-chip {
+	padding: 8px 12px;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.85);
+	background: rgba(0, 0, 0, 0.24);
+}
+
+.mision-chip-grid {
+	position: absolute;
+	top: 16px;
+	right: 16px;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: flex-end;
+	z-index: 2;
+}
+
+.mision-chip-dificultad {
+	background: rgba(0, 0, 0, 0.24);
+}
+
+.mision-chip-estado.is-completada {
+	border-color: rgba(46, 204, 113, 0.5);
+	color: rgba(202, 255, 220, 0.98);
+	background: rgba(46, 204, 113, 0.14);
+}
+
+.mision-chip-estado.is-pendiente {
+	border-color: rgba(243, 156, 18, 0.48);
+	color: rgba(255, 232, 187, 0.98);
+	background: rgba(243, 156, 18, 0.13);
+}
+
+.mision-bloque {
+	padding: 12px;
+	border-radius: 0;
+	border: 0;
+	background: rgba(0, 0, 0, 0.2);
+}
+
+.mision-bloque h3 {
+	margin: 0 0 8px;
+	font-size: 13px;
+	text-transform: uppercase;
+	letter-spacing: 0.8px;
+	color: rgba(255, 211, 184, 0.9);
+}
+
+.mision-bloque ul {
+	margin: 0;
+	padding-left: 18px;
+	display: grid;
+	gap: 8px;
+}
+
+.mision-bloque li {
+	font-size: 13px;
+	line-height: 1.55;
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.mision-recompensa p {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.6;
+	color: rgba(255, 255, 255, 0.83);
+}
+
+.mision-estado {
+	font-size: 15px;
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.mision-estado-error {
+	color: rgba(255, 169, 160, 0.95);
+	border-color: rgba(231, 76, 60, 0.38);
+	background: linear-gradient(135deg, rgba(231, 76, 60, 0.08), rgba(0, 0, 0, 0.2));
+}
+
+.mission-character-modal-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 9999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+	background: rgba(0, 0, 0, 0.7);
+	backdrop-filter: blur(4px);
+}
+
+.mission-character-modal-card {
+	position: relative;
+	width: min(1040px, 100%);
+	min-height: min(88vh, 980px);
+	max-height: min(94vh, 1060px);
+	overflow: auto;
+	display: flex;
+	flex-direction: column;
+	padding: 24px;
+	border-radius: 20px;
+	border: 1px solid #742514;
+	background: #000;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(116, 37, 20, 0.4), inset 0 0 40px rgba(71, 15, 8, 0.1);
+}
+
+.mission-character-modal-close {
+	position: absolute;
+	top: 10px;
+	right: 14px;
+	border: 0;
+	background: transparent;
+	font-size: 28px;
+	line-height: 1;
+	color: rgba(255, 255, 255, 0.75);
+	cursor: pointer;
+}
+
+.mission-character-modal-close:hover {
+	color: #fff;
+}
+
+.mission-character-modal-title {
+	margin: 0 0 20px;
+	text-align: center;
+	font-family: 'Dungeon', 'Cinzel', serif;
+	font-size: clamp(1.7rem, 3.2vw, 2.2rem);
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	color: #fdfdfd;
+	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.mission-character-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.35fr);
+	gap: 18px;
+	min-height: 640px;
+	flex: 1;
+}
+
+.mission-character-list {
+	padding-right: 6px;
+}
+
+.mission-character-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(90px, 90px));
+	justify-content: start;
+	align-content: start;
+	gap: 12px;
+	padding: 6px 2px;
+}
+
+.mission-character-card {
+	background: transparent;
+	border: 0;
+	cursor: pointer;
+	transition: transform 0.2s ease;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	width: 90px;
+	padding: 0;
+	text-align: center;
+}
+
+.mission-character-card:hover {
+	transform: translateY(-2px);
+}
+
+.mission-character-card-frame {
+	background: rgba(15, 5, 5, 0.95);
+	border: 1px solid rgba(139, 0, 0, 0.25);
+	border-radius: 10px;
+	overflow: hidden;
+	aspect-ratio: 1 / 1;
+	transition: all 0.25s ease;
+}
+
+.mission-character-card.is-selected {
+	transform: translateY(-1px);
+}
+
+.mission-character-card.is-selected .mission-character-card-frame {
+	border-color: rgba(200, 50, 30, 0.95);
+	box-shadow: 0 0 0 1px rgba(200, 50, 30, 0.95), 0 8px 22px rgba(139, 0, 0, 0.35);
+}
+
+.mission-character-card-img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.mission-character-card-name {
+	font-family: 'Metal Mania', cursive;
+	font-size: 11px;
+	color: #fff;
+	letter-spacing: 0.4px;
+	line-height: 1.15;
+	text-wrap: balance;
+	margin: 0;
+}
+
+.mission-character-preview {
+	border-radius: 14px;
+	border: 0;
+	overflow: hidden;
+	min-height: 620px;
+	background: transparent;
+	display: flex;
+	align-items: stretch;
+	justify-content: flex-start;
+	flex-direction: column;
+}
+
+.mission-character-preview-head {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 12px;
+	border-bottom: 0;
+	background: transparent;
+}
+
+.mission-character-preview-head-spacer {
+	display: none;
+}
+
+.mission-character-preview-name {
+	margin: 0;
+	font-family: 'Metal Mania', cursive;
+	font-size: 1.05rem;
+	letter-spacing: 0.7px;
+	color: rgba(255, 244, 238, 0.96);
+	text-align: left;
+	text-transform: uppercase;
+}
+
+.mission-character-preview-level {
+	justify-self: end;
+	padding: 4px 10px;
+	border-radius: 999px;
+	border: 1px solid rgba(120, 196, 255, 0.7);
+	background: rgba(120, 196, 255, 0.16);
+	color: rgba(220, 244, 255, 0.98);
+	font-size: 0.75rem;
+	letter-spacing: 0.4px;
+	text-transform: uppercase;
+}
+
+.mission-character-preview-media {
+	width: 100%;
+	min-height: 460px;
+	flex: 1;
+	border-bottom: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4px;
+	overflow: hidden;
+	background: transparent;
+}
+
+.mission-character-preview-img {
+	width: 100%;
+	height: 100%;
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
+	object-position: center top;
+	transform: translateY(-34%) scale(1.42);
+	transform-origin: center top;
+	display: block;
+}
+
+.mission-character-stats-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px 16px;
+	margin-top: auto;
+	padding: 16px;
+}
+
+.mission-character-stat-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	border-bottom: 0;
+	padding-bottom: 6px;
+	gap: 8px;
+}
+
+.mission-character-stat-label {
+	font-family: 'Metal Mania', cursive;
+	font-size: 0.9rem;
+	letter-spacing: 0.6px;
+	text-transform: uppercase;
+	color: rgba(255, 255, 255, 0.76);
+}
+
+.mission-character-stat-value {
+	font-family: 'Metal Mania', cursive;
+	font-size: 1rem;
+	letter-spacing: 0.4px;
+	color: #2ecc71;
+}
+
+.mission-character-preview-empty {
+	padding: 22px;
+	text-align: center;
+	color: rgba(255, 255, 255, 0.7);
+	font-size: 0.95rem;
+}
+
+.mission-character-modal-state {
+	padding: 18px;
+	border-radius: 12px;
+	border: 1px dashed rgba(255, 255, 255, 0.22);
+	text-align: center;
+	color: rgba(255, 255, 255, 0.82);
+	background: rgba(255, 255, 255, 0.03);
+}
+
+.mission-character-modal-state-error {
+	border-color: rgba(231, 76, 60, 0.4);
+	color: rgba(255, 169, 160, 0.95);
+}
+
+.mission-character-enter-wrap {
+	display: flex;
+	justify-content: center;
+	margin-top: auto;
+	padding-top: 20px;
+	padding-bottom: 2px;
+}
+
+.mission-character-enter-btn {
+	min-width: 160px;
+	padding: 10px 28px;
+	border-color: rgba(200, 50, 30, 0.7);
+	background: rgba(139, 0, 0, 0.3);
+	color: #fff;
+	text-transform: uppercase;
+}
+
+.mission-character-enter-btn:hover:not(:disabled) {
+	border-color: rgba(255, 107, 53, 0.8);
+	background: rgba(139, 0, 0, 0.42);
+}
+
+.mission-character-enter-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.mission-level-gate-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 10050;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+	background: rgba(0, 0, 0, 0.55);
+	backdrop-filter: blur(2px);
+}
+
+.mission-level-gate-box {
+	background-color: #000;
+	border: 1px solid #742514;
+	border-radius: 20px;
+	padding: 30px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 15px;
+	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(116, 37, 20, 0.4), inset 0 0 40px rgba(71, 15, 8, 0.1);
+	max-width: 620px;
+	width: 92%;
+	color: #fff;
+	position: relative;
+	text-align: center;
+}
+
+.mission-level-gate-title {
+	font-family: 'Dungeon', 'Cinzel', serif;
+	font-size: 2.2rem;
+	font-weight: bold;
+	text-transform: uppercase;
+	color: #fdfdfd;
+	margin: 0;
+	margin-bottom: 6px;
+	text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.mission-level-gate-image {
+	width: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.mission-level-gate-image img {
+	width: 100%;
+	max-width: 520px;
+	height: auto;
+	object-fit: contain;
+	mix-blend-mode: screen;
+	pointer-events: none;
+	margin-top: 4px;
+	margin-bottom: -12px;
+}
+
+.mission-level-gate-content {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+	width: 100%;
+	align-items: center;
+}
+
+.mission-level-gate-content p {
+	margin: 0;
+	font-size: 1rem;
+	line-height: 1.5;
+	color: #ccc;
+}
+
+.mission-level-gate-list {
+	width: 100%;
+	margin: 0;
+	padding-left: 24px;
+	text-align: left;
+	color: #ddd;
+	display: grid;
+	gap: 6px;
+}
+
+.mission-level-gate-link {
+	background: transparent;
+	border: 0;
+	padding: 0;
+	color: rgba(220, 220, 220, 0.95);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition: color 0.2s ease;
+	text-decoration: none;
+}
+
+.mission-level-gate-link:hover {
+	color: #d3453b;
+}
+
+.mission-level-gate-actions {
+	width: 100%;
+	display: flex;
+	justify-content: center;
+	padding-top: 4px;
+}
+
+.mission-level-gate-btn {
+	padding: 12px 22px;
+	border: none;
+	border-radius: 8px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-size: 1rem;
+	background-color: #d3453b;
+	color: #fff;
+	text-transform: uppercase;
+	font-family: 'Dungeon', 'Cinzel', serif;
+	letter-spacing: 0.5px;
+}
+
+.mission-level-gate-btn:hover {
+	background-color: #f05348;
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+}
+
+@media (max-width: 768px) {
+	.mision-page {
+		padding-top: 20px;
+	}
+
+	.mision-layout {
+		grid-template-columns: 1fr;
+		gap: 10px;
+		margin-top: 46px;
+	}
+
+	.mision-contenido {
+		border-right: 0;
+	}
+
+	.mision-contenido::after {
+		content: none;
+	}
+
+	.mision-cuerpo-placeholder {
+		min-height: 280px;
+	}
+
+	.mision-detalle-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.mision-relato {
+		padding: 14px;
+	}
+
+	.mision-capitulos-lateral {
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 8px;
+		padding-top: 0;
+		margin-left: 0;
+	}
+
+	.mision-capitulo-btn {
+		width: auto;
+		margin: 0;
+		border-left: 0;
+		border-right: 0;
+	}
+
+	.mision-video-placeholder {
+		min-height: 200px;
+	}
+
+	.mision-modos-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.mision-modo-card {
+		min-height: auto;
+	}
+
+	.mision-panel {
+		padding-top: 0;
+	}
+
+	.mision-chip-grid {
+		top: 12px;
+		right: 12px;
+	}
+
+	.mission-character-modal-overlay {
+		padding: 14px;
+	}
+
+	.mission-character-modal-card {
+		min-height: auto;
+		max-height: min(90vh, 920px);
+		padding: 18px 14px;
+	}
+
+	.mission-character-layout {
+		grid-template-columns: 1fr;
+		min-height: initial;
+		flex: initial;
+	}
+
+	.mission-character-list {
+		padding-right: 0;
+	}
+
+	.mission-character-grid {
+		grid-template-columns: repeat(auto-fill, minmax(82px, 82px));
+		gap: 12px;
+	}
+
+	.mission-character-card {
+		width: 82px;
+	}
+
+	.mission-character-preview {
+		min-height: 420px;
+	}
+
+	.mission-character-preview-media {
+		min-height: 340px;
+		flex: 1;
+		padding: 4px;
+	}
+
+	.mission-character-preview-img {
+		transform: translateY(-20%) scale(1.24);
+	}
+
+	.mission-character-preview-head {
+		padding: 8px 10px;
+	}
+
+	.mission-character-preview-name {
+		font-size: 0.92rem;
+	}
+
+	.mission-character-preview-level {
+		font-size: 0.7rem;
+		padding: 3px 8px;
+	}
+
+	.mission-character-stats-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.mission-level-gate-box {
+		padding: 18px;
+	}
+
+	.mission-level-gate-title {
+		font-size: 1.7rem;
+	}
+}

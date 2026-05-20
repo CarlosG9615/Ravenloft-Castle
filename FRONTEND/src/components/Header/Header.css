@@ -1,0 +1,432 @@
+@import './Header.dropdown.css';
+
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(2px);
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  z-index: 2000;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  min-width: 60px;
+}
+
+.logo {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(255, 107, 53, 0.6));
+  transition: all 0.3s ease;
+}
+
+.logo:hover {
+  filter: drop-shadow(0 0 20px rgba(255, 184, 0, 0.8));
+  transform: scale(1.1);
+}
+
+.logo-text {
+  display: none;
+}
+
+.nav-menu {
+  display: flex;
+  gap: 35px;
+  align-items: center;
+  flex: 1;
+  justify-content: flex-start;
+  margin: 0 40px;
+}
+
+.nav-link {
+  font-family: 'Metal Mania', cursive;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.85) !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  padding: 10px 15px;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  color: white;
+  border-bottom-color: rgba(139, 0, 0, 0.8);
+}
+
+.nav-link.active {
+  color: white;
+  border-bottom-color: rgba(139, 0, 0, 0.8);
+}
+
+.header-actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  min-width: 200px;
+  justify-content: flex-end;
+}
+
+.theme-toggle,
+.icon-btn {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(139, 0, 0, 0.2);
+  border: 2px solid rgba(139, 0, 0, 0.4);
+}
+
+.theme-toggle:hover,
+.icon-btn:hover {
+  background: rgba(139, 0, 0, 0.4);
+  border-color: rgba(139, 0, 0, 0.7);
+}
+
+.theme-icon {
+  font-size: 20px;
+}
+
+.login-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: 'Metal Mania', cursive;
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+.login-btn:hover {
+  color: white;
+  transform: translateY(-1px);
+}
+
+.login-btn svg {
+  stroke-width: 2.5;
+}
+
+.icon-btn-clean {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+  padding: 0;
+}
+
+.icon-btn-clean:hover {
+  opacity: 1;
+}
+
+.mobile-menu-btn {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 10px;
+}
+
+.mobile-menu-btn span {
+  width: 25px;
+  height: 3px;
+  background: var(--orange-fire);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.mobile-menu {
+  display: none;
+}
+
+/* ── DESPLEGABLE CAMPAÑAS ── */
+.nav-dropdown-wrap {
+  position: relative;
+}
+
+.nav-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: rgba(10, 2, 2, 0.97);
+  border: 1px solid rgba(139, 0, 0, 0.4);
+  border-radius: 8px;
+  min-width: 180px;
+  z-index: 200;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.nav-dropdown-item {
+  display: block;
+  padding: 12px 16px;
+  color: rgba(232, 213, 183, 0.8);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-family: 'Metal Mania', cursive;
+  letter-spacing: 1px;
+  text-decoration: none;
+  border-bottom: none;
+}
+.nav-dropdown a,
+.nav-dropdown-item {
+  text-decoration: none !important;
+  color: rgba(232, 213, 183, 0.8);
+  outline: none;
+  border: none;
+}
+
+.nav-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.nav-dropdown-item:hover {
+  background: rgba(139, 0, 0, 0.25);
+  color: white;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1200px) {
+  .nav-menu {
+    gap: 20px;
+  }
+
+  .nav-link {
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .nav-menu {
+    display: none;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+  }
+
+  .mobile-menu {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 80px;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(15px);
+    border-bottom: 2px solid rgba(255, 107, 53, 0.4);
+    padding: 20px;
+    gap: 10px;
+  }
+
+  .mobile-nav-link {
+    font-family: 'Metal Mania', cursive;
+    font-size: 16px;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    padding: 15px 20px;
+    border-left: 4px solid transparent;
+    transition: all 0.3s ease;
+    text-decoration: none;
+  }
+
+  .mobile-nav-link:hover,
+  .mobile-nav-link.active {
+    color: var(--orange-fire);
+    border-left-color: var(--orange-fire);
+    background: rgba(255, 107, 53, 0.1);
+  }
+
+  .header-actions {
+    gap: 10px;
+  }
+
+  .login-btn span {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 20px;
+  }
+
+  .logo {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* ── NOTIFICACIONES ── */
+.notif-wrap {
+  position: relative;
+}
+
+.notif-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  position: relative;
+  padding: 4px;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.notif-btn:hover { opacity: 1; }
+
+.notif-badge {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  background: #e74c3c;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: sans-serif;
+}
+
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 320px;
+  background: rgba(5, 1, 1, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  animation: dropdownFadeIn 0.15s ease;
+}
+
+.notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.notif-titulo {
+  font-family: 'Metal Mania', cursive;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 1px;
+}
+
+.notif-leer-todas {
+  background: transparent;
+  border: none;
+  color: rgba(200, 170, 120, 0.6);
+  font-size: 11px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.notif-leer-todas:hover { color: rgba(200, 170, 120, 1); }
+
+.notif-lista {
+  max-height: 360px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+.notif-vacio {
+  text-align: center;
+  padding: 24px;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.notif-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.notif-item.no-leida {
+  background: rgba(15, 4, 4, 0.5);
+}
+
+.notif-item.leida {
+  opacity: 0.6;
+}
+
+.notif-icono {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notif-contenido {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.notif-mensaje {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.notif-fecha {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.notif-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e74c3c;
+  flex-shrink: 0;
+  margin-top: 4px;
+}

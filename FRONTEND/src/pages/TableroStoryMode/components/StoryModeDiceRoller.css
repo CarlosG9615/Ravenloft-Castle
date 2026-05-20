@@ -1,0 +1,83 @@
+/* Contenedor invisible — no bloquea la pantalla */
+.smdr-container {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* Origen en el centro de la pantalla */
+.smdr-dados-area {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+}
+
+/* Traslación + escala; perspectiva para hijos 3D */
+.smdr-dado-posicion {
+  position: absolute;
+  pointer-events: none;
+  will-change: transform;
+  perspective: 600px;
+}
+
+/* Rotación 3D via @keyframes */
+.smdr-dado-giro {
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+
+/* ── Cubo 3D ── */
+.smdr-cubo {
+  transform-style: preserve-3d;
+  position: relative;
+  /* El cubo interno es HALF*2 = 180px, pero las caras miden 220px
+     para que se solapen 20px en cada borde y no queden huecos */
+  width: 180px;
+  height: 180px;
+}
+
+.smdr-cara {
+  position: absolute;
+  /* Cara más grande que el cubo: sobresale 40px por cada lado */
+  width: 260px;
+  height: 260px;
+  top: -40px;
+  left: -40px;
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+
+.smdr-cara-bg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.smdr-cara-symbol {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 210px;
+  height: 210px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 8px rgba(241, 196, 15, 0.5));
+}
+
+@keyframes smdrCuboGiro {
+  from { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+  to   { transform: rotateX(var(--giro-x)) rotateY(var(--giro-total)) rotateZ(var(--giro-z)); }
+}
+
+@keyframes smdrFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.smdr-saliendo {
+  animation: smdrFadeOut 0.5s ease-out forwards;
+}

@@ -1,0 +1,858 @@
+/* ================================
+   JOIN GAME — Unirse a Partida
+   ================================ */
+
+.jg-page {
+  position: relative;
+  min-height: 100vh;
+  background: #0a0203;
+  padding-top: 80px;
+  overflow-x: hidden;
+}
+
+/* ── FONDO BASE ── */
+.jg-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.jg-bg::before {
+  content: '';
+  position: fixed;
+  left: clamp(8px, 1.8vw, 24px);
+  top: clamp(0px, 1vh, 18px);
+  width: min(44vw, 760px);
+  height: min(82vh, 820px);
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: left top;
+  opacity: 0.92;
+  z-index: 0;
+}
+
+.jg-bg::after {
+  content: '';
+  position: fixed;
+  right: clamp(8px, 1.8vw, 24px);
+  top: clamp(0px, 1vh, 18px);
+  width: min(44vw, 760px);
+  height: min(82vh, 820px);
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: right top;
+  opacity: 0.92;
+  z-index: 0;
+}
+
+.jg-bg.is-campanas::before {
+  background-image: url('/images/campaña.png');
+}
+
+.jg-bg.is-campanas::after {
+  background-image: url('/images/campaña.png');
+}
+
+.jg-bg-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(10,2,3,0.88) 0%, rgba(10,2,3,0.62) 40%, rgba(10,2,3,0.2) 100%),
+    linear-gradient(180deg, rgba(10,2,3,0.15) 0%, rgba(10,2,3,0.35) 100%);
+}
+
+/* ── CONTENIDO ── */
+.jg-contenido {
+  position: relative;
+  z-index: 3;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 40px 40px 80px;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.3);
+}
+
+/* ── CABECERA ── */
+.jg-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.jg-titulo {
+  font-family: 'Metal Mania', cursive;
+  font-size: clamp(44px, 4vw, 58px);
+  color: white;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 30px rgba(139,0,0,0.6),
+    2px 2px 0 rgba(0,0,0,0.8);
+  margin-bottom: 12px;
+}
+
+.jg-subtitulo {
+  font-family: 'Metal Mania', cursive;
+  font-size: 18px;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.jg-descripcion {
+  font-size: 16px;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 1px;
+}
+
+.jg-modo-historia-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 190px;
+  padding: 12px 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(139,0,0,0.35);
+  background: linear-gradient(180deg, rgba(38,10,12,0.95), rgba(18,6,8,0.95));
+  box-shadow:
+    0 10px 28px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+  color: white;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  font-family: 'Metal Mania', cursive;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.jg-modo-historia-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(200,50,30,0.65);
+  box-shadow:
+    0 14px 34px rgba(0,0,0,0.45),
+    0 0 0 1px rgba(200,50,30,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.jg-modo-historia-btn.active {
+  border-color: rgba(200,50,30,0.8);
+  background: linear-gradient(180deg, rgba(68,14,16,0.98), rgba(28,8,10,0.98));
+  box-shadow:
+    0 16px 36px rgba(0,0,0,0.48),
+    0 0 28px rgba(139,0,0,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.jg-modo-historia-btn:focus-visible {
+  outline: 2px solid rgba(200,50,30,0.8);
+  outline-offset: 3px;
+}
+
+.jg-modo-historia-texto {
+  position: relative;
+  z-index: 1;
+  font-size: 16px;
+}
+
+.jg-modo-historia-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #c41212;
+  color: #ffffff;
+  font-family: 'Metal Mania', cursive;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+}
+
+.jg-seccion-titulo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 10px;
+  margin: 8px 0 28px;
+}
+
+.jg-seccion-titulo-top {
+  position: relative;
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jg-seccion-titulo {
+  font-family: 'Metal Mania', cursive;
+  font-size: clamp(28px, 3vw, 42px);
+  line-height: 1;
+  color: white;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  text-align: center;
+  text-shadow:
+    0 0 24px rgba(139,0,0,0.35),
+    2px 2px 0 rgba(0,0,0,0.8);
+}
+
+.jg-seccion-titulo-linea {
+  width: 100%;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent 0%, rgba(200,50,30,0.95) 15%, rgba(200,50,30,0.95) 85%, transparent 100%);
+  box-shadow: 0 0 18px rgba(139,0,0,0.5);
+}
+
+/* ── CONTROLES ── */
+.jg-controles {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 36px;
+  flex-wrap: wrap;
+}
+
+.jg-busqueda-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.jg-busqueda-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.5;
+}
+
+.jg-busqueda {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(139,0,0,0.3);
+  border-radius: 8px;
+  padding: 10px 16px 10px 40px;
+  color: white;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.jg-busqueda:focus {
+  border-color: rgba(200,50,30,0.6);
+  background: rgba(139,0,0,0.08);
+}
+
+.jg-busqueda::placeholder { color: rgba(255,255,255,0.25); }
+
+.jg-filtros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.jg-filtro-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(139,0,0,0.3);
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Metal Mania', cursive;
+  letter-spacing: 0.5px;
+}
+
+.jg-filtro-btn:hover {
+  border-color: rgba(200,50,30,0.5);
+  color: rgba(255,255,255,0.8);
+}
+
+.jg-filtro-btn.active {
+  background: rgba(139,0,0,0.3);
+  border-color: rgba(200,50,30,0.7);
+  color: white;
+}
+
+/* ── GRID NETFLIX ── */
+.jg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+/* ── CARD ── */
+.jg-card {
+  background: rgba(15,5,5,0.9);
+  border: 1px solid rgba(139,0,0,0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  animation: cardFadeIn 0.5s ease both;
+}
+
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.jg-card:hover {
+  border-color: rgba(200,50,30,0.6);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(139,0,0,0.3);
+}
+
+.jg-card-img-wrap {
+  position: relative;
+  aspect-ratio: 16/10;
+  overflow: hidden;
+}
+
+.jg-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.jg-card:hover .jg-card-img {
+  transform: scale(1.05);
+}
+
+.jg-card-img-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  background: rgba(139,0,0,0.1);
+  color: rgba(255,255,255,0.2);
+}
+
+.jg-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(15,5,5,0.9) 0%, transparent 60%);
+}
+
+.jg-card-dificultad {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.jg-card-sesiones {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0,0,0,0.6);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.8);
+}
+
+.jg-card-info {
+  padding: 16px;
+}
+
+.jg-card-nombre {
+  font-family: 'Metal Mania', cursive;
+  font-size: 16px;
+  color: white;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  text-shadow: 0 0 10px rgba(139,0,0,0.3);
+}
+
+.jg-card-desc {
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.5;
+  margin-bottom: 12px;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.jg-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px 12px;
+  min-height: 34px;
+  font-size: 12px;
+}
+
+.jg-card-master {
+  color: rgba(255,200,150,0.7);
+  font-family: 'Metal Mania', cursive;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  line-height: 1.25;
+}
+
+.jg-card-plazas {
+  color: rgba(100,220,100,0.8);
+  font-weight: 600;
+}
+
+.jg-card-plazas-roles {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-height: 14px;
+}
+
+.jg-card-plazas.completa {
+  color: rgba(255,80,80,0.7);
+}
+
+.jg-card-modo-historia {
+  position: relative;
+  background: rgba(18,6,8,0.92);
+  overflow: visible;
+}
+
+.jg-card-modo-hero {
+  position: relative;
+  aspect-ratio: 16/10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  background: radial-gradient(circle at top, rgba(200,50,30,0.12), transparent 40%), linear-gradient(180deg, rgba(36,10,12,0.98), rgba(12,4,5,0.98));
+}
+
+.jg-card-modo-img,
+.jg-modal-hero-modo-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.jg-card-modo-plantilla {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.06) 25%, transparent 25%) -12px 0/24px 24px,
+    linear-gradient(225deg, rgba(255,255,255,0.04) 25%, transparent 25%) -12px 0/24px 24px,
+    linear-gradient(315deg, rgba(255,255,255,0.04) 25%, transparent 25%) 0 0/24px 24px,
+    linear-gradient(45deg, rgba(255,255,255,0.06) 25%, transparent 25%) 0 0/24px 24px;
+}
+
+.jg-card-modo-plantilla-texto {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px dashed rgba(255,255,255,0.35);
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  color: rgba(255,255,255,0.72);
+  text-transform: uppercase;
+  background: rgba(0,0,0,0.25);
+}
+
+.jg-card-premium-chip {
+  position: absolute;
+  top: -12px;
+  right: -10px;
+  transform: rotate(9deg);
+  transform-origin: center;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 68px;
+  height: 24px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #7c3aed;
+  color: #ffd700;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.22);
+}
+
+.jg-card-misiones {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 1;
+  background: rgba(0,0,0,0.6);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.85);
+}
+
+.jg-card-modo-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
+}
+
+.jg-card-modo-nivel,
+.jg-card-modo-personajes {
+  white-space: nowrap;
+}
+
+/* ── VACÍO ── */
+.jg-vacio {
+  text-align: center;
+  padding: 80px 20px;
+  color: rgba(255,255,255,0.3);
+}
+
+.jg-vacio-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+/* ── MODAL ── */
+.jg-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.jg-modal {
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  background: #140608;
+  border: 1px solid rgba(139,0,0,0.4);
+  border-radius: 16px;
+  overflow: hidden;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 40px rgba(139,0,0,0.15);
+  animation: modalSlideIn 0.25s ease;
+}
+
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Hero del modal */
+.jg-modal-hero {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+}
+
+.jg-modal-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.jg-modal-hero-placeholder {
+  width: 100%;
+  height: 100%;
+  background: rgba(139,0,0,0.15);
+}
+
+.jg-modal-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(20,6,8,1) 0%, rgba(20,6,8,0.3) 60%, transparent 100%);
+}
+
+.jg-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0,0,0,0.6);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 2;
+  transition: background 0.2s;
+}
+
+.jg-modal-close:hover { background: rgba(139,0,0,0.6); }
+
+.jg-modal-hero-info {
+  position: absolute;
+  bottom: 16px;
+  left: 20px;
+  z-index: 2;
+}
+
+.jg-dificultad-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.jg-modal-titulo {
+  font-family: 'Metal Mania', cursive;
+  font-size: 22px;
+  color: white;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  margin: 0 0 4px;
+}
+
+.jg-modal-sistema {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+/* Body del modal */
+.jg-modal-body {
+  padding: 20px 24px 28px;
+}
+
+.jg-modal-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.jg-modal-stat {
+  background: rgba(139,0,0,0.08);
+  border: 1px solid rgba(139,0,0,0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.jg-modal-stat-label {
+  display: block;
+  font-size: 10px;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.jg-modal-stat-valor {
+  display: block;
+  font-family: 'Metal Mania', cursive;
+  font-size: 14px;
+  color: white;
+  letter-spacing: 0.5px;
+}
+
+.jg-estado-abierta { color: rgba(100,220,100,0.9) !important; }
+
+.jg-modal-seccion {
+  margin-bottom: 20px;
+}
+
+.jg-modal-seccion-titulo {
+  font-family: 'Metal Mania', cursive;
+  font-size: 13px;
+  color: rgba(200,100,80,0.9);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  border-bottom: 1px solid rgba(139,0,0,0.2);
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.jg-modal-texto {
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* Jugadores */
+.jg-jugadores-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.jg-jugador-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(139,0,0,0.12);
+  border: 1px solid rgba(139,0,0,0.25);
+  border-radius: 24px;
+  padding: 7px 16px 7px 7px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.75);
+}
+
+.jg-jugador-libre {
+  opacity: 0.4;
+  border-style: dashed;
+}
+
+.jg-jugador-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(139,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-family: 'Metal Mania', cursive;
+  color: white;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.jg-jugador-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.jg-jugador-avatar-libre {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.3);
+}
+
+/* Botón unirse */
+.jg-btn-unirse {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #8b0000, #c0392b);
+  border: 1px solid rgba(200,50,30,0.5);
+  border-radius: 10px;
+  color: white;
+  font-family: 'Metal Mania', cursive;
+  font-size: 16px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(139,0,0,0.4);
+  margin-top: 8px;
+}
+
+.jg-btn-unirse:hover:not(:disabled) {
+  background: #a90000;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);
+}
+
+.jg-btn-unirse.jg-btn-master {
+  background: linear-gradient(135deg, rgba(148, 107, 40, 0.98), rgba(206, 165, 70, 0.98));
+  border-color: rgba(255, 214, 102, 0.7);
+  color: #fff8db;
+  box-shadow: 0 4px 20px rgba(157, 120, 34, 0.35);
+}
+
+.jg-btn-unirse.jg-btn-master:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(170, 124, 46, 1), rgba(232, 189, 82, 1));
+  box-shadow: 0 6px 18px rgba(157, 120, 34, 0.45);
+}
+
+.jg-btn-eliminar {
+  margin-top: 10px;
+  background-color: #8b0000;
+  color: white;
+  border: 1px solid #5a0000;
+  padding: 12px;
+  width: 100%;
+  border-radius: 6px;
+  font-family: 'Metal Mania', cursive;
+  font-size: 16px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.jg-btn-eliminar:hover:not(:disabled) {
+  background-color: #a90000;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .jg-bg { width: 100%; }
+  .jg-bg-overlay {
+    background:
+      linear-gradient(180deg, rgba(10,2,3,0.9) 0%, rgba(10,2,3,0.75) 35%, rgba(10,2,3,0.48) 100%),
+      linear-gradient(180deg, rgba(10,2,3,0.1) 0%, rgba(10,2,3,0.2) 100%);
+  }
+  .jg-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .jg-titulo { font-size: 32px; }
+  .jg-controles { flex-direction: column; }
+  .jg-busqueda-wrap { width: 100%; }
+  .jg-seccion-titulo-top {
+    justify-content: flex-start;
+    gap: 10px;
+    min-height: auto;
+  }
+  .jg-seccion-titulo {
+    text-align: left;
+  }
+}

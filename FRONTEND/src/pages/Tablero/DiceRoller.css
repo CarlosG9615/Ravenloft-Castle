@@ -1,0 +1,33 @@
+.dr-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.dr-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.dr-dado-wrap {
+  animation: diceRoll 0.4s ease-in-out infinite alternate;
+}
+
+@keyframes diceRoll {
+  0%   { transform: rotate(-12deg) scale(0.95); }
+  100% { transform: rotate(12deg) scale(1.05); }
+}
+
+.dr-resultado-dado {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+  margin: 0;
+  letter-spacing: 2px;
+}

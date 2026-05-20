@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-RavenloftCastleApiApplication<RavenloftCastleAPI>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.gvc.ravenloftcastleapi.RavenloftCastleApiApplication",
+            "projectName": "RavenloftCastleAPI",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

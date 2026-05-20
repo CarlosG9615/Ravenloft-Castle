@@ -1,0 +1,29 @@
+.master-prep-board {
+  position: relative;
+  width: 100%;
+  /* El contenedor se auto-dimensiona en alto igual que el mapa (1401×1123) */
+  aspect-ratio: 1401 / 1123;
+  background: transparent;
+  border: 1px solid rgba(160, 22, 26, 0.25);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.master-prep-hint {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  background: rgba(10, 2, 3, 0.82);
+  border: 1px solid rgba(160, 22, 26, 0.3);
+  border-radius: 20px;
+  padding: 5px 16px;
+  font-size: 11px;
+  color: rgba(180, 140, 120, 0.7);
+  white-space: nowrap;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+}

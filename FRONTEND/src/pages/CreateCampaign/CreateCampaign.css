@@ -1,0 +1,759 @@
+/* ================================
+   CREATE CAMPAIGN — 3 pasos
+   ================================ */
+
+/* ── PASO 1: MIS CAMPAÑAS ── */
+.cc-page--campanas {
+  background: #0a0203;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-top: 80px;
+  overflow-x: hidden;
+}
+
+.cc-campanas-contenido {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 80px);
+  padding: 40px 20px;
+}
+
+.cc-campanas-grid {
+  display: flex;
+  gap: 100px;
+  align-items: center; 
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cc-campana-card {
+  width: 200px;
+  background: rgba(20, 10, 5, 0.85);
+  border: 1px solid rgba(139,0,0,0.3);
+  border-radius: 14px;
+  padding: 32px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+.cc-campana-card--mis {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.cc-campana-card--mis:hover {
+  border: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.cc-campana-card:hover {
+  border-color: rgba(200,50,30,0.7);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 40px rgba(139,0,0,0.3);
+}
+
+.cc-campana-icono {
+  font-size: 40px;
+  margin-bottom: 14px;
+  display: block;
+}
+
+.cc-campana-icono--add {
+  font-size: 48px;
+  color: rgba(200,150,80,0.8);
+}
+
+.cc-campana-label {
+  font-family: 'Metal Mania', cursive;
+  font-size: 16px;
+  color: white;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.cc-campana-sub {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cc-campana-vacio {
+  font-size: 11px;
+  color: rgba(255,255,255,0.25);
+  font-style: italic;
+  margin-top: 10px;
+}
+
+.cc-campana-card--add {
+  border-style: dashed;
+  border-color: rgba(200,150,80,0.3);
+}
+
+.cc-campana-card--add:hover {
+  border-color: rgba(200,150,80,0.7);
+  box-shadow: 0 12px 40px rgba(200,150,80,0.15);
+}
+
+/* ── PASO 2: FORMULARIO ── */
+.cc-page--form {
+  background: 
+    linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.7) 0%,
+      rgba(0,0,0,0.7) 45%,
+      #0a0203 70%,
+      #0a0203 100%
+    ),
+    url('/images/newcampan.png') 30% 50% / 100% no-repeat;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 80px;
+  padding-bottom: 80px;
+  overflow-x: hidden;
+}
+
+.cc-form-contenido {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 90px 20px 80px;
+}
+
+.cc-form-titulo {
+  font-family: 'Metal Mania', cursive;
+  font-size: 22px;
+  color: white;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 32px;
+  text-shadow: 0 0 20px rgba(139,0,0,0.5);
+}
+
+.cc-form {
+  width: 100%;
+  max-width: 760px;
+  background: rgba(15, 6, 4, 0.50);
+
+  border-radius: 16px;
+  padding: 32px 28px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.cc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cc-field--full {
+  grid-column: 1 / -1;
+}
+
+.cc-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.45);
+}
+
+.cc-input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(139,0,0,0.25);
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+  width: 100%;
+}
+
+.cc-input:focus {
+  border-color: rgba(200,50,30,0.6);
+  background: rgba(139,0,0,0.06);
+}
+
+.cc-input::placeholder { color: rgba(255,255,255,0.2); }
+.cc-textarea { resize: vertical; min-height: 90px; }
+
+.cc-select {
+  background: #111;
+  border: 1px solid rgba(139,0,0,0.25);
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  padding: 10px 14px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.cc-select:focus { border-color: rgba(200,50,30,0.6); }
+.cc-select option { background: #1a0505; color: white; }
+
+.cc-file-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cc-file-btn {
+  display: inline-block;
+  padding: 8px 16px;
+  background: rgba(139,0,0,0.15);
+  border: 1px solid rgba(139,0,0,0.35);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.65);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cc-file-btn:hover {
+  background: rgba(139,0,0,0.25);
+  color: white;
+}
+
+.cc-file-hidden { display: none; }
+
+.cc-file-preview {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(139,0,0,0.3);
+}
+
+.cc-btn-next {
+  align-self: center;
+  justify-self: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(139,0,0,0.4);
+  border: 1px solid rgba(200,50,30,0.5);
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  grid-column: 1 / -1;
+}
+
+.cc-btn-next:hover:not(:disabled) {
+  background: rgba(200,50,30,0.6);
+  transform: translateX(4px);
+  box-shadow: 0 4px 20px rgba(139,0,0,0.4);
+}
+
+.cc-btn-next:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── PASO 3: MESA INMERSIVA ── */
+.cc-page--mesa {
+  background: url('/images/mesa-mapa.png') center center / 76% no-repeat;
+  min-height: 130vh;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 100px;
+  padding-bottom: 120px;
+  filter: brightness(1.1);
+  position: relative;
+  overflow-x: hidden;
+}
+
+.cc-page--mesa > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* TÍTULO */
+.cc-mesa-titulo {
+  font-family: 'Metal Mania', cursive;
+  font-size: 28px;
+  color: white;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 16px;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.8);
+}
+
+/* FILTROS */
+.cc-mesa-filtros {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 900px;
+  margin-bottom: 20px;
+  padding: 0 16px;
+}
+
+.cc-mesa-filtro {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(0,0,0,0.55);
+  color: rgba(255,255,255,0.6);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(6px);
+  white-space: nowrap;
+}
+
+.cc-mesa-filtro:hover {
+  border-color: rgba(255,255,255,0.5);
+  color: white;
+  background: rgba(0,0,0,0.7);
+}
+
+.cc-mesa-filtro.active {
+  background: rgba(139,0,0,0.5);
+  border-color: rgba(200,50,30,0.8);
+  color: white;
+}
+
+.cc-mesa-filtro--random {
+  border-color: rgba(200,160,50,0.4);
+  color: rgba(220,180,80,0.8);
+  background: rgba(100,70,0,0.3);
+}
+
+.cc-mesa-filtro--random:hover {
+  background: rgba(100,70,0,0.5);
+  border-color: rgba(220,180,80,0.7);
+  color: rgba(240,200,100,1);
+}
+
+.cc-mesa-filtro--random:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ZONA CENTRAL */
+.cc-mesa-zona {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 1200px;
+  margin-top: -165px;
+  padding: 0 60px;
+  flex: 1;
+  position: relative;
+}
+
+/* FLECHAS */
+.cc-mesa-flecha {
+  background: rgba(0,0,0,0.5);
+  border: none;
+  color: rgba(255,255,255,0.7);
+  font-size: 28px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  backdrop-filter: blur(6px);
+}
+
+.cc-mesa-flecha--izq {
+  position: absolute;
+  left: -20px;
+}
+
+.cc-mesa-flecha--der {
+  position: absolute;
+  right: -20px;
+}
+
+.cc-mesa-flecha:hover:not(:disabled) {
+  background: rgba(139,0,0,0.5);
+  color: white;
+  transform: scale(1.1);
+}
+
+.cc-mesa-flecha:disabled { opacity: 0.2; cursor: not-allowed; }
+
+.cc-mesa-flecha-icon {
+  color: rgba(255,255,255,0.75);
+}
+
+/* CENTRO CON EL MAPA */
+.cc-mesa-centro {
+  flex: 1;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* EL MAPA SOBRE LA MESA */
+.cc-mesa-mapa {
+  width: 100%;
+  aspect-ratio: 4/3;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  opacity: 0;
+  transform: scale(0.97);
+  transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow:
+    0 4px 20px rgba(0,0,0,0.6),
+    0 0 0 2px rgba(120,80,30,0.3);
+}
+
+.cc-mesa-mapa.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.cc-mesa-mapa:hover {
+  box-shadow:
+    0 8px 30px rgba(0,0,0,0.7),
+    0 0 0 3px rgba(200,160,80,0.5);
+}
+
+.cc-mesa-mapa.seleccionado {
+  box-shadow:
+    0 8px 30px rgba(0,0,0,0.7),
+    0 0 0 4px rgba(200,50,30,0.8),
+    0 0 30px rgba(200,50,30,0.3);
+}
+
+.cc-mesa-mapa-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cc-mesa-mapa-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(40,25,10,0.85);
+}
+
+.cc-mesa-mapa-icon {
+  font-size: 80px;
+  opacity: 0.3;
+}
+
+.cc-mesa-mapa-nombre-overlay {
+  font-family: 'Metal Mania', cursive;
+  font-size: 22px;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 2px;
+  text-align: center;
+  padding: 0 20px;
+}
+
+/* CHECK seleccionado */
+.cc-mesa-check {
+  position: absolute;
+  inset: 0;
+  background: rgba(139,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Metal Mania', cursive;
+  font-size: 28px;
+  color: white;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+  pointer-events: none;
+}
+
+/* INFO DEL MAPA */
+.cc-mesa-mapa-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);
+  padding: 20px 16px 12px;
+  pointer-events: none;
+}
+
+.cc-mesa-mapa-nombre {
+  font-family: 'Metal Mania', cursive;
+  font-size: 18px;
+  color: white;
+  letter-spacing: 2px;
+  display: block;
+  margin-bottom: 6px;
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.9);
+}
+
+.cc-mesa-mapa-cats {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.cc-mesa-cat {
+  background: rgba(0,0,0,0.6);
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.65);
+  backdrop-filter: blur(4px);
+}
+
+/* FAVORITO */
+.cc-mesa-fav {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.5);
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: all 0.2s ease;
+  z-index: 2;
+  padding: 4px 6px;
+  border-radius: 6px;
+  backdrop-filter: blur(4px);
+}
+
+.cc-mesa-fav:hover { opacity: 0.9; transform: scale(1.2); }
+.cc-mesa-fav.active { opacity: 1; }
+
+/* VACÍO */
+.cc-mesa-vacio {
+  width: 100%;
+  aspect-ratio: 4/3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.4);
+  border-radius: 4px;
+  color: rgba(255,255,255,0.3);
+  font-size: 14px;
+}
+
+/* CONTADOR */
+.cc-mesa-contador {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 1px;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+}
+
+/* MAPAS SELECCIONADOS */
+.cc-mesa-seleccionados {
+  width: 100%;
+  max-width: 900px;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(139,0,0,0.25);
+  border-radius: 12px;
+  padding: 12px 16px;
+  backdrop-filter: blur(8px);
+  margin-top: 12px;
+}
+
+.cc-mesa-sel-count {
+  font-family: 'Metal Mania', cursive;
+  font-size: 12px;
+  color: rgba(200,150,80,0.8);
+  display: block;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.cc-mesa-sel-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cc-mesa-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(139,0,0,0.2);
+  border: 1px solid rgba(139,0,0,0.35);
+  border-radius: 20px;
+  padding: 3px 10px 3px 12px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.7);
+}
+
+.cc-mesa-chip button {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.35);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.cc-mesa-chip button:hover { color: rgba(255,100,100,0.8); }
+
+/* BOTÓN CREAR */
+.cc-mesa-btn-crear {
+  margin-top: 20px;
+  padding: 14px 48px;
+  background: rgba(20,10,5,0.75);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 30px;
+  color: rgba(255,255,255,0.85);
+  font-family: 'Metal Mania', cursive;
+  font-size: 16px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.cc-mesa-btn-crear:hover:not(:disabled) {
+  background: rgba(139,0,0,0.5);
+  border-color: rgba(200,50,30,0.6);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(139,0,0,0.4);
+}
+
+.cc-mesa-btn-crear:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .cc-form {
+    grid-template-columns: 1fr;
+  }
+  .cc-file-wrap {
+    flex-wrap: wrap;
+  }
+  .cc-mesa-zona { gap: 12px; }
+  .cc-mesa-flecha { width: 40px; height: 40px; font-size: 20px; }
+  .cc-campanas-grid { flex-direction: column; align-items: center; }
+}
+/* ── BOTÓN FILTRO ICONO ── */
+.cc-filtro-btn-icon {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  z-index: 100;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: all 0.2s ease;
+}
+
+.cc-filtro-btn-icon:hover {
+  background: rgba(139,0,0,0.5);
+  border-color: rgba(200,50,30,0.6);
+}
+
+.cc-filtro-icon {
+  color: rgba(255,255,255,0.8);
+}
+
+/* ── PANEL LATERAL ── */
+.cc-filtro-panel {
+  position: fixed;
+  top: 0;
+  right: -300px;
+  width: 280px;
+  height: 100vh;
+  background: rgba(10,2,3,0.95);
+  border-left: 1px solid rgba(139,0,0,0.3);
+  backdrop-filter: blur(12px);
+  z-index: 200;
+  transition: right 0.3s ease;
+  padding: 80px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.cc-filtro-panel.abierto {
+  right: 0;
+}
+
+.cc-filtro-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(139,0,0,0.25);
+  padding-bottom: 12px;
+}
+
+.cc-filtro-panel-titulo {
+  font-family: 'Metal Mania', cursive;
+  font-size: 18px;
+  color: white;
+  letter-spacing: 2px;
+}
+
+.cc-filtro-panel-cerrar {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 18px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.cc-filtro-panel-cerrar:hover { color: white; }
+
+.cc-filtro-panel-opciones {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cc-filtro-panel .cc-mesa-filtro {
+  width: 100%;
+  text-align: left;
+  border-radius: 8px;
+}
+.back-button {
+  position: fixed;
+  top: 90px;
+  left: 20px;
+  z-index: 100;
+}

@@ -1,0 +1,199 @@
+.modal-alert-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-alert-box {
+  background-color: #000000;
+  border: 1px solid #742514;
+  border-radius: 20px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(116, 37, 20, 0.4), inset 0 0 40px rgba(71, 15, 8, 0.1);
+  max-width: 550px;
+  width: 90%;
+  color: #fff;
+  animation: scaleUpRolo 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  position: relative;
+  text-align: center;
+}
+
+@keyframes scaleUpRolo {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.modal-alert-title {
+  font-family: 'Dungeon', 'Cinzel', serif;
+  font-size: 2.2rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #fdfdfd;
+  margin: 0;
+  margin-bottom: 20px;
+  z-index: 10;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+}
+
+.modal-alert-image {
+  flex-shrink: 0;
+  position: relative;
+  margin: 0 auto;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.modal-alert-image img {
+  width: 100%;
+  max-width: 750px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 0;
+  border: none;
+  background-color: transparent;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  margin-top: 10px;
+  margin-bottom: -20px;
+}
+
+.modal-alert-content {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  z-index: 10;
+  width: 100%;
+  align-items: center;
+  margin-top: 0;
+}
+
+.modal-alert-content p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #ccc;
+  text-align: center;
+}
+
+.modal-alert-content p strong {
+  color: #fff;
+}
+
+.modal-alert-actions {
+  display: flex;
+  width: 100%;
+  gap: 15px;
+  justify-content: space-between;
+}
+
+.modal-alert-btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+  flex: 1;
+}
+
+.modal-alert-btn.confirm {
+  background-color: #d3453b;
+  color: #fff;
+  text-transform: uppercase;
+  font-family: 'Dungeon', 'Cinzel', serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
+}
+
+.modal-alert-btn.confirm:hover {
+  background-color: #f05348;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+}
+
+.modal-alert-btn.cancel {
+  background-color: #333;
+  color: #bbb;
+  border: none;
+}
+
+.modal-alert-btn.cancel:hover {
+  background-color: #444;
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+/* Conflict modal avatars */
+.modal-conflict-avatars {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  justify-content: center;
+  width: 100%;
+}
+.modal-conflict-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background-color: #111;
+  border: 3px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.6), inset 0 0 12px rgba(255,255,255,0.02);
+}
+.modal-conflict-avatar.player {
+  border-color: rgba(80,170,240,0.9);
+}
+.modal-conflict-avatar.enemy {
+  border-color: rgba(224,60,60,0.95);
+}
+.modal-conflict-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.modal-conflict-avatar .initials {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.6rem;
+}
+.modal-conflict-vs {
+  color: #fff;
+  opacity: 0.9;
+  font-weight: 800;
+  font-size: 1.1rem;
+}

@@ -1,0 +1,195 @@
+/* ── USER MENU ── */
+.user-menu {
+  position: relative;
+}
+
+.user-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 24px;
+  padding: 5px 8px 5px 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-primary, #fff);
+}
+
+.user-menu-trigger:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(20, 4, 4, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-initials {
+  font-family: 'Metal Mania', cursive;
+  font-size: 14px;
+  color: #fff;
+}
+
+.user-name {
+  font-family: 'Metal Mania', cursive;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-arrow {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  transition: transform 0.2s ease;
+  display: inline-block;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+/* ── DROPDOWN PANEL ── */
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 300px;
+  background: rgba(5, 1, 1, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  animation: dropdownFadeIn 0.15s ease;
+}
+
+.dropdown-content {
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes dropdownFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 18px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dropdown-avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(20, 4, 4, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  font-family: 'Metal Mania', cursive;
+  font-size: 24px;
+  color: #fff;
+}
+
+.dropdown-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dropdown-profile-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  width: 100%;
+}
+
+.dropdown-greeting {
+  font-family: 'Metal Mania', cursive;
+  font-size: 16px;
+  color: #fff;
+}
+
+.dropdown-email {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.user-dropdown .dropdown-actions .dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 36px;
+  padding: 0 14px;
+  background: rgba(15, 3, 3, 0.7) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 10px !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+  font-size: 10px !important;
+  font-family: 'Metal Mania', cursive !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  outline: none !important;
+  appearance: none !important;
+}
+
+.user-dropdown .dropdown-actions .dropdown-item:hover {
+  background: rgba(25, 5, 5, 0.8) !important;
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.user-dropdown .dropdown-actions .dropdown-item--danger {
+  color: rgba(255, 100, 100, 0.7) !important;
+}
+
+.user-dropdown .dropdown-actions .dropdown-item--danger:hover {
+  color: #ff6464 !important;
+}
+
+.mobile-nav-link--danger {
+  color: rgba(255, 80, 80, 0.8) !important;
+}

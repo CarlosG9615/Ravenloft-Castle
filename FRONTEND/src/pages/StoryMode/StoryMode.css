@@ -1,0 +1,354 @@
+@import '../JoinGame/JoinGame.css';
+
+.jg-bg.is-modos-historia::before {
+	background-image: url('/images/campaña3.png');
+	left: clamp(18px, 2.4vw, 40px);
+	top: clamp(34px, 4.2vh, 60px);
+	width: min(50vw, 860px);
+	height: min(86vh, 860px);
+}
+
+.jg-bg.is-modos-historia::after {
+	background-image: url('/images/campaña4.png');
+	right: clamp(34px, 4.2vw, 72px);
+	top: clamp(0px, 0.6vh, 10px);
+	width: min(46vw, 780px);
+	height: min(82vh, 820px);
+}
+
+.jg-modo-historia-btn-inline {
+	position: absolute;
+	right: 0;
+	min-width: 132px;
+	padding: 8px 16px;
+	font-size: 13px;
+	letter-spacing: 0.8px;
+	box-shadow:
+		0 8px 20px rgba(0, 0, 0, 0.28),
+		inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.jg-modo-historia-btn-inline .jg-modo-historia-texto {
+	font-size: 13px;
+}
+
+.jg-modo-historia-btn-inline .jg-modo-historia-badge {
+	top: -8px;
+	right: -8px;
+	min-width: 42px;
+	height: 18px;
+	padding: 0 8px;
+	font-size: 9px;
+}
+
+.jg-modal-hero-modo {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: radial-gradient(circle at top, rgba(200,50,30,0.15), transparent 35%), linear-gradient(180deg, rgba(28,8,10,0.98), rgba(12,4,5,0.98));
+}
+
+.jg-modo-personajes-lista {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.jg-card-modo-historia .jg-card-plazas-roles {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	flex-wrap: nowrap;
+}
+
+.jg-card-modo-historia .jg-card-plazas {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	white-space: nowrap;
+	font-size: 9px;
+	line-height: 1.1;
+}
+
+.jg-card-plazas-label {
+	color: #f3c178;
+	font-weight: 700;
+	letter-spacing: 0.2px;
+	text-shadow: 0 0 8px rgba(243, 193, 120, 0.25);
+}
+
+.jg-master-accent {
+	color: #f3c178;
+	text-shadow: 0 0 8px rgba(243, 193, 120, 0.2);
+}
+
+.jg-card-plazas-cupo {
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	padding: 0 3px;
+	border-radius: 4px;
+	border: 1px solid transparent;
+	font-size: 8px;
+	line-height: 1;
+}
+
+.jg-card-plazas-cupo.disponible {
+	color: rgba(100, 220, 100, 0.95);
+	background: rgba(24, 90, 36, 0.15);
+	border-color: rgba(80, 210, 110, 0.35);
+}
+
+.jg-card-plazas-cupo.completa {
+	color: rgba(255, 105, 105, 0.95);
+	background: rgba(120, 30, 30, 0.2);
+	border-color: rgba(255, 90, 90, 0.4);
+}
+
+.jg-card-plazas-separador {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 8px;
+	font-weight: 700;
+	color: rgba(255, 180, 110, 0.9);
+	line-height: 1;
+	flex-shrink: 0;
+}
+
+.jg-card-modo-historia .jg-card-master {
+	max-width: 42%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.jg-card-modo-historia .jg-card-footer,
+.jg-card-modo-historia .jg-card-modo-meta {
+	width: 100%;
+}
+
+.jg-card-footer-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	gap: 10px;
+}
+
+.jg-card-footer-row--top {
+	min-height: 24px;
+}
+
+.jg-card-footer-row--bottom {
+	min-height: 18px;
+}
+
+.jg-card-modo-historia .jg-card-footer {
+	min-height: 30px;
+}
+
+.jg-card-personajes-asignados {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 3px;
+	max-width: 52%;
+	text-align: right;
+}
+
+.jg-card-personaje-nombre {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: rgba(255, 94, 94, 0.96);
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.2px;
+	text-shadow: 0 0 8px rgba(170, 35, 35, 0.22);
+	white-space: nowrap;
+}
+
+.jg-card-personaje-separador {
+	color: rgba(255, 154, 154, 0.72);
+	font-weight: 800;
+	padding: 0 2px;
+	flex-shrink: 0;
+}
+
+.jg-card-personaje-vacio {
+	opacity: 0.7;
+}
+
+.jg-card-modo-historia {
+	display: flex;
+	flex-direction: column;
+}
+
+.jg-card-modo-historia .jg-card-info {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.jg-card-modo-historia .jg-card-modo-meta {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: flex-start;
+	gap: 4px;
+	margin-top: 0;
+	min-height: 18px;
+	font-size: 11px;
+}
+
+.jg-card-plazas-roles--meta {
+	justify-content: flex-end;
+	font-size: 11px;
+	margin-left: auto;
+}
+
+.jg-modal-plazas-roles {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: nowrap;
+}
+
+.jg-modal-plazas-roles .jg-modal-stat-valor {
+	display: inline-flex;
+	align-items: center;
+	white-space: nowrap;
+	font-size: 12px;
+	line-height: 1.1;
+}
+
+@media (max-width: 900px) {
+	.jg-modal-plazas-roles {
+		flex-wrap: wrap;
+	}
+}
+
+.jg-upgrade-modal {
+	max-width: 720px;
+	padding: 28px 24px 22px;
+}
+
+.jg-upgrade-header h3 {
+	margin: 0 0 8px;
+	font-family: 'Metal Mania', cursive;
+	letter-spacing: 1px;
+	color: #fff;
+}
+
+.jg-upgrade-header p {
+	margin: 0;
+	color: rgba(255, 255, 255, 0.72);
+	font-size: 14px;
+}
+
+.jg-upgrade-planes {
+	margin-top: 18px;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+	gap: 16px;
+}
+
+.jg-upgrade-plan-card {
+	background: rgba(139, 0, 0, 0.12);
+	border: 1px solid rgba(139, 0, 0, 0.35);
+	border-radius: 12px;
+	padding: 12px;
+}
+
+.jg-upgrade-plan-top {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.jg-upgrade-plan-tipo {
+	font-size: 11px;
+	letter-spacing: 0.6px;
+	text-transform: uppercase;
+	color: rgba(255, 255, 255, 0.9);
+	background: rgba(0, 0, 0, 0.3);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	padding: 2px 8px;
+	border-radius: 999px;
+}
+
+.jg-upgrade-plan-precio {
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.85);
+}
+
+.jg-upgrade-plan-card h4 {
+	margin: 0 0 6px;
+	color: #fff;
+	font-size: 16px;
+}
+
+.jg-upgrade-plan-card p {
+	margin: 0;
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.7);
+	line-height: 1.45;
+}
+
+.jg-upgrade-vacio {
+	margin: 0;
+	font-size: 13px;
+	color: rgba(255, 255, 255, 0.72);
+}
+
+.jg-upgrade-actions {
+	margin-top: 18px;
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+}
+
+.jg-upgrade-btn-sec,
+.jg-upgrade-btn-pri {
+	border: 1px solid rgba(139, 0, 0, 0.45);
+	border-radius: 10px;
+	padding: 10px 14px;
+	font-family: 'Metal Mania', cursive;
+	letter-spacing: 0.8px;
+	text-transform: uppercase;
+	cursor: pointer;
+}
+
+.jg-upgrade-btn-sec {
+	background: rgba(20, 6, 8, 0.9);
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.jg-upgrade-btn-pri {
+	background: linear-gradient(135deg, #8b0000, #c0392b);
+	color: #fff;
+}
+
+@media (max-width: 768px) {
+	.jg-seccion-titulo-top {
+		justify-content: flex-start;
+		gap: 10px;
+		min-height: auto;
+	}
+
+	.jg-seccion-titulo {
+		text-align: left;
+	}
+
+	.jg-modo-historia-btn-inline {
+		position: static;
+		margin-left: auto;
+	}
+}
