@@ -323,6 +323,11 @@ public class MisionParticipanteService {
     }
 
     @Transactional(readOnly = true)
+    public java.util.Optional<String> getNombreMaster(Long misionId) {
+        return participanteRepository.findNombreMasterByMisionId(misionId);
+    }
+
+    @Transactional(readOnly = true)
     public boolean puedeAccederAMision(Long usuarioId, Long misionId) {
         List<MisionParticipante> lista = participanteRepository.findByMisionId(misionId);
         return lista.stream().anyMatch(p -> p.getUsuario().getId().equals(usuarioId)

@@ -2,12 +2,12 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { DiceRoller } from './DiceRoller';
-import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
+import { DiceRoller } from '../../Tablero/DiceRoller';
+import { getAvatarUrl, getCartaUrl } from '../../../utils/imageUtils';
 import { Comment, Users, Mic, Skull, Sword } from 'pixelarticons/react'
 import { Dices, Smile } from 'lucide-react';
-import { PerfilPublicoModal } from '../../components/PerfilPublicoModal/PerfilPublicoModal';
-import './PanelPartida.css';
+import { PerfilPublicoModal } from '../../../components/PerfilPublicoModal/PerfilPublicoModal';
+import './PanelPartidaStoryMode.css';
 
 interface Jugador {
   id: string;
@@ -42,14 +42,7 @@ interface MensajeChat {
   };
 }
 
-const DADOS = [
-  { caras: 4,  label: 'd4'  },
-  { caras: 6,  label: 'd6'  },
-  { caras: 8,  label: 'd8'  },
-  { caras: 10, label: 'd10' },
-  { caras: 12, label: 'd12' },
-  { caras: 20, label: 'd20' },
-];
+// DADOS removed for Story Mode — movement/attack dice handled by StoryModeDicePanel
 
 const EMOTES = [
   { id: 'emoji-sorpre',   src: '/images/emotes/emoji-sorpre.png',   label: 'Sorprendido' },
@@ -163,10 +156,9 @@ interface Props {
   movimientoYaLanzado?: boolean;
   onAtaqueRollResult?: (cantidadResultados: number) => void;
   ataqueYaLanzado?: boolean;
-  chatSince?: string | null;
 }
 
-export function PanelPartida({
+export function PanelPartidaStoryModeChat({
   nombreMaster = 'Tú (Master)',
   colorMaster = '#c0392b',
   panelSuperior,
@@ -180,12 +172,11 @@ export function PanelPartida({
   movimientoYaLanzado = false,
   onAtaqueRollResult,
   ataqueYaLanzado = false,
-  chatSince,
 }: Props) {
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'voz'>('chat');
   const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [inputChat, setInputChat] = useState('');
-  const [modificador, setModificador] = useState(0);
+  const modificador = 0;
   const [conectado, setConectado] = useState(false);
   const [dadoActivo, setDadoActivo] = useState<string | null>(null);
   const [resultadoActivo, setResultadoActivo] = useState<number | null>(null);
@@ -217,8 +208,7 @@ export function PanelPartida({
         jugadoresInicialesIdsRef.current = new Set();
         if (campanaId) {
           const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-          const sinceParam = chatSince ? `?since=${encodeURIComponent(chatSince)}` : '';
-          fetch(`http://localhost:8080/api/misiones/${campanaId}/chat${sinceParam}`, {
+          fetch(`http://localhost:8080/api/misiones/${campanaId}/chat`, {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           })
             .then(r => (r.ok ? r.json() : []))
@@ -394,8 +384,10 @@ export function PanelPartida({
       handleLeave();
       window.removeEventListener('beforeunload', handleLeave);
       try { client.deactivate(); } catch {}
+      // Stop local stream
       try { localStreamRef.current?.getTracks().forEach(t => t.stop()); } catch {}
       localStreamRef.current = null;
+      // Close peers and cleanup audio nodes
       peersRef.current.forEach((pc, id) => {
         try { pc.close(); } catch {}
         const audio = audioElementsRef.current.get(id);
@@ -429,8 +421,12 @@ export function PanelPartida({
   const enviarMensaje = useCallback(() => {
     const texto = inputChat.trim();
     if (!texto || !stompRef.current?.connected || !campanaId) return;
-    const autorNombre = jugadorActual?.nombre || nombreMaster;
-    const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    const usuarioNombre = jugadorActual?.usuarioNombre ?? jugadorActual?.usuario?.nombre ?? jugadorActual?.usuarioName;
+    const personajeNombre = jugadorActual?.nombrePersonaje ?? jugadorActual?.nombre ?? jugadorActual?.personajeNombre;
+    const autorNombre = esMaster
+      ? `${usuarioNombre || nombreMaster} (Master)`
+      : (personajeNombre || nombreMaster);
+    const autorColor = esMaster ? '#f1c40f' : (jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster);
     const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
     const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
     stompRef.current.publish({
@@ -478,8 +474,12 @@ export function PanelPartida({
       return;
     }
 
-    const autorNombre = jugadorActual?.nombre || nombreMaster;
-    const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    const usuarioNombre = jugadorActual?.usuarioNombre ?? jugadorActual?.usuario?.nombre ?? jugadorActual?.usuarioName;
+    const personajeNombre = jugadorActual?.nombrePersonaje ?? jugadorActual?.nombre ?? jugadorActual?.personajeNombre;
+    const autorNombre = esMaster
+      ? `${usuarioNombre || nombreMaster} (Master)`
+      : (personajeNombre || nombreMaster);
+    const autorColor = esMaster ? '#f1c40f' : (jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster);
     const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
     const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
     const total = resultadoReal + modificador;
@@ -510,8 +510,12 @@ export function PanelPartida({
   const handleAtaqueAnimacionFin = useCallback((imagenesResultado: string[]) => {
     if (!CustomDicePanel || dadoActivo === null) return;
     const dado = dadoActivo.replace(/^ataque-/, '');
-    const autorNombre = jugadorActual?.nombre || nombreMaster;
-    const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    const usuarioNombre = jugadorActual?.usuarioNombre ?? jugadorActual?.usuario?.nombre ?? jugadorActual?.usuarioName;
+    const personajeNombre = jugadorActual?.nombrePersonaje ?? jugadorActual?.nombre ?? jugadorActual?.personajeNombre;
+    const autorNombre = esMaster
+      ? `${usuarioNombre || nombreMaster} (Master)`
+      : (personajeNombre || nombreMaster);
+    const autorColor = esMaster ? '#f1c40f' : (jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster);
     const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
     const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
     const msg: MensajeChat = {
@@ -548,16 +552,22 @@ export function PanelPartida({
   };
 
   const jugadoresBase = Array.isArray(jugadores) ? jugadores : [];
-  const jugadoresBasePorId = new Map(jugadoresBase.map(j => [j?.id?.toString?.(), j]));
+  // jugadoresBase[i].id = usuarioId (remapeado en useStoryModeSync)
+  const jugadoresBasePorUsuarioId = new Map(jugadoresBase.map(j => [j?.id?.toString?.(), j]));
+  // jugadoresBase[i].personajeId viene del spread de ParticipanteJugadorDTO
+  const jugadoresBasePorPersonajeId = new Map(jugadoresBase.map(j => [j?.personajeId?.toString?.(), j]));
   const jugadoresBasePorNombre = new Map<string, any>();
   jugadoresBase.forEach(j => {
     if (j?.nombre) jugadoresBasePorNombre.set(j.nombre, j);
     if (j?.usuarioNombre) jugadoresBasePorNombre.set(j.usuarioNombre, j);
   });
 
+  // personajeId canónico del usuario actual: preferir personajeId, caer en id si es objeto personaje
+  const miPersonajeId = (jugadorActual?.personajeId ?? jugadorActual?.id)?.toString() ?? null;
+
   const jugadoresAMostrar = (jugadoresRed.length > 0 ? jugadoresRed : (jugadores !== undefined ? jugadores : JUGADORES_DEMO))
       .filter((j: any) => {
-   
+
       if (esMaster) {
       const miId = jugadorActual?.id?.toString();
       return j.id?.toString() !== miId;
@@ -566,11 +576,17 @@ export function PanelPartida({
   })
 
     .map((j: any, i: number) => {
-      const base = jugadoresBasePorId.get(j.id?.toString?.())
+      // jugadoresRed viene del campana WS (JugadorWsDTO): j.id = personajeId, sin personajeId explícito
+      // jugadores prop viene de useStoryModeSync (mision WS): j.id = usuarioId, con personajeId
+      const base = jugadoresBasePorUsuarioId.get(j.id?.toString?.())
+        || jugadoresBasePorPersonajeId.get(j.id?.toString?.())
         || jugadoresBasePorNombre.get(j.nombre || j.usuarioNombre);
+      // personajeId: tomar del campo explícito, o del base, o de j.id (que en campana WS ya ES el personajeId)
+      const personajeIdResuelto = (j.personajeId ?? base?.personajeId ?? j.id)?.toString() ?? null;
       return {
         id: j.id?.toString() || i.toString(),
-        usuarioId: j.usuarioId ?? j.usuario_id ?? null,
+        personajeId: personajeIdResuelto,
+        usuarioId: (j.usuarioId ?? j.usuario_id ?? base?.usuarioId)?.toString() ?? null,
         nombre: j.nombre || j.usuarioNombre || 'Aventurero',
         clase: j.clase || base?.clase || 'Desconocida',
         avatar: j.avatar
@@ -655,6 +671,7 @@ export function PanelPartida({
     } else {
       localStreamRef.current?.getTracks().forEach(t => t.stop());
       localStreamRef.current = null;
+      // Close peers and cleanup audio elements
       peersRef.current.forEach((pc, id) => {
         try { pc.close(); } catch {}
         const audio = audioElementsRef.current.get(id);
@@ -776,17 +793,17 @@ export function PanelPartida({
           <div className="pp-chat-input-wrap">
             {mostrarDados && (
               <div className="pp-dados-picker">
-                {DADOS.map(({ caras, label }) => (
-                  <button
-                    key={label}
-                    className="pp-dado-pick-btn"
-                    onClick={() => lanzarDado(caras, label)}
-                    disabled={dadoActivo !== null}
-                  >
-                    <img src={`/images/dadoCampana/${label}.png`} alt={label} className="pp-dado-pick-img" />
-                    <span>{label}</span>
-                  </button>
-                ))}
+                {/* En Story Mode mostramos sólo el panel específico (movimiento d6/d12 + ataque/defensa) */}
+                {CustomDicePanel ? (
+                  <CustomDicePanel
+                    dadoActivo={dadoActivo}
+                    onLanzarDado={lanzarDado}
+                    onAtaqueAnimacionFin={handleAtaqueAnimacionFin}
+                    turnoActual={turnoActual}
+                    jugadorActual={jugadorActual}
+                    movimientoYaLanzado={movimientoYaLanzado}
+                  />
+                ) : null}
               </div>
             )}
             {mostrarEmotes && (
@@ -838,14 +855,7 @@ export function PanelPartida({
       {pestana === 'jugadores' && (
         <div className="pp-seccion">
           <div className="pp-jugadores-lista">
-            <div className="pp-jugador">
-              <div className="pp-jugador-cabecera">
-                <span className="pp-jugador-dot" style={{ background: colorMaster }} />
-                <div className="pp-jugador-avatar-placeholder">M</div>
-                <span className="pp-jugador-nombre">{nombreMaster}</span>
-                <span className="pp-jugador-clase">Master</span>
-              </div>
-            </div>
+            {/* Master header removed for Story Mode */}
             {jugadoresAMostrar.length > 0 ? (
               jugadoresAMostrar.map(j => {
                 const hpReal = hpOverrides[j.id] ?? j.hp;
@@ -880,7 +890,7 @@ export function PanelPartida({
                     </div>
                     <div className="pp-jugador-hp-wrap">
                       <span className="pp-jugador-hp-label">HP</span>
-                      {esMaster && (
+                      {j.personajeId != null && miPersonajeId != null && j.personajeId === miPersonajeId && (
                         <button className="pp-hp-btn" onClick={() => cambiarHp(j.id, hpReal, j.hpMax, -1)}>−</button>
                       )}
                       <div className="pp-jugador-hp-barra">
@@ -892,7 +902,7 @@ export function PanelPartida({
                           }}
                         />
                       </div>
-                      {esMaster && (
+                      {j.personajeId != null && miPersonajeId != null && j.personajeId === miPersonajeId && (
                         <button className="pp-hp-btn" onClick={() => cambiarHp(j.id, hpReal, j.hpMax, 1)}>+</button>
                       )}
                       <span className="pp-jugador-hp-num">{hpReal}/{j.hpMax}</span>

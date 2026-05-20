@@ -43,17 +43,17 @@ export function TableroStoryMode() {
   const jugadorActual   = rawState.jugadorActual   ?? rawState.personaje       ?? fallback.jugadorActual ?? fallback.personaje ?? null;
   const esMaster        = rawState.rol === 'master';
 
-  const nombreMaster = personaje?.nombre ?? jugadorActual?.nombre ?? 'Personaje';
-
-  const chatSince = savedRef.current === null ? new Date().toISOString() : null;
-
   const [panelAbierto, setPanelAbierto] = useState(true);
   const [participantes, setParticipantes] = useState<{ personajeId: number; nombrePersonaje: string; nombreUsuario: string; ordenUnion?: number }[]>([]);
+  const [nombreMasterUsuario, setNombreMasterUsuario] = useState<string | null>(null);
+
+  const nombreMaster = nombreMasterUsuario ?? personaje?.nombre ?? jugadorActual?.nombre ?? 'Personaje';
   const [movimientoRoll, setMovimientoRoll] = useState<number | null>(null);
   const [ataqueRollado, setAtaqueRollado] = useState(false);
   const [connectionTimedOut, setConnectionTimedOut] = useState(false);
   const [connectionSecondsLeft, setConnectionSecondsLeft] = useState(120);
   const [activeEnemyIds, setActiveEnemyIds] = useState<Set<string>>(new Set());
+  const [enemyToOpenId, setEnemyToOpenId] = useState<string | null>(null);
   const [configPartidaInitial, setConfigPartidaInitial] = useState(rawState.configPartida ?? null);
 
   const navigate = useNavigate();
@@ -80,6 +80,7 @@ export function TableroStoryMode() {
     configPartida,
     kickedOut,
     revealedRooms,
+    enemyHpMap,
     sendTokenMove,
     sendFinTurno,
     sendIniciarRonda,
@@ -89,6 +90,11 @@ export function TableroStoryMode() {
     sendMasterAbort,
     sendRoomRevealed,
     sendEnemyMove,
+    sendEnemyHpUpdate,
+    removedTrapIds,
+    blockedCells,
+    sendTrapRemoved,
+    sendCellBlocked,
   } = useStoryModeSync(mision?.id, jugadorActual, rawState.jugadores ?? [], esMaster, configPartidaInitial);
   void conectado;
 
@@ -97,6 +103,18 @@ export function TableroStoryMode() {
       saveSession({ modoHistoria, mision, personaje, jugadorActual });
     }
   }, [mision?.id, jugadorActual?.id ?? jugadorActual?.personajeId]);
+
+  useEffect(() => {
+    if (!mision?.id) return;
+    fetch(`${API_URL}/api/misiones/${mision.id}/participantes/master-info`, {
+      headers: Object.fromEntries(authHeaders().entries()),
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then((data: { nombreUsuario?: string } | null) => {
+        if (data?.nombreUsuario) setNombreMasterUsuario(data.nombreUsuario);
+      })
+      .catch(() => {});
+  }, [mision?.id]);
 
   const esperandoMaster = !esMaster && masterListo !== true;
   
@@ -234,6 +252,10 @@ export function TableroStoryMode() {
         onAbandonarConfirmado={(nombrePersonaje) => {
           sendChatMessage({ autor: 'Sistema', texto: `${nombrePersonaje} abandonó la misión` });
         }}
+        openEnemyInstanceId={enemyToOpenId}
+        onCloseEnemyModal={() => setEnemyToOpenId(null)}
+        enemyHpMap={enemyHpMap}
+        onEnemyHpChange={sendEnemyHpUpdate}
       />
 
       <TableroCentroStoryMode
@@ -257,6 +279,16 @@ export function TableroStoryMode() {
         onMasterFinTurno={sendIniciarRonda}
         nombreMaster={nombreMaster}
         onActiveEnemiesChange={setActiveEnemyIds}
+        onOpenEnemyDetails={(id: string) => {
+          setPanelAbierto(true);
+          setEnemyToOpenId(id);
+        }}
+        removedTrapIds={removedTrapIds}
+        blockedCells={blockedCells}
+        onCellBlocked={sendCellBlocked}
+        onTrapTriggered={(instanciaId, _outcome) => {
+          sendTrapRemoved(instanciaId);
+        }}
       />
 
       <PanelPartidaStoryMode
@@ -264,12 +296,12 @@ export function TableroStoryMode() {
         jugadores={jugadoresSincronizados}
         jugadorActual={jugadorActual}
         campanaId={mision?.id}
+        esMaster={esMaster}
         turnoActual={turnoActual}
         onMovimientoRollResult={handleMovimientoRollResult}
         movimientoYaLanzado={movimientoRoll !== null}
         onAtaqueRollResult={handleAtaqueRollResult}
         ataqueYaLanzado={ataqueRollado}
-        chatSince={chatSince}
       />
 
       {esperandoMaster && !connectionTimedOut && (

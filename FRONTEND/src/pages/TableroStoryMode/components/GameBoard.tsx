@@ -5,6 +5,7 @@ import useImage from 'use-image';
 import type { MapConfig } from '../hooks/useBoardGrid';
 import { useBoardGrid } from '../hooks/useBoardGrid';
 import { ModalAlert } from '../../../components/ModalAlert/ModalAlert';
+import { StoryModeDiceRoller } from './StoryModeDiceRoller';
 import './GameBoard.css';
 
 // Suprimir errores de canvas de use-image (son warnings, no críticos)
@@ -65,6 +66,10 @@ interface GameBoardProps {
   onMasterFinTurno?: () => void;
   nombreMaster?: string;
   onActiveEnemiesChange?: (ids: Set<string>) => void;
+  onOpenEnemyDetails?: (instanciaId: string) => void;
+  onTrapTriggered?: (instanciaId: string, outcome: 'daño' | 'superado') => void;
+  blockedCells?: Map<string, string>;
+  onCellBlocked?: (col: number, row: number, imageUrl: string) => void;
 }
 
 interface Size { width: number; height: number; }
@@ -175,6 +180,24 @@ function getNormalizedName(value: string): string {
   return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '');
 }
 
+function classifyTrap(nombre: string, imageUrl: string): 'bomba' | 'cepo' | 'derrumbe' | 'other' {
+  const norm = getNormalizedName(nombre);
+  const url  = imageUrl.toLowerCase();
+  if (norm.includes('bomba')    || url.includes('bomba'))    return 'bomba';
+  if (norm.includes('cepo')     || url.includes('cepo'))     return 'cepo';
+  if (norm.includes('derrumbe') || norm.includes('derrumbamiento') ||
+      url.includes('bloqueo')   || url.includes('derrumbe')) return 'derrumbe';
+  return 'other';
+}
+
+function getTrapTexts(nombre: string, imageUrl: string): { title: string; message: string } {
+  const tipo = classifyTrap(nombre, imageUrl);
+  if (tipo === 'bomba')    return { title: '\u00a1Has pisado una bomba!',  message: 'Lanza el dado para intentar esquivar la explosi\u00f3n.' };
+  if (tipo === 'cepo')     return { title: '\u00a1Has ca\u00eddo en un cepo!',  message: 'Lanza el dado para intentar escapar del cepo.' };
+  if (tipo === 'derrumbe') return { title: '\u00a1Hay un derrumbamiento!', message: 'Lanza el dado para intentar escapar.' };
+  return { title: `\u00a1${nombre}!`, message: 'Lanza el dado para intentar escapar.' };
+}
+
 function getEnemyMovementLimit(nombre: string): number {
   const normalized = getNormalizedName(nombre);
   if (normalized.includes('goblin')) return ENEMY_MOVEMENT.goblin;
@@ -203,6 +226,12 @@ function EnemyImgNode({ nombre, x, y, radius }: { nombre: string; x: number; y: 
       listening={false}
     />
   );
+}
+
+function BlockedCellImgNode({ url, x, y, size }: { url: string; x: number; y: number; size: number }) {
+  const [img] = useImage(url);
+  if (!img) return null;
+  return <KonvaImage image={img} x={x} y={y} width={size} height={size} listening={false} />;
 }
 
 function TrapImgNode({ url, x, y, radius }: { url: string; x: number; y: number; radius: number }) {
@@ -382,7 +411,7 @@ function StoryModeDoorModal({ door, onOpen, onOpenDouble, onCancel }: StoryModeD
   );
 }
 
-export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '', movimientoRoll = null, onMovimientoUsed, enemyTokens = [], trapTokens = [], esMaster = false, revealedRooms = [], onRoomRevealed, onEnemyMove, onMasterFinTurno, nombreMaster, onActiveEnemiesChange }: GameBoardProps) {
+export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turnoActual = null, sendFinTurno, jugadorActual = null, miPersonajeId = '', movimientoRoll = null, onMovimientoUsed, enemyTokens = [], trapTokens = [], esMaster = false, revealedRooms = [], onRoomRevealed, onEnemyMove, onMasterFinTurno, nombreMaster, onActiveEnemiesChange, onOpenEnemyDetails, onTrapTriggered, blockedCells: blockedCellsProp, onCellBlocked }: GameBoardProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const panStartRef = useRef<{ pointerX: number; pointerY: number; originX: number; originY: number } | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -419,6 +448,14 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   const [activeEnemyIds, setActiveEnemyIds] = useState<Set<string>>(new Set());
   const prevEnemyKeyRef = useRef<string>('');
   const [showMasterTurnModal, setShowMasterTurnModal] = useState(false);
+  const [trapState, setTrapState] = useState<
+    | { phase: 'warning';          instanciaId: string; nombre: string; imageUrl: string; prevCol: number; prevRow: number }
+    | { phase: 'rolling';          instanciaId: string; nombre: string; imageUrl: string; prevCol: number; prevRow: number }
+    | { phase: 'bomba-exploto';    imageUrl: string }
+    | { phase: 'derrumbe-exploto'; imageUrl: string; trapCol: number; trapRow: number; prevCol: number; prevRow: number }
+    | null
+  >(null);
+  const blockedCells = blockedCellsProp ?? new Map<string, string>();
 
   const activeTurn = turnoActual?.fase ?? 'personajes';
   const currentTurnTokenId = turnoActual?.turnoActualPersonajeId?.toString() ?? null;
@@ -435,6 +472,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   const currentConflictKeyRef = useRef('');
   const lastMoveInitiatorRef = useRef<{ type: 'personaje' | 'enemigo'; id: string } | null>(null);
   const isCellBlocked = useCallback((col: number, row: number): boolean => {
+    if (blockedCells.has(`${col},${row}`)) return true; // derrumbamiento
     if (ALWAYS_WALKABLE.has(`${col},${row}`)) return false;
 
     for (const room of rooms) {
@@ -455,7 +493,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     }
 
     return false;
-  }, [rooms]);
+  }, [rooms, blockedCells]);
 
   const isMovementBlocked = useCallback((
     fromCol: number,
@@ -879,6 +917,14 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
           }
         }
         onTokenMove?.(tokenId, to.col, to.row);
+        // Detección de trampa: solo para el token del jugador actual (no master)
+        if (!esMaster && miPersonajeId && tokenId === miPersonajeId) {
+          const trap = trapTokens.find(t => t.col === to.col && t.row === to.row);
+          if (trap) {
+            const prevCell = path.length >= 2 ? path[path.length - 2] : to;
+            setTrapState({ phase: 'warning', instanciaId: trap.instanciaId, nombre: trap.nombre, imageUrl: trap.imageUrl, prevCol: prevCell.col, prevRow: prevCell.row });
+          }
+        }
         return;
       }
       setTokenCells(prev => ({ ...prev, [tokenId]: path[step] }));
@@ -1011,14 +1057,24 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   };
 
   useEffect(() => {
+    // Fix 1: no detectar conflicto mientras hay movimiento en curso (animación o arrastre de enemigo)
+    // Evita que el modal salga al pasar de largo junto a un enemigo
+    if (animatingTokenId !== null || enemyDragCurrentCell !== null) {
+      setEnemyConflict(null);
+      return;
+    }
+
     const tokenPositions = tokens
       .map((token) => ({ token, cell: tokenCells[token.id] }))
       .filter((entry): entry is { token: BoardToken; cell: CellPosition } => Boolean(entry.cell));
 
-    const enemyPositions = enemyTokens.map((enemy) => ({
-      enemy,
-      cell: enemyTokenCells[enemy.instanciaId] ?? { col: enemy.col, row: enemy.row },
-    }));
+    // Fix 2: solo comprobar enemigos activados; los que están en salas cerradas o sin alcanzar no generan conflicto
+    const enemyPositions = enemyTokens
+      .filter(enemy => activeEnemyIds.has(enemy.instanciaId))
+      .map((enemy) => ({
+        enemy,
+        cell: enemyTokenCells[enemy.instanciaId] ?? { col: enemy.col, row: enemy.row },
+      }));
 
     let detected: ConflictState | null = null;
 
@@ -1062,7 +1118,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     }
 
     setEnemyConflict(detected);
-  }, [activeTurn, enemyTokenCells, enemyTokens, tokenCells, tokens]);
+  }, [activeTurn, enemyTokenCells, enemyTokens, tokenCells, tokens, animatingTokenId, enemyDragCurrentCell, activeEnemyIds]);
 
   const handleAvatarClick = (tokenId: string) => {
     setSelectedTokenId(tokenId);
@@ -1221,6 +1277,26 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
           </Group>
         </Layer>
 
+        {/* Layer: celdas bloqueadas por derrumbamiento */}
+        {blockedCells.size > 0 && (
+          <Layer listening={false}>
+            {Array.from(blockedCells.entries()).map(([key, imgUrl]) => {
+              const [colStr, rowStr] = key.split(',');
+              const bCol = Number(colStr);
+              const bRow = Number(rowStr);
+              const bPx = cellToPixel(bCol, bRow);
+              const bx = mapOriginX + bPx.x * renderScale - cellSide / 2;
+              const by = mapOriginY + bPx.y * renderScale - cellSide / 2;
+              return (
+                <Group key={key}>
+                  <Rect x={bx} y={by} width={cellSide} height={cellSide} fill="black" />
+                  {imgUrl && <BlockedCellImgNode url={imgUrl} x={bx} y={by} size={cellSide} />}
+                </Group>
+              );
+            })}
+          </Layer>
+        )}
+
         {/* Layer 2: tokens (sin drag nativo — posición controlada por React state) */}
         <Layer>
           {tokens.map((token) => {
@@ -1301,7 +1377,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
 
         {/* Layer 4: tokens de enemigos */}
         {visibleEnemyTokens.length > 0 && (
-          <Layer listening={esMaster && activeTurn === 'master'}>
+          <Layer listening={true}>
             {visibleEnemyTokens.map((enemy) => {
               const cell = enemyTokenCells[enemy.instanciaId] ?? { col: enemy.col, row: enemy.row };
               const px = cellToPixel(cell.col, cell.row);
@@ -1316,6 +1392,8 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
                 <Group
                   key={enemy.instanciaId}
                   opacity={opacity}
+                  onClick={() => { if (onOpenEnemyDetails) onOpenEnemyDetails(enemy.instanciaId); }}
+                  onTap={() => { if (onOpenEnemyDetails) onOpenEnemyDetails(enemy.instanciaId); }}
                   onMouseDown={(e) => {
                     if (!canDragEnemy) return;
                     e.cancelBubble = true;
@@ -1366,8 +1444,8 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
           </Layer>
         )}
 
-        {/* Layer 5: tokens de trampas */}
-        {trapTokens.length > 0 && (
+        {/* Layer 5: tokens de trampas — solo visibles para el master */}
+        {esMaster && trapTokens.length > 0 && (
           <Layer listening={false}>
             {trapTokens.map((trap) => {
               const px = cellToPixel(trap.col, trap.row);
@@ -1400,7 +1478,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
       </Stage>
 
       <ModalAlert
-        isOpen={Boolean(enemyConflict)}
+        isOpen={Boolean(enemyConflict) && trapState === null}
         title="Conflicto detectado"
         message={enemyConflict ? `${enemyConflict.attacker === 'personaje' ? 'El personaje' : 'El enemigo'} ha quedado junto a su objetivo.` : ''}
         confirmText={(() => {
@@ -1454,7 +1532,151 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
         ) : null}
       />
 
-      {pendingDoor && (
+      {/* Modal aviso cepo */}
+      <ModalAlert
+        isOpen={trapState?.phase === 'warning'}
+        title={trapState?.phase === 'warning' ? getTrapTexts(trapState.nombre, trapState.imageUrl).title : ''}
+        message={trapState?.phase === 'warning' ? getTrapTexts(trapState.nombre, trapState.imageUrl).message : ''}
+        confirmText="Lanzar dado"
+        showImage={false}
+        onConfirm={() => {
+          if (trapState?.phase === 'warning') {
+            setTrapState({ phase: 'rolling', instanciaId: trapState.instanciaId, nombre: trapState.nombre, imageUrl: trapState.imageUrl, prevCol: trapState.prevCol, prevRow: trapState.prevRow });
+          }
+        }}
+        media={(() => {
+          if (trapState?.phase !== 'warning') return null;
+          const playerToken = tokens.find(t => t.id === miPersonajeId);
+          const activeTrap = trapTokens.find(t => t.instanciaId === trapState.instanciaId);
+          return (
+            <div className="gb-trap-media">
+              <div className="modal-conflict-avatars">
+                <div
+                  className="modal-conflict-avatar player"
+                  style={{ borderColor: playerToken?.color ?? 'rgba(80,170,240,0.9)' }}
+                >
+                  {playerToken?.avatarUrl
+                    ? <img src={playerToken.avatarUrl} alt="personaje" />
+                    : <span className="initials">{playerToken?.initials ?? 'PJ'}</span>
+                  }
+                </div>
+                <div className="modal-conflict-vs">VS</div>
+                <div
+                  className="modal-conflict-avatar"
+                  style={{ borderColor: 'rgba(200,130,20,0.95)' }}
+                >
+                  {activeTrap?.imageUrl
+                    ? <img src={activeTrap.imageUrl} alt="trampa" style={{ objectFit: 'contain', padding: '8px' }} />
+                    : <span className="initials">⚠</span>
+                  }
+                </div>
+              </div>
+              <div className="gb-trap-dice-legend">
+                <div className="gb-trap-dice-item">
+                  <img src="/images/dadosModHistoria/daño.png" alt="daño" className="gb-trap-dice-img" />
+                  <span className="gb-trap-dice-label bad">Pierdes</span>
+                </div>
+                <div className="gb-trap-dice-item">
+                  <img src="/images/dadosModHistoria/defensa.png" alt="defensa" className="gb-trap-dice-img" />
+                  <span className="gb-trap-dice-label good">Ganas</span>
+                </div>
+                <div className="gb-trap-dice-item">
+                  <img src="/images/dadosModHistoria/victoriaEnemigo.png" alt="victoria" className="gb-trap-dice-img" />
+                  <span className="gb-trap-dice-label good">Ganas</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      />
+
+      {/* Dado de cepo */}
+      {trapState?.phase === 'rolling' && (
+        <StoryModeDiceRoller
+          cantidadResultados={1}
+          label="d6"
+          onFin={(imagenes) => {
+            const resultado   = imagenes[0];
+            const instanciaId = trapState.instanciaId;
+            const tipo        = classifyTrap(trapState.nombre, trapState.imageUrl);
+            const activeTrap  = trapTokens.find(t => t.instanciaId === instanciaId);
+            const trapCol     = activeTrap?.col ?? 0;
+            const trapRow     = activeTrap?.row ?? 0;
+            const { prevCol, prevRow, imageUrl } = trapState;
+
+            // Siempre eliminar la trampa del tablero
+            onTrapTriggered?.(instanciaId, 'superado');
+
+            if (resultado === 'daño' && tipo === 'bomba') {
+              setTrapState({ phase: 'bomba-exploto', imageUrl });
+            } else if (resultado === 'daño' && tipo === 'derrumbe') {
+              setTrapState({ phase: 'derrumbe-exploto', imageUrl, trapCol, trapRow, prevCol, prevRow });
+            } else {
+              setTrapState(null);
+              if (resultado === 'daño' && tipo === 'cepo' && miPersonajeId) {
+                sendFinTurno?.(miPersonajeId);
+              }
+            }
+          }}
+        />
+      )}
+
+      {/* Modal derrumbamiento */}
+      <ModalAlert
+        isOpen={trapState?.phase === 'derrumbe-exploto'}
+        title="¡Derrumbamiento!"
+        message="El techo se ha derrumbado. Debes infligir un punto de daño a tu personaje. La casilla queda bloqueada."
+        confirmText="Cerrar"
+        showImage={false}
+        onConfirm={() => {
+          if (trapState?.phase !== 'derrumbe-exploto') return;
+          const { trapCol, trapRow, prevCol, prevRow } = trapState;
+          onCellBlocked?.(trapCol, trapRow, trapState.imageUrl);
+          if (miPersonajeId) {
+            setTokenCells(prev => ({ ...prev, [miPersonajeId]: { col: prevCol, row: prevRow } }));
+            onTokenMove?.(miPersonajeId, prevCol, prevRow);
+          }
+          setTrapState(null);
+        }}
+        media={trapState?.phase === 'derrumbe-exploto' ? (
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div
+              className="modal-conflict-avatar"
+              style={{ borderColor: 'rgba(120,120,120,0.9)', width: '110px', height: '110px' }}
+            >
+              {trapState.imageUrl
+                ? <img src={trapState.imageUrl} alt="derrumbamiento" style={{ objectFit: 'contain', padding: '8px' }} />
+                : <span style={{ fontSize: '3rem' }}>🪨</span>
+              }
+            </div>
+          </div>
+        ) : null}
+      />
+
+      {/* Modal explosión de bomba */}
+      <ModalAlert
+        isOpen={trapState?.phase === 'bomba-exploto'}
+        title="¡VAYA!"
+        message="La bomba ha explotado y debes infligir dos puntos de daño a tu personaje."
+        confirmText="Cerrar"
+        showImage={false}
+        onConfirm={() => setTrapState(null)}
+        media={trapState?.phase === 'bomba-exploto' ? (
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div
+              className="modal-conflict-avatar"
+              style={{ borderColor: 'rgba(255,150,0,0.9)', width: '110px', height: '110px' }}
+            >
+              {trapState.imageUrl
+                ? <img src={trapState.imageUrl} alt="bomba" style={{ objectFit: 'contain', padding: '8px' }} />
+                : <span style={{ fontSize: '3rem' }}>💥</span>
+              }
+            </div>
+          </div>
+        ) : null}
+      />
+
+      {pendingDoor && trapState === null && !enemyConflict && (
         <StoryModeDoorModal
           door={pendingDoor}
           onOpen={() => {

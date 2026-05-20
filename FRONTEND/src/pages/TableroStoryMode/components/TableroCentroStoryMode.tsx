@@ -92,6 +92,11 @@ interface Props {
   onMasterFinTurno?: () => void;
   nombreMaster?: string;
   onActiveEnemiesChange?: (ids: Set<string>) => void;
+  onOpenEnemyDetails?: (instanciaId: string) => void;
+  removedTrapIds?: Set<string>;
+  blockedCells?: Map<string, string>;
+  onCellBlocked?: (col: number, row: number, imageUrl: string) => void;
+  onTrapTriggered?: (instanciaId: string, outcome: 'daño' | 'superado') => void;
 }
 
 const COLORES_CLASES: Record<string, string> = {
@@ -172,6 +177,11 @@ export function TableroCentroStoryMode({
   onMasterFinTurno,
   nombreMaster,
   onActiveEnemiesChange,
+  onOpenEnemyDetails,
+  removedTrapIds,
+  blockedCells,
+  onCellBlocked,
+  onTrapTriggered,
 }: Props) {
   const [participantes, setParticipantes] = useState<ParticipanteDTO[]>([]);
 
@@ -367,7 +377,7 @@ export function TableroCentroStoryMode({
         movimientoRoll={movimientoRoll}
         onMovimientoUsed={onMovimientoUsed}
         enemyTokens={configPartida?.enemigos ?? []}
-        trapTokens={esMaster ? (configPartida?.trampas ?? []) : []}
+        trapTokens={(configPartida?.trampas ?? []).filter(t => !removedTrapIds?.has(t.instanciaId))}
         esMaster={esMaster}
         revealedRooms={revealedRooms}
         onRoomRevealed={onRoomRevealed}
@@ -375,6 +385,10 @@ export function TableroCentroStoryMode({
         onMasterFinTurno={onMasterFinTurno}
         nombreMaster={nombreMaster}
         onActiveEnemiesChange={onActiveEnemiesChange}
+        onOpenEnemyDetails={onOpenEnemyDetails}
+        onTrapTriggered={onTrapTriggered}
+        blockedCells={blockedCells}
+        onCellBlocked={onCellBlocked}
       />
     </div>
   );

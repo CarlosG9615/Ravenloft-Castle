@@ -102,7 +102,12 @@ export function useStoryModeSync(
   const [configPartida, setConfigPartida] = useState<PartidaConfig | null>(configPartidaInicial);
   const [kickedOut, setKickedOut] = useState(false);
   const [revealedRooms, setRevealedRooms] = useState<string[]>([]);
+  const [enemyHpMap, setEnemyHpMap] = useState<Record<string, number>>({});
+  const [removedTrapIds, setRemovedTrapIds] = useState<Set<string>>(new Set());
+  const [blockedCells, setBlockedCells] = useState<Map<string, string>>(new Map());
   const stompRef = useRef<Client | null>(null);
+  const configPartidaRef = useRef<PartidaConfig | null>(configPartidaInicial);
+  configPartidaRef.current = configPartida;
 
   const sendTokenMove = useCallback((col: number, row: number) => {
     const client = stompRef.current;
@@ -177,6 +182,33 @@ export function useStoryModeSync(
     client.publish({
       destination: `/app/mision/${misionId}/enemy-move`,
       body: JSON.stringify({ instanciaId, col, row }),
+    });
+  }, [misionId]);
+
+  const sendEnemyHpUpdate = useCallback((instanciaId: string, hp: number) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/enemy-hp`,
+      body: JSON.stringify({ instanciaId, hp }),
+    });
+  }, [misionId]);
+
+  const sendCellBlocked = useCallback((col: number, row: number, imageUrl: string) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/cell-blocked`,
+      body: JSON.stringify({ col, row, imageUrl }),
+    });
+  }, [misionId]);
+
+  const sendTrapRemoved = useCallback((instanciaId: string) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/trap-removed`,
+      body: JSON.stringify({ instanciaId }),
     });
   }, [misionId]);
 
@@ -353,6 +385,77 @@ export function useStoryModeSync(
           } catch {}
         });
 
+        client.subscribe(`/topic/mision/${misionId}/enemy-hp`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (data.instanciaId !== undefined && data.hp !== undefined) {
+              setEnemyHpMap(prev => ({ ...prev, [data.instanciaId]: data.hp }));
+            }
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/enemy-hp-state`, (frame) => {
+          try {
+            const data: Record<string, number> = JSON.parse(frame.body);
+            if (data && typeof data === 'object') {
+              setEnemyHpMap(prev => ({ ...prev, ...data }));
+            }
+          } catch {}
+        });
+
+        client.publish({
+          destination: `/app/mision/${misionId}/check-enemy-hp`,
+          body: JSON.stringify({}),
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/trap-removed`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (data.instanciaId) {
+              setRemovedTrapIds(prev => new Set([...prev, data.instanciaId]));
+            }
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/traps-state`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (Array.isArray(data.removedIds)) {
+              setRemovedTrapIds(new Set(data.removedIds));
+            }
+          } catch {}
+        });
+
+        client.publish({
+          destination: `/app/mision/${misionId}/check-removed-traps`,
+          body: JSON.stringify({}),
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/cell-blocked`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (data.col !== undefined && data.row !== undefined) {
+              setBlockedCells(prev => new Map([...prev, [`${data.col},${data.row}`, data.imageUrl ?? '']]));
+            }
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/blocked-cells-state`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (Array.isArray(data.blockedCells)) {
+              const m = new Map<string, string>();
+              for (const item of data.blockedCells) m.set(`${item.col},${item.row}`, item.imageUrl ?? '');
+              setBlockedCells(m);
+            }
+          } catch {}
+        });
+
+        client.publish({
+          destination: `/app/mision/${misionId}/check-blocked-cells`,
+          body: JSON.stringify({}),
+        });
+
         client.subscribe(`/topic/mision/${misionId}/rooms-state`, (frame) => {
           try {
             const data = JSON.parse(frame.body);
@@ -367,10 +470,10 @@ export function useStoryModeSync(
           body: JSON.stringify({}),
         });
 
-        if (esMaster && configPartida) {
+        if (esMaster && configPartidaRef.current) {
           client.publish({
             destination: `/app/mision/${misionId}/master-listo`,
-            body: JSON.stringify(configPartida),
+            body: JSON.stringify(configPartidaRef.current),
           });
         } else if (!esMaster) {
           client.subscribe(`/topic/mision/${misionId}/partida-lista`, (frame) => {
@@ -405,7 +508,7 @@ export function useStoryModeSync(
     return () => {
       client.deactivate();
     };
-  }, [misionId, jugadorId, jugadorPersonajeId, esMaster, configPartida]);
+  }, [misionId, jugadorId, jugadorPersonajeId, esMaster]);
 
   useEffect(() => {
     try { console.debug('[WS HOOK] turnoActual changed ->', turnoActual); } catch (e) {}
@@ -421,6 +524,9 @@ export function useStoryModeSync(
     configPartida,
     kickedOut,
     revealedRooms,
+    enemyHpMap,
+    removedTrapIds,
+    blockedCells,
     sendTokenMove,
     sendFinTurno,
     sendIniciarRonda,
@@ -430,5 +536,8 @@ export function useStoryModeSync(
     sendMasterAbort,
     sendRoomRevealed,
     sendEnemyMove,
+    sendEnemyHpUpdate,
+    sendTrapRemoved,
+    sendCellBlocked,
   };
 }

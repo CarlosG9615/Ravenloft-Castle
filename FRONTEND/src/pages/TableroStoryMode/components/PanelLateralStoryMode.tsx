@@ -57,6 +57,10 @@ interface Props {
   esMaster?: boolean;
   onMasterAbort?: () => void;
   onAbandonarConfirmado?: (nombrePersonaje: string) => void;
+  openEnemyInstanceId?: string | null;
+  onCloseEnemyModal?: () => void;
+  enemyHpMap?: Record<string, number>;
+  onEnemyHpChange?: (instanciaId: string, hp: number) => void;
 }
 
 const ORDER_COLORS = ['#C0392B', '#2980B9', '#F39C12', '#27AE60'];
@@ -108,6 +112,10 @@ export function PanelLateralStoryMode({
   esMaster = false,
   onMasterAbort,
   onAbandonarConfirmado,
+  openEnemyInstanceId = null,
+  onCloseEnemyModal,
+  enemyHpMap = {},
+  onEnemyHpChange,
 }: Props) {
   const navigate = useNavigate();
   const [showAbandonarMisionModal, setShowAbandonarMisionModal] = useState(false);
@@ -171,6 +179,21 @@ export function PanelLateralStoryMode({
     });
   }, [enemyTokens]);
 
+  useEffect(() => {
+    if (!enemyHpMap || Object.keys(enemyHpMap).length === 0) return;
+    setEnemyHp((prev) => ({ ...prev, ...enemyHpMap }));
+  }, [enemyHpMap]);
+
+  useEffect(() => {
+    if (!openEnemyInstanceId) return;
+    const enemy = enemyTokens.find((e) => e.instanciaId === openEnemyInstanceId);
+    if (!enemy) return;
+    // Ensure the page with the enemy is visible
+    const index = enemyTokens.findIndex(e => e.instanciaId === openEnemyInstanceId);
+    if (index >= 0) setEnemyPage(Math.floor(index / ENEMIES_PER_PAGE));
+    setSelectedEnemy(enemy);
+  }, [openEnemyInstanceId, enemyTokens]);
+
   const totalEnemyPages = Math.max(1, Math.ceil(enemyTokens.length / ENEMIES_PER_PAGE));
   const visibleEnemyTokens = useMemo(() => {
     const start = enemyPage * ENEMIES_PER_PAGE;
@@ -185,11 +208,16 @@ export function PanelLateralStoryMode({
     setEnemyHp((prev) => {
       const currentHp = prev[instanciaId] ?? maxHp;
       const nextHp = Math.max(0, Math.min(maxHp, currentHp + delta));
+      onEnemyHpChange?.(instanciaId, nextHp);
       return { ...prev, [instanciaId]: nextHp };
     });
   };
 
   const closeEnemyModal = () => setSelectedEnemy(null);
+  const closeEnemyModalAndNotify = () => {
+    setSelectedEnemy(null);
+    if (onCloseEnemyModal) onCloseEnemyModal();
+  };
 
   const selectedEnemyStats = getEnemyStats(selectedEnemy?.nombre);
   const selectedEnemyHp = selectedEnemy ? (enemyHp[selectedEnemy.instanciaId] ?? selectedEnemy.salud ?? 0) : 0;
@@ -441,7 +469,7 @@ export function PanelLateralStoryMode({
       />
 
       {selectedEnemy && typeof document !== 'undefined' && createPortal(
-        <div className="tsm-enemy-modal-overlay" onClick={closeEnemyModal}>
+        <div className="tsm-enemy-modal-overlay" onClick={closeEnemyModalAndNotify}>
           <div className="tsm-enemy-modal" onClick={(event) => event.stopPropagation()}>
             <div className="tsm-enemy-modal-portrait">
               <img
@@ -468,7 +496,7 @@ export function PanelLateralStoryMode({
               </div>
               <span className="tsm-enemy-hp-text tsm-enemy-hp-text--modal">{selectedEnemyHp}/{selectedEnemy.salud ?? 0}</span>
             </div>
-            <button type="button" className="tsm-enemy-modal-close" onClick={closeEnemyModal}>Cerrar</button>
+            <button type="button" className="tsm-enemy-modal-close" onClick={closeEnemyModalAndNotify}>Cerrar</button>
           </div>
         </div>,
         document.body
