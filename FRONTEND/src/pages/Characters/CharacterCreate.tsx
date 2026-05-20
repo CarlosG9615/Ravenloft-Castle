@@ -128,6 +128,7 @@ export function CharacterCreate() {
   const [entryNombre, setEntryNombre] = useState('');
   const [entryBonificador, setEntryBonificador] = useState('');
   const [entryDano, setEntryDano] = useState('');
+  const [entryRango, setEntryRango] = useState<number>(1);
 
   // Paso 3
   const [avatarSeleccionado, setAvatarSeleccionado] = useState<string | null>(null);
@@ -183,6 +184,10 @@ export function CharacterCreate() {
   const asignarTirada = (stat: StatKey, idTirada: number | null) =>
     setTiradaAsignada(prev => ({ ...prev, [stat]: idTirada }));
 
+  useEffect(() => {
+    setEntryRango(entryTipo === 'conjuro' ? 6 : 1);
+  }, [entryTipo]);
+
   const addEntry = () => {
     const nombreLimpio = entryNombre.trim();
     const bonifLimpio = entryBonificador.trim();
@@ -195,12 +200,14 @@ export function CharacterCreate() {
       bonificador: bonifLimpio,
       dano: danoLimpio,
       tipo: entryTipo,
+      rangoCasillas: Number.isFinite(entryRango) ? entryRango : (entryTipo === 'conjuro' ? 6 : 1),
     };
 
     setAttackSpellEntries(prev => [...prev, nuevo]);
     setEntryNombre('');
     setEntryBonificador('');
     setEntryDano('');
+    setEntryRango(entryTipo === 'conjuro' ? 6 : 1);
   };
 
   const removeEntry = (id: string) =>
@@ -639,6 +646,17 @@ export function CharacterCreate() {
                     onChange={(e) => setEntryDano(e.target.value)}
                   />
                 </div>
+                  <div className="col-md-2">
+                    <label className="create-label">Rango</label>
+                    <input
+                      type="number"
+                      min={1}
+                      className="form-control create-input"
+                      placeholder="Casillas"
+                      value={entryRango}
+                      onChange={(e) => setEntryRango(Number(e.target.value))}
+                    />
+                  </div>
               </div>
               <div className="d-flex justify-content-end mt-3">
                 <button type="button" className="btn create-btn-primary" onClick={addEntry}>
@@ -650,12 +668,13 @@ export function CharacterCreate() {
                   <span>Nombre</span>
                   <span>Bonif.</span>
                   <span>Daño</span>
+                  <span>Rango</span>
                   <span></span>
                 </div>
                 {attackSpellEntries.length === 0
                   ? [1, 2].map(i => (
                       <div key={`empty-${i}`} className="create-ataques-row">
-                        <span>—</span><span>—</span><span>—</span><span></span>
+                        <span>—</span><span>—</span><span>—</span><span>—</span><span></span>
                       </div>
                     ))
                   : attackSpellEntries.map(entry => (
@@ -663,6 +682,7 @@ export function CharacterCreate() {
                         <span>{entry.tipo === 'conjuro' ? `Conjuro: ${entry.nombre}` : entry.nombre}</span>
                         <span>{entry.bonificador}</span>
                         <span>{entry.dano}</span>
+                        <span>{entry.rangoCasillas ?? (entry.tipo === 'conjuro' ? 6 : 1)} casillas</span>
                         <span>
                           <button
                             type="button"

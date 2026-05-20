@@ -648,6 +648,7 @@ export function PanelPartida({
         dado={dadoActivo}
         resultado={resultadoActivo}
         onAnimacionFin={handleAnimacionFin}
+        containerId="dice-box-chat"
       />
 
       <div className="pp-conexion">

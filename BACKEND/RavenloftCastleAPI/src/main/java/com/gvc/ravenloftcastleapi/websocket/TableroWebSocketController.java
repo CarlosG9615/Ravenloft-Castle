@@ -360,11 +360,14 @@ public class TableroWebSocketController {
     public static class HpUpdateDTO {
         private String jugadorId;
         private Integer hp;
+        private Integer hpMax;
 
         public String getJugadorId() { return jugadorId; }
         public void setJugadorId(String jugadorId) { this.jugadorId = jugadorId; }
         public Integer getHp() { return hp; }
         public void setHp(Integer hp) { this.hp = hp; }
+        public Integer getHpMax() { return hpMax; }
+        public void setHpMax(Integer hpMax) { this.hpMax = hpMax; }
     }
 
     public static class DadoRollWsDTO {
