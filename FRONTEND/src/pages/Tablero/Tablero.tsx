@@ -92,6 +92,10 @@ export function Tablero() {
   const stompRef = useRef<Client | null>(null);
   const syncRequestedRef = useRef(false);
   const sentTokenIdsRef = useRef<Set<string>>(new Set());
+
+  // ── REF que PanelPartida rellenará con su lanzarDadoCaracteristica interno ──
+  const lanzarDadoCaracteristicaRef = useRef<((label: string, mod: number) => void) | null>(null);
+
   const mapaUrl         = (location.state as any)?.mapaUrl        ?? '/images/mapas/bosque/caminoForestal.jpg';
   const campaaNombre    = (location.state as any)?.campaaNombre   ?? 'Campaña';
   const campanaId       = (location.state as any)?.campanaId;
@@ -99,6 +103,7 @@ export function Tablero() {
   const jugadoresCampaa = (location.state as any)?.jugadores      ?? [];
   const esMaster        = (location.state as any)?.esMaster       ?? false;
   const masterNombre    = (location.state as any)?.masterNombre   ?? 'Master';
+
   const [mapaActualUrl, setMapaActualUrl]       = useState<string>(mapaUrl);
   const [mapasDisponibles, setMapasDisponibles] = useState<string[]>([]);
   const [cargandoMapas, setCargandoMapas]       = useState(false);
@@ -430,6 +435,13 @@ export function Tablero() {
     setPosition({ x: 0, y: 0 });
   };
 
+  // ── Clic en característica → delega en PanelPartida via ref ──
+  const lanzarDadoCaracteristica = (label: string, valorStat: number) => {
+    const mod = Math.floor((valorStat - 10) / 2);
+    lanzarDadoCaracteristicaRef.current?.(label, mod);
+  };
+  // ─────────────────────────────────────────────────────────────
+
   const nombreMapa = (url: string) =>
     url.split('/').pop()?.replace(/\.(jpg|jpeg|png|webp)$/i, '') ?? url;
 
@@ -648,7 +660,6 @@ export function Tablero() {
               <button className="tb-toggle-btn" onClick={resetearVista}>⟳ Resetear zoom</button>
             </div>
 
-            {/* ── BOTONES COMBATE CON GIF ── */}
             <div className="tb-seccion">
               <span className="tb-seccion-label">Combate</span>
               <div className="tb-combat-btns">
@@ -670,7 +681,6 @@ export function Tablero() {
               </div>
             </div>
 
-            {/* ── ENEMIGOS EN COMBATE ── */}
             {enemigosCombate.length > 0 && (
               <div className="tb-seccion">
                 <span className="tb-seccion-label">Enemigos en combate ({enemigosCombate.length})</span>
@@ -839,6 +849,7 @@ export function Tablero() {
               </div>
             </div>
 
+            {/* HP */}
             <div className="tb-seccion">
               <span className="tb-seccion-label">Puntos de Golpe</span>
               <div className="tb-ficha-hp">
@@ -856,6 +867,7 @@ export function Tablero() {
               </div>
             </div>
 
+            {/* CARACTERÍSTICAS — clic para lanzar d20 + modificador via DiceRoller */}
             <div className="tb-seccion">
               <span className="tb-seccion-label">Características</span>
               <div className="tb-ficha-stats">
@@ -869,7 +881,12 @@ export function Tablero() {
                 ].map(({ label, valor }) => {
                   const mod = Math.floor((valor - 10) / 2);
                   return (
-                    <div key={label} className="tb-ficha-stat">
+                    <div
+                      key={label}
+                      className="tb-ficha-stat tb-ficha-stat--clickable"
+                      onClick={() => lanzarDadoCaracteristica(label, valor)}
+                      title={`Tirada de ${label}: d20 ${mod >= 0 ? '+' : ''}${mod}`}
+                    >
                       <span className="tb-ficha-stat-label">{label}</span>
                       <span className="tb-ficha-stat-valor">{valor}</span>
                       <span className="tb-ficha-stat-mod">{mod >= 0 ? `+${mod}` : mod}</span>
@@ -879,6 +896,7 @@ export function Tablero() {
               </div>
             </div>
 
+            {/* COMBATE */}
             <div className="tb-seccion">
               <span className="tb-seccion-label">Combate</span>
               <div className="tb-ficha-combate">
@@ -988,12 +1006,14 @@ export function Tablero() {
         {herramienta === 'borrar' && <span>🗑 Clic en token: borrar</span>}
       </div>
 
+      {/* PanelPartida recibe el ref para registrar su función interna */}
       <PanelPartida
         nombreMaster={esMaster ? 'Tú (Master)' : masterNombre}
         jugadores={jugadoresCampaa}
         campanaId={campanaId}
         jugadorActual={jugadorActualConAvatar}
         esMaster={esMaster}
+        lanzarDadoCaracteristicaRef={lanzarDadoCaracteristicaRef}
       />
     </div>
   );
