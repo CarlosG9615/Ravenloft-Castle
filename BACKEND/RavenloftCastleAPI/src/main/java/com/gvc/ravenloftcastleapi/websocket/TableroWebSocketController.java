@@ -212,6 +212,12 @@ public class TableroWebSocketController {
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/token-sync", tokenStates);
     }
 
+    @MessageMapping("/campana/{campanaId}/hp-request-sync")
+    public void campanaHpRequestSync(@DestinationVariable String campanaId) {
+        Map<String, Integer> hpOverrides = hpOverridesCampana.getOrDefault(campanaId, new ConcurrentHashMap<>());
+        messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/hp-sync", hpOverrides);
+    }
+
     @MessageMapping("/campana/{campanaId}/chat.enviar")
     public void enviarMensajeChat(@DestinationVariable String campanaId, @Payload MensajeChatDTO mensaje) {
         try {

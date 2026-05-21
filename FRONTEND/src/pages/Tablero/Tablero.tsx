@@ -675,12 +675,30 @@ export function Tablero() {
             console.error('Error hp-update:', e);
           }
         });
+        client.subscribe(`/topic/campana/${campanaId}/hp-sync`, (frame) => {
+          try {
+            const hpMap = JSON.parse(frame.body) as Record<string, number>;
+            setHpJugadores(prev => ({ ...prev, ...hpMap }));
+            setHpEnemigos(prev => ({ ...prev, ...hpMap }));
+            setEnemigosCombate(prev => prev.map(e => {
+              if (hpMap[e.instanciaId] !== undefined) {
+                return { ...e, hpActual: hpMap[e.instanciaId] };
+              }
+              return e;
+            }));
+          } catch (e) {
+            console.error('Error hp-sync:', e);
+          }
+        });
         if (!syncRequestedRef.current) {
           syncRequestedRef.current = true;
           const sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
           client.publish({
             destination: `/app/campana/${campanaId}/token-request-sync`,
             body: JSON.stringify({ sessionId }),
+          });
+          client.publish({
+            destination: `/app/campana/${campanaId}/hp-request-sync`
           });
         }
       },
@@ -693,6 +711,38 @@ export function Tablero() {
       syncRequestedRef.current = false;
     };
   }, [campanaId, mapaActualUrl]);
+
+  // Sincronizar enemigosCombate con tokens (para recuperar estado si el master sale y entra)
+  useEffect(() => {
+    if (!esMaster || enemigos.length === 0 || tokens.length === 0) return;
+    
+    setEnemigosCombate(prev => {
+      let changed = false;
+      const newEnemigos = [...prev];
+      const prevIds = new Set(prev.map(e => e.instanciaId));
+      
+      tokens.forEach(token => {
+        if (token.tipo === 'enemigo' && !prevIds.has(token.id)) {
+          const parts = token.id.split('-');
+          if (parts.length >= 3 && parts[0] === 'enemigo') {
+            const baseIdStr = parts[1];
+            const enemigoBase = enemigos.find(e => String(e.id) === baseIdStr);
+            if (enemigoBase) {
+              const hpActual = hpEnemigos[token.id] ?? enemigoBase.salud;
+              newEnemigos.push({
+                ...enemigoBase,
+                instanciaId: token.id,
+                hpActual
+              });
+              changed = true;
+            }
+          }
+        }
+      });
+      
+      return changed ? newEnemigos : prev;
+    });
+  }, [tokens, enemigos, esMaster, hpEnemigos]);
 
   useEffect(() => {
     if (!jugadoresCampaa || jugadoresCampaa.length === 0) return;
