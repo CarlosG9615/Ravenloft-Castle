@@ -35,6 +35,9 @@ public class TableroWebSocketController {
     private final Map<String, Map<String, Integer>> enemyHpMision = new ConcurrentHashMap<>();
     private final Map<String, java.util.Set<String>> removedTrapsMision = new ConcurrentHashMap<>();
     private final Map<String, Map<String, String>> blockedCellsMision = new ConcurrentHashMap<>();
+    private final Map<String, java.util.Set<String>> defeatedPlayersMision = new ConcurrentHashMap<>();
+    private final Map<String, java.util.Set<String>> defeatedEnemiesMision = new ConcurrentHashMap<>();
+    private final Map<String, VictoryWsDTO> victoryByMision = new ConcurrentHashMap<>();
 
     public TableroWebSocketController(SimpMessagingTemplate messagingTemplate,
                                       MisionParticipanteRepository misionParticipanteRepository,
@@ -286,6 +289,12 @@ public class TableroWebSocketController {
         partidasConfiguradas.remove(misionId);
         revealedRoomsMision.remove(misionId);
         revealedTrapsMision.remove(misionId);
+        enemyHpMision.remove(misionId);
+        removedTrapsMision.remove(misionId);
+        blockedCellsMision.remove(misionId);
+        defeatedPlayersMision.remove(misionId);
+        defeatedEnemiesMision.remove(misionId);
+        victoryByMision.remove(misionId);
         // Resetear turno en clientes antes de expulsarlos para que la próxima partida empiece limpia
         messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/turno",
             new TurnoDTO(null, "personajes"));
@@ -325,10 +334,59 @@ public class TableroWebSocketController {
         messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/enemy-hp", dto);
     }
 
+    @MessageMapping("/mision/{misionId}/player-defeated")
+    public void playerDefeated(@DestinationVariable String misionId, @Payload PlayerDefeatedWsDTO dto) {
+        if (dto.getJugadorId() == null || dto.getJugadorId().isBlank()) return;
+        java.util.Set<String> defeated = defeatedPlayersMision
+                .computeIfAbsent(misionId, key -> java.util.concurrent.ConcurrentHashMap.newKeySet());
+        if (!defeated.add(dto.getJugadorId())) return;
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/player-defeated", dto);
+    }
+
+    @MessageMapping("/mision/{misionId}/enemy-defeated")
+    public void enemyDefeated(@DestinationVariable String misionId, @Payload EnemyDefeatedWsDTO dto) {
+        if (dto.getInstanciaId() == null || dto.getInstanciaId().isBlank()) return;
+        java.util.Set<String> defeated = defeatedEnemiesMision
+                .computeIfAbsent(misionId, key -> java.util.concurrent.ConcurrentHashMap.newKeySet());
+        if (!defeated.add(dto.getInstanciaId())) return;
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/enemy-defeated", dto);
+    }
+
+    @MessageMapping("/mision/{misionId}/victory")
+    public void victory(@DestinationVariable String misionId, @Payload VictoryWsDTO dto) {
+        if (dto.getGanador() == null || dto.getGanador().isBlank()) return;
+        VictoryWsDTO current = victoryByMision.get(misionId);
+        if (current != null) return;
+        victoryByMision.put(misionId, dto);
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/victory", dto);
+    }
+
     @MessageMapping("/mision/{misionId}/check-enemy-hp")
     public void checkEnemyHp(@DestinationVariable String misionId) {
         Map<String, Integer> hpMap = enemyHpMision.getOrDefault(misionId, new ConcurrentHashMap<>());
         messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/enemy-hp-state", (Object) hpMap);
+    }
+
+    @MessageMapping("/mision/{misionId}/check-player-defeated")
+    public void checkPlayerDefeated(@DestinationVariable String misionId) {
+        java.util.Set<String> defeated = defeatedPlayersMision.getOrDefault(misionId, java.util.Collections.emptySet());
+        Object payload = java.util.Map.of("defeatedIds", new java.util.ArrayList<>(defeated));
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/player-defeated-state", payload);
+    }
+
+    @MessageMapping("/mision/{misionId}/check-enemy-defeated")
+    public void checkEnemyDefeated(@DestinationVariable String misionId) {
+        java.util.Set<String> defeated = defeatedEnemiesMision.getOrDefault(misionId, java.util.Collections.emptySet());
+        Object payload = java.util.Map.of("defeatedIds", new java.util.ArrayList<>(defeated));
+        messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/enemy-defeated-state", payload);
+    }
+
+    @MessageMapping("/mision/{misionId}/check-victory")
+    public void checkVictory(@DestinationVariable String misionId) {
+        VictoryWsDTO victory = victoryByMision.get(misionId);
+        if (victory != null) {
+            messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/victory", victory);
+        }
     }
 
     @MessageMapping("/mision/{misionId}/trap-removed")
@@ -687,6 +745,28 @@ public class TableroWebSocketController {
         public void setInstanciaId(String instanciaId) { this.instanciaId = instanciaId; }
         public int getHp() { return hp; }
         public void setHp(int hp) { this.hp = hp; }
+    }
+
+    public static class PlayerDefeatedWsDTO {
+        private String jugadorId;
+        public String getJugadorId() { return jugadorId; }
+        public void setJugadorId(String jugadorId) { this.jugadorId = jugadorId; }
+    }
+
+    public static class EnemyDefeatedWsDTO {
+        private String instanciaId;
+        public String getInstanciaId() { return instanciaId; }
+        public void setInstanciaId(String instanciaId) { this.instanciaId = instanciaId; }
+    }
+
+    public static class VictoryWsDTO {
+        private String ganador;
+        private String motivo;
+
+        public String getGanador() { return ganador; }
+        public void setGanador(String ganador) { this.ganador = ganador; }
+        public String getMotivo() { return motivo; }
+        public void setMotivo(String motivo) { this.motivo = motivo; }
     }
 
     public static class TrapRemovedDTO {

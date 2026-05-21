@@ -158,6 +158,9 @@ interface Props {
   ataqueYaLanzado?: boolean;
   playerHpMap?: Record<string, number>;
   onPlayerHpUpdate?: (jugadorId: string, hp: number) => void;
+  mensajes?: any[];
+  pushLocalChatMessage?: (m: { autor: string; colorAutor?: string; texto: string; tipo?: string; timestamp?: string }) => void;
+  sendChatMessage?: (m: { autor: string; colorAutor?: string; texto: string; tipo?: string }) => void;
 }
 
 export function PanelPartidaStoryModeChat({
@@ -176,9 +179,11 @@ export function PanelPartidaStoryModeChat({
   ataqueYaLanzado = false,
   playerHpMap,
   onPlayerHpUpdate,
+  mensajes = [],
+  pushLocalChatMessage,
+  sendChatMessage,
 }: Props) {
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'voz'>('chat');
-  const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [inputChat, setInputChat] = useState('');
   const modificador = 0;
   const [conectado, setConectado] = useState(false);
@@ -210,43 +215,8 @@ export function PanelPartidaStoryModeChat({
         jugadoresInicializadosRef.current = false;
         jugadoresInicialesIdsRef.current = new Set();
         if (campanaId) {
-          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-          fetch(`http://localhost:8080/api/misiones/${campanaId}/chat`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          })
-            .then(r => (r.ok ? r.json() : []))
-            .then((items: any[]) => {
-              const historial: MensajeChat[] = Array.isArray(items)
-                ? items.map((m: any) => ({ ...m, id: m.id || (Date.now().toString() + Math.random()) }))
-                : [];
-              setMensajes(historial.length > 0 ? historial : [{
-                id: '0',
-                autor: 'Sistema',
-                colorAutor: '#8b0000',
-                texto: 'La partida ha comenzado. ¡Que empiece la aventura!',
-                tipo: 'sistema' as const,
-                timestamp: hora(),
-              }]);
-            })
-            .catch(() => {
-              setMensajes([{
-                id: '0',
-                autor: 'Sistema',
-                colorAutor: '#8b0000',
-                texto: 'La partida ha comenzado. ¡Que empiece la aventura!',
-                tipo: 'sistema' as const,
-                timestamp: hora(),
-              }]);
-            });
-
-          client.subscribe(`/topic/campana/${campanaId}/chat`, (frame) => {
-            const msg = JSON.parse(frame.body);
-            setMensajes(prev => [...prev, {
-              ...msg,
-              id: Date.now().toString() + Math.random(),
-              timestamp: msg.timestamp || hora(),
-            }]);
-          });
+          // chat history and incoming chat messages are handled centrally by useStoryModeSync
+          // PanelPartidaStoryModeChat will receive `mensajes` and `sendChatMessage` via props
 
           client.subscribe(`/topic/campana/${campanaId}/jugadores`, (frame) => {
             console.log('📣 Recibido broadcast jugadores:', frame.body);
@@ -270,28 +240,14 @@ export function PanelPartidaStoryModeChat({
               list.forEach((j: any) => {
                 const id = j.id?.toString();
                 if (!prevIds.has(id) && !jugadoresInicialesIdsRef.current.has(id)) {
-                  setMensajes(msgs => [...msgs, {
-                    id: `join-${id}-${Date.now()}`,
-                    autor: 'Sistema',
-                    colorAutor: '#8b0000',
-                    texto: `⚔ ${j.nombre || j.usuarioNombre || 'Un jugador'} ha entrado a la partida`,
-                    tipo: 'sistema' as const,
-                    timestamp: hora(),
-                  }]);
+                  pushLocalChatMessage?.({ autor: 'Sistema', texto: `⚔ ${j.nombre || j.usuarioNombre || 'Un jugador'} ha entrado a la partida`, tipo: 'sistema', colorAutor: '#8b0000' });
                 }
               });
 
               prev.forEach((j: any) => {
                 const id = j.id?.toString();
                 if (!newIds.has(id)) {
-                  setMensajes(msgs => [...msgs, {
-                    id: `leave-${id}-${Date.now()}`,
-                    autor: 'Sistema',
-                    colorAutor: '#8b0000',
-                    texto: `[skull] ${j.nombre || j.usuarioNombre || 'Un jugador'} ha salido de la partida`,
-                    tipo: 'sistema' as const,
-                    timestamp: hora(),
-                  }]);
+                  pushLocalChatMessage?.({ autor: 'Sistema', texto: `[skull] ${j.nombre || j.usuarioNombre || 'Un jugador'} ha salido de la partida`, tipo: 'sistema', colorAutor: '#8b0000' });
                 }
               });
 
@@ -342,25 +298,11 @@ export function PanelPartidaStoryModeChat({
             });
           }
         }
-        setMensajes(prev => [...prev, {
-          id: 'connected-' + Date.now(),
-          autor: 'Sistema',
-          colorAutor: '#8b0000',
-          texto: 'Conectado a la partida en tiempo real.',
-          tipo: 'sistema',
-          timestamp: hora(),
-        }]);
+        pushLocalChatMessage?.({ autor: 'Sistema', texto: 'Conectado a la partida en tiempo real.', tipo: 'sistema', colorAutor: '#8b0000' });
       },
       onDisconnect: () => {
         setConectado(false);
-        setMensajes(prev => [...prev, {
-          id: 'disconnected-' + Date.now(),
-          autor: 'Sistema',
-          colorAutor: '#8b0000',
-          texto: 'Desconectado del servidor.',
-          tipo: 'sistema',
-          timestamp: hora(),
-        }]);
+        pushLocalChatMessage?.({ autor: 'Sistema', texto: 'Desconectado del servidor.', tipo: 'sistema', colorAutor: '#8b0000' });
       },
       onStompError: () => setConectado(false),
     });
@@ -418,7 +360,7 @@ export function PanelPartidaStoryModeChat({
 
   const enviarMensaje = useCallback(() => {
     const texto = inputChat.trim();
-    if (!texto || !stompRef.current?.connected || !campanaId) return;
+    if (!texto || !campanaId) return;
     const usuarioNombre = jugadorActual?.usuarioNombre ?? jugadorActual?.usuario?.nombre ?? jugadorActual?.usuarioName;
     const personajeNombre = jugadorActual?.nombrePersonaje ?? jugadorActual?.nombre ?? jugadorActual?.personajeNombre;
     const autorNombre = esMaster
@@ -427,18 +369,22 @@ export function PanelPartidaStoryModeChat({
     const autorColor = esMaster ? '#f1c40f' : (jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster);
     const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
     const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
-    stompRef.current.publish({
-      destination: `/app/campana/${campanaId}/chat.enviar`,
-      body: JSON.stringify({
-        personajeId,
-        usuarioId,
-        autor: autorNombre,
-        colorAutor: autorColor,
-        texto,
-        tipo: 'mensaje',
-        timestamp: hora(),
-      }),
-    });
+    const payload = {
+      personajeId,
+      usuarioId,
+      autor: autorNombre,
+      colorAutor: autorColor,
+      texto,
+      tipo: 'mensaje',
+      timestamp: hora(),
+    };
+    if (sendChatMessage) {
+      sendChatMessage({ autor: payload.autor, colorAutor: payload.colorAutor, texto: payload.texto, tipo: payload.tipo });
+    } else if (stompRef.current?.connected) {
+      stompRef.current.publish({ destination: `/app/campana/${campanaId}/chat.enviar`, body: JSON.stringify(payload) });
+    } else {
+      pushLocalChatMessage?.({ autor: payload.autor, colorAutor: payload.colorAutor, texto: payload.texto, tipo: payload.tipo, timestamp: payload.timestamp });
+    }
     setInputChat('');
   }, [inputChat, nombreMaster, colorMaster, campanaId, jugadorActual]);
 
@@ -490,13 +436,12 @@ export function PanelPartidaStoryModeChat({
       tirada: { dado: dadoActivo, resultado: resultadoReal, modificador, total },
     };
 
-    if (stompRef.current?.connected && campanaId) {
-      stompRef.current.publish({
-        destination: `/app/campana/${campanaId}/chat.enviar`,
-        body: JSON.stringify({ ...msg, personajeId, usuarioId }),
-      });
+    if (sendChatMessage) {
+      sendChatMessage({ autor: msg.autor, colorAutor: msg.colorAutor, texto: JSON.stringify(msg.tirada), tipo: 'tirada' });
+    } else if (stompRef.current?.connected && campanaId) {
+      stompRef.current.publish({ destination: `/app/campana/${campanaId}/chat.enviar`, body: JSON.stringify({ ...msg, personajeId, usuarioId }) });
     } else {
-      setMensajes(prev => [...prev, msg]);
+      pushLocalChatMessage?.(msg);
     }
 
     onMovimientoRollResult?.(resultadoReal);
@@ -525,13 +470,12 @@ export function PanelPartidaStoryModeChat({
       timestamp: hora(),
       tirada: { dado, resultado: 0, modificador: 0, total: 0, imagenes: imagenesResultado },
     };
-    if (stompRef.current?.connected && campanaId) {
-      stompRef.current.publish({
-        destination: `/app/campana/${campanaId}/chat.enviar`,
-        body: JSON.stringify({ ...msg, personajeId, usuarioId }),
-      });
+    if (sendChatMessage) {
+      sendChatMessage({ autor: msg.autor, colorAutor: msg.colorAutor, texto: JSON.stringify(msg.tirada || {}), tipo: 'tirada' });
+    } else if (stompRef.current?.connected && campanaId) {
+      stompRef.current.publish({ destination: `/app/campana/${campanaId}/chat.enviar`, body: JSON.stringify({ ...msg, personajeId, usuarioId }) });
     } else {
-      setMensajes(prev => [...prev, msg]);
+      pushLocalChatMessage?.(msg);
     }
     onAtaqueRollResult?.(imagenesResultado.length);
     setDadoActivo(null);
@@ -742,7 +686,7 @@ export function PanelPartidaStoryModeChat({
                       <div className="pp-tirada-ataque">
                         <span className="pp-tirada-dado">{msg.tirada.dado}</span>
                         <div className="pp-tirada-caras">
-                          {msg.tirada.imagenes.map((cara, i) => (
+                          {msg.tirada.imagenes.map((cara: string, i: number) => (
                             <img
                               key={i}
                               src={`/images/dadosModHistoria/${cara}.png`}

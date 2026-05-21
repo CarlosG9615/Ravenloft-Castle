@@ -62,6 +62,11 @@ export interface DadosRollEntry {
   ataque?: number | null;
 }
 
+type VictoryData = {
+  ganador: 'master' | 'personajes';
+  motivo?: string;
+};
+
 const ORDER_COLORS = ['#C0392B', '#2980B9', '#27AE60', '#8E44AD', '#E67E22', '#F39C12'];
 const getColorForOrden = (orden: number | null | undefined): string => {
   if (orden == null || Number.isNaN(Number(orden))) return '#4a90d9';
@@ -104,8 +109,12 @@ export function useStoryModeSync(
   const [revealedRooms, setRevealedRooms] = useState<string[]>([]);
   const [enemyHpMap, setEnemyHpMap] = useState<Record<string, number>>({});
   const [playerHpMap, setPlayerHpMap] = useState<Record<string, number>>({});
+  const [defeatedPlayerIds, setDefeatedPlayerIds] = useState<Set<string>>(new Set());
+  const [defeatedEnemyIds, setDefeatedEnemyIds] = useState<Set<string>>(new Set());
+  const [victoryState, setVictoryState] = useState<VictoryData | null>(null);
   const [removedTrapIds, setRemovedTrapIds] = useState<Set<string>>(new Set());
   const [revealedTrapIds, setRevealedTrapIds] = useState<Set<string>>(new Set());
+  const [mensajes, setMensajes] = useState<any[]>([]);
   const [blockedCells, setBlockedCells] = useState<Map<string, string>>(new Map());
   const stompRef = useRef<Client | null>(null);
   const configPartidaRef = useRef<PartidaConfig | null>(configPartidaInicial);
@@ -232,6 +241,33 @@ export function useStoryModeSync(
     });
   }, [misionId]);
 
+  const sendPlayerDefeated = useCallback((jugadorId: string) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/player-defeated`,
+      body: JSON.stringify({ jugadorId }),
+    });
+  }, [misionId]);
+
+  const sendEnemyDefeated = useCallback((instanciaId: string) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/enemy-defeated`,
+      body: JSON.stringify({ instanciaId }),
+    });
+  }, [misionId]);
+
+  const sendVictory = useCallback((ganador: 'master' | 'personajes', motivo?: string) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/victory`,
+      body: JSON.stringify({ ganador, motivo }),
+    });
+  }, [misionId]);
+
   const sendChatMessage = useCallback((mensaje: { autor: string; colorAutor?: string; texto: string; tipo?: string }) => {
     const client = stompRef.current;
     if (!client?.connected || !misionId) return;
@@ -246,6 +282,10 @@ export function useStoryModeSync(
       }),
     });
   }, [misionId]);
+
+  const pushLocalChatMessage = useCallback((mensaje: { autor: string; colorAutor?: string; texto: string; tipo?: string; timestamp?: string }) => {
+    setMensajes(prev => [...prev, { id: `local-${Date.now()}-${Math.random()}`, autor: mensaje.autor, colorAutor: mensaje.colorAutor ?? '#8b0000', texto: mensaje.texto, tipo: mensaje.tipo ?? 'sistema', timestamp: mensaje.timestamp ?? new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) }]);
+  }, []);
 
   // Recuperar configPartida del backend si no viene en los parámetros
   useEffect(() => {
@@ -373,6 +413,29 @@ export function useStoryModeSync(
           });
         }
 
+        // Story Mode chat (campana) - fetch history and subscribe to chat topic
+        try {
+          (async () => {
+            try {
+              const resp = await fetch(`${API_URL}/api/misiones/${misionId}/chat`, { headers: authHeaders() });
+              if (resp.ok) {
+                const items = await resp.json();
+                const historial = Array.isArray(items) ? items.map((m: any) => ({ ...m, id: m.id || (Date.now().toString() + Math.random()), timestamp: m.timestamp || new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) })) : [];
+                setMensajes(historial.length > 0 ? historial : [{ id: '0', autor: 'Sistema', colorAutor: '#8b0000', texto: 'La partida ha comenzado. ¡Que empiece la aventura!', tipo: 'sistema', timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) }]);
+              }
+            } catch (e) {
+              setMensajes([{ id: '0', autor: 'Sistema', colorAutor: '#8b0000', texto: 'La partida ha comenzado. ¡Que empiece la aventura!', tipo: 'sistema', timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) }]);
+            }
+          })();
+        } catch {}
+
+        client.subscribe(`/topic/campana/${misionId}/chat`, (frame) => {
+          try {
+            const msg = JSON.parse(frame.body);
+            setMensajes(prev => [...prev, { ...msg, id: Date.now().toString() + Math.random(), timestamp: msg.timestamp || new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) }] );
+          } catch {}
+        });
+
         client.subscribe(`/topic/mision/${misionId}/kicked`, () => {
           setKickedOut(true);
         });
@@ -435,6 +498,64 @@ export function useStoryModeSync(
               setPlayerHpMap(prev => ({ ...prev, [jugadorId]: hp }));
             }
           } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/player-defeated`, (frame) => {
+          try {
+            const { jugadorId } = JSON.parse(frame.body);
+            if (!jugadorId) return;
+            setDefeatedPlayerIds(prev => new Set([...prev, String(jugadorId)]));
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/enemy-defeated`, (frame) => {
+          try {
+            const { instanciaId } = JSON.parse(frame.body);
+            if (!instanciaId) return;
+            setDefeatedEnemyIds(prev => new Set([...prev, String(instanciaId)]));
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/player-defeated-state`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (Array.isArray(data.defeatedIds)) {
+              setDefeatedPlayerIds(new Set(data.defeatedIds.map((id: unknown) => String(id))));
+            }
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/enemy-defeated-state`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (Array.isArray(data.defeatedIds)) {
+              setDefeatedEnemyIds(new Set(data.defeatedIds.map((id: unknown) => String(id))));
+            }
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/victory`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (data?.ganador === 'master' || data?.ganador === 'personajes') {
+              setVictoryState({ ganador: data.ganador, motivo: data.motivo });
+            }
+          } catch {}
+        });
+
+        client.publish({
+          destination: `/app/mision/${misionId}/check-player-defeated`,
+          body: JSON.stringify({}),
+        });
+
+        client.publish({
+          destination: `/app/mision/${misionId}/check-enemy-defeated`,
+          body: JSON.stringify({}),
+        });
+
+        client.publish({
+          destination: `/app/mision/${misionId}/check-victory`,
+          body: JSON.stringify({}),
         });
 
         client.subscribe(`/topic/mision/${misionId}/trap-removed`, (frame) => {
@@ -578,6 +699,9 @@ export function useStoryModeSync(
     revealedRooms,
     enemyHpMap,
     playerHpMap,
+    defeatedPlayerIds,
+    defeatedEnemyIds,
+    victoryState,
     removedTrapIds,
     blockedCells,
     sendTokenMove,
@@ -591,9 +715,14 @@ export function useStoryModeSync(
     sendEnemyMove,
     sendEnemyHpUpdate,
     sendPlayerHpUpdate,
+    sendPlayerDefeated,
+    sendEnemyDefeated,
+    sendVictory,
     sendTrapRemoved,
     sendTrapRevealed,
     sendCellBlocked,
     revealedTrapIds,
+    mensajes,
+    pushLocalChatMessage,
   };
 }

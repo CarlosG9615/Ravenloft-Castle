@@ -471,6 +471,7 @@ function MissionDetailView() {
 	const [masterCheckLoading, setMasterCheckLoading] = useState(false);
 	const [showMasterOcupadoModal, setShowMasterOcupadoModal] = useState(false);
 	const [showJasSoyMasterModal, setShowJasSoyMasterModal] = useState(false);
+	const [showJasSoyPersonajeModal, setShowJasSoyPersonajeModal] = useState(false);
 	const statsPersonajeSeleccionado = useMemo(
 		() => STAT_KEYS.map(statKey => ({
 			key: statKey,
@@ -662,6 +663,11 @@ function MissionDetailView() {
 					navigate('/tablero-story-mode', {
 						state: { rol: 'master', modoHistoria, mision },
 					});
+					return;
+				}
+				if (participante.personajeId) {
+					// Usuario ya está en la partida como personaje -> mostrar modal que debe abandonar primero
+					setShowJasSoyPersonajeModal(true);
 					return;
 				}
 				// Si existe con otro rol, caemos al flujo normal (CreateMission bloqueará si hay master)
@@ -1071,6 +1077,15 @@ function MissionDetailView() {
 				message="Ya estás jugando esta partida como master. Si quieres jugar como personaje, debes acceder como master y abandonar la misión para borrarla."
 				confirmText="Entendido"
 				onConfirm={() => setShowJasSoyMasterModal(false)}
+				showImage={true}
+			/>
+
+			<ModalAlert
+				isOpen={showJasSoyPersonajeModal}
+				title="YA ESTÁS EN LA PARTIDA"
+				message="Estás participando en esta misión como personaje. Debes abandonar la misión antes de poder entrar como Master."
+				confirmText="Entendido"
+				onConfirm={() => setShowJasSoyPersonajeModal(false)}
 				showImage={true}
 			/>
 

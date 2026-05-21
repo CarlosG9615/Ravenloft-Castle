@@ -16,6 +16,9 @@ interface Props {
   ataqueYaLanzado?: boolean;
   playerHpMap?: Record<string, number>;
   onPlayerHpUpdate?: (jugadorId: string, hp: number) => void;
+  mensajes?: any[];
+  pushLocalChatMessage?: (m: { autor: string; colorAutor?: string; texto: string; tipo?: string; timestamp?: string }) => void;
+  sendChatMessage?: (m: { autor: string; colorAutor?: string; texto: string; tipo?: string }) => void;
 }
 
 export function PanelPartidaStoryMode({
@@ -32,6 +35,9 @@ export function PanelPartidaStoryMode({
   ataqueYaLanzado = false,
   playerHpMap,
   onPlayerHpUpdate,
+  mensajes,
+  pushLocalChatMessage,
+  sendChatMessage,
 }: Props) {
   const location = useLocation();
   const isStoryModeRoute = location.pathname.includes('tablero-story-mode') || location.pathname.includes('story-mode');
@@ -52,6 +58,9 @@ export function PanelPartidaStoryMode({
       ataqueYaLanzado={ataqueYaLanzado}
       playerHpMap={playerHpMap}
       onPlayerHpUpdate={onPlayerHpUpdate}
+      mensajes={mensajes}
+      pushLocalChatMessage={pushLocalChatMessage}
+      sendChatMessage={sendChatMessage}
     />
   );
 }

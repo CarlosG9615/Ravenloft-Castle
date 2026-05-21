@@ -9,6 +9,7 @@ import { TableroCentroStoryMode } from './components/TableroCentroStoryMode';
 import type { BoardToken } from './components/GameBoard';
 import { useStoryModeSync } from './hooks/useStoryModeSync';
 import { API_URL, authHeaders } from '../../services/api';
+import { getAvatarUrl } from '../../utils/imageUtils';
 import './TableroStoryMode.css';
 import './components/PanelPartidaStoryMode.css';
 
@@ -43,6 +44,37 @@ const STORY_ROOMS: StoryRoom[] = [
   { id: 'sala17', colStart: 19, rowStart: 5, colEnd: 23, rowEnd: 8 },
   { id: 'sala18', colStart: 20, rowStart: 1, colEnd: 23, rowEnd: 4 },
 ];
+
+const ORDER_COLORS = ['#C0392B', '#2980B9', '#27AE60', '#8E44AD', '#E67E22', '#F39C12'];
+
+type DefeatEvent = {
+  type: 'player' | 'enemy';
+  id: string;
+  nombre: string;
+  color?: string;
+  avatarUrl?: string | null;
+  imageUrl?: string | null;
+};
+
+const normalizeText = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+const getEnemyImageSrc = (nombre?: string | null): string => {
+  const normalized = normalizeText(nombre ?? '').replace(/\s+/g, '');
+  if (normalized.includes('goblin')) return '/images/enemigos/goblinEnemigo.png';
+  if (normalized.includes('zombie')) return '/images/enemigos/zombieEnemigo.jpg';
+  return `/images/enemigos/${normalized || 'enemigo'}Enemigo.png`;
+};
+
+const resolveAvatarUrl = (avatar: string | undefined | null): string => {
+  if (!avatar) return '/images/avatar-login.png';
+  if (/^https?:\/\//i.test(avatar) || /^data:/i.test(avatar) || avatar.startsWith('/')) return avatar;
+  return getAvatarUrl(avatar);
+};
+
+const colorForOrden = (orden: number | null | undefined): string => {
+  if (orden == null || Number.isNaN(Number(orden))) return '#4a90d9';
+  return ORDER_COLORS[Number(orden) % ORDER_COLORS.length];
+};
 
 function getRoomForCell(col: number, row: number): StoryRoom | null {
   return STORY_ROOMS.find((room) => (
@@ -103,7 +135,17 @@ export function TableroStoryMode() {
   const [enemyToOpenId, setEnemyToOpenId] = useState<string | null>(null);
   const [searchTrapFeedback, setSearchTrapFeedback] = useState<string | null>(null);
   const [configPartidaInitial, setConfigPartidaInitial] = useState(rawState.configPartida ?? null);
+  const [defeatQueue, setDefeatQueue] = useState<DefeatEvent[]>([]);
+  const [activeDefeatModal, setActiveDefeatModal] = useState<DefeatEvent | null>(null);
+  const [hiddenPlayerIds, setHiddenPlayerIds] = useState<Set<string>>(new Set());
+  const [hiddenEnemyIds, setHiddenEnemyIds] = useState<Set<string>>(new Set());
+  const [victoryModalOpen, setVictoryModalOpen] = useState(false);
   const searchTrapFeedbackTimeoutRef = useRef<number | null>(null);
+  const announcedPlayerDefeatRef = useRef<Set<string>>(new Set());
+  const announcedEnemyDefeatRef = useRef<Set<string>>(new Set());
+  const processedDefeatModalRef = useRef<Set<string>>(new Set());
+  const emittedVictoryRef = useRef(false);
+  const skippedTurnRef = useRef<string | null>(null);
 
   const navigate = useNavigate();
 
@@ -131,6 +173,9 @@ export function TableroStoryMode() {
     revealedRooms,
     enemyHpMap,
     playerHpMap,
+    defeatedPlayerIds,
+    defeatedEnemyIds,
+    victoryState,
     sendTokenMove,
     sendFinTurno,
     sendIniciarRonda,
@@ -142,8 +187,13 @@ export function TableroStoryMode() {
     sendEnemyMove,
     sendEnemyHpUpdate,
     sendPlayerHpUpdate,
+    sendPlayerDefeated,
+    sendEnemyDefeated,
+    sendVictory,
     removedTrapIds,
     revealedTrapIds,
+    mensajes,
+    pushLocalChatMessage,
     blockedCells,
     sendTrapRemoved,
     sendTrapRevealed,
@@ -433,6 +483,157 @@ export function TableroStoryMode() {
     setSearchTrapFeedback(null);
   }, [puedeDesactivarTrampa, sendTrapRemoved, trampasReveladasAdyacentes]);
 
+  const playerRoster = useMemo(() => {
+    const fromParticipantes = participantes.map((p) => ({
+      id: String(p.personajeId),
+      nombre: p.nombrePersonaje,
+      color: colorForOrden(p.ordenUnion),
+      avatarUrl: resolveAvatarUrl((p as any).avatar ?? null),
+      orden: p.ordenUnion ?? 0,
+    }));
+    if (fromParticipantes.length > 0) return fromParticipantes;
+    return jugadoresSincronizados
+      .map((j: any) => ({
+        id: String(j.personajeId ?? j.id),
+        nombre: j.nombre ?? 'Aventurero',
+        color: j.color ?? '#4a90d9',
+        avatarUrl: resolveAvatarUrl(j.avatar ?? null),
+        orden: j.ordenUnion ?? 0,
+      }))
+      .sort((a, b) => a.orden - b.orden);
+  }, [jugadoresSincronizados, participantes]);
+
+  useEffect(() => {
+    playerRoster.forEach((player) => {
+      const hp = playerHpMap[player.id];
+      if (hp === undefined || hp > 0) return;
+      if (announcedPlayerDefeatRef.current.has(player.id)) return;
+      announcedPlayerDefeatRef.current.add(player.id);
+      sendPlayerDefeated(player.id);
+    });
+  }, [playerHpMap, playerRoster, sendPlayerDefeated]);
+
+  useEffect(() => {
+    const enemies = configPartida?.enemigos ?? [];
+    enemies.forEach((enemy) => {
+      const hp = enemyHpMap[enemy.instanciaId];
+      if (hp === undefined || hp > 0) return;
+      if (announcedEnemyDefeatRef.current.has(enemy.instanciaId)) return;
+      announcedEnemyDefeatRef.current.add(enemy.instanciaId);
+      sendEnemyDefeated(enemy.instanciaId);
+    });
+  }, [configPartida?.enemigos, enemyHpMap, sendEnemyDefeated]);
+
+  useEffect(() => {
+    const toAdd: DefeatEvent[] = [];
+    defeatedPlayerIds.forEach((playerId) => {
+      const marker = `player:${playerId}`;
+      if (processedDefeatModalRef.current.has(marker)) return;
+      processedDefeatModalRef.current.add(marker);
+      const player = playerRoster.find((p) => p.id === playerId);
+      toAdd.push({
+        type: 'player',
+        id: playerId,
+        nombre: player?.nombre ?? 'Personaje',
+        color: player?.color ?? '#4a90d9',
+        avatarUrl: player?.avatarUrl ?? '/images/avatar-login.png',
+      });
+    });
+    defeatedEnemyIds.forEach((enemyId) => {
+      const marker = `enemy:${enemyId}`;
+      if (processedDefeatModalRef.current.has(marker)) return;
+      processedDefeatModalRef.current.add(marker);
+      const enemy = (configPartida?.enemigos ?? []).find((e) => e.instanciaId === enemyId);
+      toAdd.push({
+        type: 'enemy',
+        id: enemyId,
+        nombre: enemy?.nombre ?? 'Enemigo',
+        imageUrl: getEnemyImageSrc(enemy?.nombre),
+      });
+    });
+    if (toAdd.length > 0) {
+      setDefeatQueue((prev) => [...prev, ...toAdd]);
+    }
+  }, [configPartida?.enemigos, defeatedEnemyIds, defeatedPlayerIds, playerRoster]);
+
+  useEffect(() => {
+    if (activeDefeatModal || defeatQueue.length === 0) return;
+    const [next, ...rest] = defeatQueue;
+    setActiveDefeatModal(next);
+    setDefeatQueue(rest);
+  }, [activeDefeatModal, defeatQueue]);
+
+  useEffect(() => {
+    if (!esMaster) return;
+    if (turnoActual?.fase !== 'personajes' || !turnoActual.turnoActualPersonajeId) {
+      skippedTurnRef.current = null;
+      return;
+    }
+    const turnId = String(turnoActual.turnoActualPersonajeId);
+    if (!hiddenPlayerIds.has(turnId)) {
+      skippedTurnRef.current = null;
+      return;
+    }
+    if (skippedTurnRef.current === turnId) return;
+    skippedTurnRef.current = turnId;
+    sendFinTurno(turnoActual.turnoActualPersonajeId);
+  }, [esMaster, hiddenPlayerIds, sendFinTurno, turnoActual?.fase, turnoActual?.turnoActualPersonajeId]);
+
+  useEffect(() => {
+    if (!esMaster || emittedVictoryRef.current) return;
+    if (!victoryState) {
+      const totalPlayers = playerRoster.length;
+      const totalEnemies = (configPartida?.enemigos ?? []).length;
+
+      if (totalPlayers > 0 && defeatedPlayerIds.size >= totalPlayers) {
+        emittedVictoryRef.current = true;
+        sendVictory('master', 'Todos los personajes han sido derrotados');
+        return;
+      }
+
+      if (totalEnemies > 0 && defeatedEnemyIds.size >= totalEnemies) {
+        emittedVictoryRef.current = true;
+        sendVictory('personajes', 'Todos los enemigos han sido derrotados');
+      }
+    }
+  }, [configPartida?.enemigos, defeatedEnemyIds.size, defeatedPlayerIds.size, esMaster, playerRoster.length, sendVictory, victoryState]);
+
+  useEffect(() => {
+    if (victoryState) {
+      setVictoryModalOpen(true);
+    }
+  }, [victoryState]);
+
+  const handleCloseDefeatModal = useCallback(() => {
+    if (!activeDefeatModal) return;
+    if (activeDefeatModal.type === 'player') {
+      const defeatedId = String(activeDefeatModal.id);
+      if (esMaster) {
+        sendChatMessage({
+          autor: 'Sistema',
+          texto: `${activeDefeatModal.nombre} ha sido eliminado de la partida.`,
+          tipo: 'sistema',
+        });
+      }
+      setHiddenPlayerIds((prev) => new Set([...prev, defeatedId]));
+      setSelectedPlayerModal((prev: any) => {
+        if (!prev) return prev;
+        return String(prev.id) === defeatedId ? null : prev;
+      });
+    } else {
+      const defeatedEnemyId = String(activeDefeatModal.id);
+      setHiddenEnemyIds((prev) => new Set([...prev, defeatedEnemyId]));
+      if (enemyToOpenId === defeatedEnemyId) {
+        setEnemyToOpenId(null);
+      }
+    }
+    setActiveDefeatModal(null);
+  }, [activeDefeatModal, enemyToOpenId, esMaster, sendChatMessage]);
+
+  const visibleEnemyTokens = useMemo(() => {
+    return activeEnemyTokens.filter((enemy) => !hiddenEnemyIds.has(enemy.instanciaId));
+  }, [activeEnemyTokens, hiddenEnemyIds]);
+
   return (
     <div className="tb-page tsm-page">
       <PanelLateralStoryMode
@@ -442,7 +643,7 @@ export function TableroStoryMode() {
         jugadoresSincronizados={jugadoresSincronizados}
         jugadorActual={jugadorActual}
         participantes={participantes}
-        enemyTokens={activeEnemyTokens}
+        enemyTokens={visibleEnemyTokens}
         abierto={panelAbierto}
         onToggle={() => setPanelAbierto(!panelAbierto)}
         esMaster={esMaster}
@@ -482,6 +683,8 @@ export function TableroStoryMode() {
           setPanelAbierto(true);
           setEnemyToOpenId(id);
         }}
+        hiddenPlayerIds={hiddenPlayerIds}
+        hiddenEnemyIds={hiddenEnemyIds}
         removedTrapIds={removedTrapIds}
         revealedTrapIds={revealedTrapIds}
         blockedCells={blockedCells}
@@ -505,6 +708,9 @@ export function TableroStoryMode() {
         ataqueYaLanzado={ataqueRollado}
         playerHpMap={playerHpMap}
         onPlayerHpUpdate={sendPlayerHpUpdate}
+        mensajes={mensajes}
+        pushLocalChatMessage={pushLocalChatMessage}
+        sendChatMessage={sendChatMessage}
       />
 
       {esperandoMaster && !connectionTimedOut && (
@@ -729,6 +935,50 @@ export function TableroStoryMode() {
         </div>,
         document.body
       )}
+
+      <ModalAlert
+        isOpen={Boolean(activeDefeatModal)}
+        title={activeDefeatModal?.type === 'player' ? 'Personaje derrotado' : 'Enemigo derrotado'}
+        message={activeDefeatModal
+          ? (activeDefeatModal.type === 'player'
+            ? `${activeDefeatModal.nombre} ha sido derrotado y queda eliminado de la ronda.`
+            : `${activeDefeatModal.nombre} ha sido derrotado y desaparece del tablero.`)
+          : ''}
+        confirmText="Cerrar"
+        onConfirm={handleCloseDefeatModal}
+        showImage={false}
+        media={activeDefeatModal ? (
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div
+              className="modal-conflict-avatar"
+              style={{ borderColor: activeDefeatModal.type === 'player' ? (activeDefeatModal.color ?? '#4a90d9') : 'rgba(200,70,50,0.95)' }}
+            >
+              {activeDefeatModal.type === 'player'
+                ? (
+                  activeDefeatModal.avatarUrl
+                    ? <img src={activeDefeatModal.avatarUrl} alt={activeDefeatModal.nombre} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/avatar-login.png'; }} />
+                    : <span className="initials">{activeDefeatModal.nombre.charAt(0)}</span>
+                )
+                : <img src={activeDefeatModal.imageUrl ?? '/images/icons/rolo_triste.png'} alt={activeDefeatModal.nombre} onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/icons/rolo_triste.png'; }} />}
+            </div>
+          </div>
+        ) : null}
+      />
+
+      <ModalAlert
+        isOpen={victoryModalOpen}
+        title={victoryState?.ganador === 'master' ? 'Victoria del Master' : 'Victoria de los Personajes'}
+        message={victoryState?.ganador === 'master'
+          ? (esMaster
+            ? '¡Enhorabuena Master! gracias a tus esfuerzos obtienes la victoria sobre tus enemigos, puedes celebrarlo con orgullo.'
+            : 'Todos los aventureros han sido derrotados. El Master gana la partida.')
+          : (!esMaster
+            ? '¡Enhorabuena Personaje! gracias a tus esfuerzos obtienes la victoria sobre tus enemigos, puedes celebrarlo con orgullo.'
+            : 'Todos los enemigos del tablero han sido derrotados. ¡Los personajes ganan la partida!')}
+        confirmText="Cerrar"
+        onConfirm={() => setVictoryModalOpen(false)}
+        showImage={false}
+      />
 
       <ModalAlert
         isOpen={connectionTimedOut}
