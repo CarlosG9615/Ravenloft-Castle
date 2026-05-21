@@ -192,6 +192,8 @@ export function TableroStoryMode() {
     sendVictory,
     removedTrapIds,
     revealedTrapIds,
+    mensajes,
+    pushLocalChatMessage,
     blockedCells,
     sendTrapRemoved,
     sendTrapRevealed,
@@ -706,6 +708,9 @@ export function TableroStoryMode() {
         ataqueYaLanzado={ataqueRollado}
         playerHpMap={playerHpMap}
         onPlayerHpUpdate={sendPlayerHpUpdate}
+        mensajes={mensajes}
+        pushLocalChatMessage={pushLocalChatMessage}
+        sendChatMessage={sendChatMessage}
       />
 
       {esperandoMaster && !connectionTimedOut && (

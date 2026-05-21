@@ -114,6 +114,7 @@ export function useStoryModeSync(
   const [victoryState, setVictoryState] = useState<VictoryData | null>(null);
   const [removedTrapIds, setRemovedTrapIds] = useState<Set<string>>(new Set());
   const [revealedTrapIds, setRevealedTrapIds] = useState<Set<string>>(new Set());
+  const [mensajes, setMensajes] = useState<any[]>([]);
   const [blockedCells, setBlockedCells] = useState<Map<string, string>>(new Map());
   const stompRef = useRef<Client | null>(null);
   const configPartidaRef = useRef<PartidaConfig | null>(configPartidaInicial);
@@ -282,6 +283,10 @@ export function useStoryModeSync(
     });
   }, [misionId]);
 
+  const pushLocalChatMessage = useCallback((mensaje: { autor: string; colorAutor?: string; texto: string; tipo?: string; timestamp?: string }) => {
+    setMensajes(prev => [...prev, { id: `local-${Date.now()}-${Math.random()}`, autor: mensaje.autor, colorAutor: mensaje.colorAutor ?? '#8b0000', texto: mensaje.texto, tipo: mensaje.tipo ?? 'sistema', timestamp: mensaje.timestamp ?? new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) }]);
+  }, []);
+
   // Recuperar configPartida del backend si no viene en los parámetros
   useEffect(() => {
     if (!misionId || configPartida || (!esMaster && !misionId)) return;
@@ -407,6 +412,29 @@ export function useStoryModeSync(
             body: JSON.stringify(jugadorPayloadRef.current),
           });
         }
+
+        // Story Mode chat (campana) - fetch history and subscribe to chat topic
+        try {
+          (async () => {
+            try {
+              const resp = await fetch(`${API_URL}/api/misiones/${misionId}/chat`, { headers: authHeaders() });
+              if (resp.ok) {
+                const items = await resp.json();
+                const historial = Array.isArray(items) ? items.map((m: any) => ({ ...m, id: m.id || (Date.now().toString() + Math.random()), timestamp: m.timestamp || new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) })) : [];
+                setMensajes(historial.length > 0 ? historial : [{ id: '0', autor: 'Sistema', colorAutor: '#8b0000', texto: 'La partida ha comenzado. ¡Que empiece la aventura!', tipo: 'sistema', timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) }]);
+              }
+            } catch (e) {
+              setMensajes([{ id: '0', autor: 'Sistema', colorAutor: '#8b0000', texto: 'La partida ha comenzado. ¡Que empiece la aventura!', tipo: 'sistema', timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) }]);
+            }
+          })();
+        } catch {}
+
+        client.subscribe(`/topic/campana/${misionId}/chat`, (frame) => {
+          try {
+            const msg = JSON.parse(frame.body);
+            setMensajes(prev => [...prev, { ...msg, id: Date.now().toString() + Math.random(), timestamp: msg.timestamp || new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) }] );
+          } catch {}
+        });
 
         client.subscribe(`/topic/mision/${misionId}/kicked`, () => {
           setKickedOut(true);
@@ -694,5 +722,7 @@ export function useStoryModeSync(
     sendTrapRevealed,
     sendCellBlocked,
     revealedTrapIds,
+    mensajes,
+    pushLocalChatMessage,
   };
 }
