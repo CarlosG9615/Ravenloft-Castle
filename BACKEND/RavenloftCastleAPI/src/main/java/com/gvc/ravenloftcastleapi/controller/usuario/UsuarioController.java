@@ -6,6 +6,7 @@ import com.gvc.ravenloftcastleapi.dto.autenticacion.UsuarioUpdateDTO;
 import com.gvc.ravenloftcastleapi.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -40,6 +41,7 @@ public class UsuarioController {
     }
 
     @PutMapping("/{id}/rol")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UsuarioResponseDTO> cambiarRol(@PathVariable Long id, @RequestBody UsuarioRolUpdateDTO dto) {
         if (dto.rol() == null || dto.rol().isBlank()) {
             throw new IllegalArgumentException("Se requiere el campo 'rol'");
