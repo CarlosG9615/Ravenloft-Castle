@@ -1,6 +1,7 @@
 package com.gvc.ravenloftcastleapi.websocket;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,7 +49,6 @@ public class TableroWebSocketController {
         String idKey = jugador.getId() != null ? jugador.getId().toString() : String.valueOf(System.currentTimeMillis());
         jugador.setConectado(true);
 
-        // Aplicar HP override si existe
         Map<String, Integer> hpOverrides = hpOverridesCampana.get(campanaId);
         if (hpOverrides != null && hpOverrides.containsKey(idKey)) {
             jugador.setHp(hpOverrides.get(idKey));
@@ -61,8 +61,17 @@ public class TableroWebSocketController {
     @MessageMapping("/campana/{campanaId}/leave")
     public void leaveCampana(@DestinationVariable String campanaId, @Payload String jugadorId) {
         if (sessionesCampana.containsKey(campanaId)) {
-            sessionesCampana.get(campanaId).remove(jugadorId);
+            JugadorWsDTO jugador = sessionesCampana.get(campanaId).remove(jugadorId);
             broadcastJugadores(campanaId);
+            if (jugador != null) {
+                Map<String, Object> leavePayload = new HashMap<>();
+                leavePayload.put("jugadorId", jugadorId);
+                leavePayload.put("nombre", jugador.getNombre() != null ? jugador.getNombre() : "Un jugador");
+                messagingTemplate.convertAndSend(
+                        "/topic/campana/" + campanaId + "/jugadores-leave",
+                        (Object) leavePayload
+                );
+            }
         }
     }
 
@@ -319,8 +328,12 @@ public class TableroWebSocketController {
     }
 
     private void broadcastJugadores(String campanaId) {
-        List<JugadorWsDTO> jugadores = new ArrayList<>(
-                sessionesCampana.getOrDefault(campanaId, new ConcurrentHashMap<>()).values());
+        List<JugadorWsDTO> jugadores = sessionesCampana
+                .getOrDefault(campanaId, new ConcurrentHashMap<>())
+                .values()
+                .stream()
+                .filter(j -> j.getEsMaster() == null || !j.getEsMaster())
+                .collect(java.util.stream.Collectors.toList());
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/jugadores", jugadores);
     }
 
@@ -336,7 +349,11 @@ public class TableroWebSocketController {
         private Boolean conectado;
         private String avatar;
         private String color;
+        private Boolean esMaster;
 
+
+        public Boolean getEsMaster() { return esMaster; }
+        public void setEsMaster(Boolean esMaster) { this.esMaster = esMaster; }
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
         public Long getUsuarioId() { return usuarioId; }
