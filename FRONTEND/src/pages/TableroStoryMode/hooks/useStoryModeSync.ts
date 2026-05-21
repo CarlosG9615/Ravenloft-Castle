@@ -62,6 +62,11 @@ export interface DadosRollEntry {
   ataque?: number | null;
 }
 
+type VictoryData = {
+  ganador: 'master' | 'personajes';
+  motivo?: string;
+};
+
 const ORDER_COLORS = ['#C0392B', '#2980B9', '#27AE60', '#8E44AD', '#E67E22', '#F39C12'];
 const getColorForOrden = (orden: number | null | undefined): string => {
   if (orden == null || Number.isNaN(Number(orden))) return '#4a90d9';
@@ -104,6 +109,9 @@ export function useStoryModeSync(
   const [revealedRooms, setRevealedRooms] = useState<string[]>([]);
   const [enemyHpMap, setEnemyHpMap] = useState<Record<string, number>>({});
   const [playerHpMap, setPlayerHpMap] = useState<Record<string, number>>({});
+  const [defeatedPlayerIds, setDefeatedPlayerIds] = useState<Set<string>>(new Set());
+  const [defeatedEnemyIds, setDefeatedEnemyIds] = useState<Set<string>>(new Set());
+  const [victoryState, setVictoryState] = useState<VictoryData | null>(null);
   const [removedTrapIds, setRemovedTrapIds] = useState<Set<string>>(new Set());
   const [revealedTrapIds, setRevealedTrapIds] = useState<Set<string>>(new Set());
   const [blockedCells, setBlockedCells] = useState<Map<string, string>>(new Map());
@@ -229,6 +237,33 @@ export function useStoryModeSync(
     client.publish({
       destination: `/app/campana/${misionId}/hp-update`,
       body: JSON.stringify({ jugadorId, hp }),
+    });
+  }, [misionId]);
+
+  const sendPlayerDefeated = useCallback((jugadorId: string) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/player-defeated`,
+      body: JSON.stringify({ jugadorId }),
+    });
+  }, [misionId]);
+
+  const sendEnemyDefeated = useCallback((instanciaId: string) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/enemy-defeated`,
+      body: JSON.stringify({ instanciaId }),
+    });
+  }, [misionId]);
+
+  const sendVictory = useCallback((ganador: 'master' | 'personajes', motivo?: string) => {
+    const client = stompRef.current;
+    if (!client?.connected || !misionId) return;
+    client.publish({
+      destination: `/app/mision/${misionId}/victory`,
+      body: JSON.stringify({ ganador, motivo }),
     });
   }, [misionId]);
 
@@ -437,6 +472,64 @@ export function useStoryModeSync(
           } catch {}
         });
 
+        client.subscribe(`/topic/mision/${misionId}/player-defeated`, (frame) => {
+          try {
+            const { jugadorId } = JSON.parse(frame.body);
+            if (!jugadorId) return;
+            setDefeatedPlayerIds(prev => new Set([...prev, String(jugadorId)]));
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/enemy-defeated`, (frame) => {
+          try {
+            const { instanciaId } = JSON.parse(frame.body);
+            if (!instanciaId) return;
+            setDefeatedEnemyIds(prev => new Set([...prev, String(instanciaId)]));
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/player-defeated-state`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (Array.isArray(data.defeatedIds)) {
+              setDefeatedPlayerIds(new Set(data.defeatedIds.map((id: unknown) => String(id))));
+            }
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/enemy-defeated-state`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (Array.isArray(data.defeatedIds)) {
+              setDefeatedEnemyIds(new Set(data.defeatedIds.map((id: unknown) => String(id))));
+            }
+          } catch {}
+        });
+
+        client.subscribe(`/topic/mision/${misionId}/victory`, (frame) => {
+          try {
+            const data = JSON.parse(frame.body);
+            if (data?.ganador === 'master' || data?.ganador === 'personajes') {
+              setVictoryState({ ganador: data.ganador, motivo: data.motivo });
+            }
+          } catch {}
+        });
+
+        client.publish({
+          destination: `/app/mision/${misionId}/check-player-defeated`,
+          body: JSON.stringify({}),
+        });
+
+        client.publish({
+          destination: `/app/mision/${misionId}/check-enemy-defeated`,
+          body: JSON.stringify({}),
+        });
+
+        client.publish({
+          destination: `/app/mision/${misionId}/check-victory`,
+          body: JSON.stringify({}),
+        });
+
         client.subscribe(`/topic/mision/${misionId}/trap-removed`, (frame) => {
           try {
             const data = JSON.parse(frame.body);
@@ -578,6 +671,9 @@ export function useStoryModeSync(
     revealedRooms,
     enemyHpMap,
     playerHpMap,
+    defeatedPlayerIds,
+    defeatedEnemyIds,
+    victoryState,
     removedTrapIds,
     blockedCells,
     sendTokenMove,
@@ -591,6 +687,9 @@ export function useStoryModeSync(
     sendEnemyMove,
     sendEnemyHpUpdate,
     sendPlayerHpUpdate,
+    sendPlayerDefeated,
+    sendEnemyDefeated,
+    sendVictory,
     sendTrapRemoved,
     sendTrapRevealed,
     sendCellBlocked,

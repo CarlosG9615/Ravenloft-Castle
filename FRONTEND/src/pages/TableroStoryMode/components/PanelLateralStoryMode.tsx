@@ -216,7 +216,6 @@ export function PanelLateralStoryMode({
     });
   };
 
-  const closeEnemyModal = () => setSelectedEnemy(null);
   const closeEnemyModalAndNotify = () => {
     setSelectedEnemy(null);
     if (onCloseEnemyModal) onCloseEnemyModal();
