@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import type { ReactNode, MutableRefObject } from 'react';
+import type { ReactNode } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { DiceRoller } from './DiceRoller';
-import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
+import { DiceRoller } from '../../Tablero/DiceRoller';
+import { getAvatarUrl, getCartaUrl } from '../../../utils/imageUtils';
 import { Comment, Users, Mic, Skull, Sword } from 'pixelarticons/react'
 import { Dices, Smile } from 'lucide-react';
-import { PerfilPublicoModal } from '../../components/PerfilPublicoModal/PerfilPublicoModal';
-import './PanelPartida.css';
+import { PerfilPublicoModal } from '../../../components/PerfilPublicoModal/PerfilPublicoModal';
+import './PanelPartidaStoryMode.css';
 
 interface Jugador {
   id: string;
@@ -42,14 +42,7 @@ interface MensajeChat {
   };
 }
 
-const DADOS = [
-  { caras: 4,  label: 'd4'  },
-  { caras: 6,  label: 'd6'  },
-  { caras: 8,  label: 'd8'  },
-  { caras: 10, label: 'd10' },
-  { caras: 12, label: 'd12' },
-  { caras: 20, label: 'd20' },
-];
+// DADOS removed for Story Mode — movement/attack dice handled by StoryModeDicePanel
 
 const EMOTES = [
   { id: 'emoji-sorpre',   src: '/images/emotes/emoji-sorpre.png',   label: 'Sorprendido' },
@@ -84,15 +77,22 @@ const CLOUDINARY_BASE_URL = import.meta.env.VITE_CLOUDINARY_URL as string | unde
 const buildAvatarCandidates = (avatar?: string | null) => {
   if (!avatar) return [] as string[];
   if (isAbsoluteUrl(avatar) || isDataUrl(avatar) || isAppPath(avatar)) return [avatar];
+
   const normalized = avatar.replace(/\.png$/i, '');
   const candidates: string[] = [];
+
   if (normalized.startsWith('avatar_') || normalized.startsWith('carta_')) {
-    if (CLOUDINARY_BASE_URL) candidates.push(`${CLOUDINARY_BASE_URL}/${normalized}.png`);
+    if (CLOUDINARY_BASE_URL) {
+      candidates.push(`${CLOUDINARY_BASE_URL}/${normalized}.png`);
+    }
   } else {
     candidates.push(getAvatarUrl(normalized));
     candidates.push(getCartaUrl(normalized));
-    if (CLOUDINARY_BASE_URL) candidates.push(`${CLOUDINARY_BASE_URL}/${normalized}.png`);
+    if (CLOUDINARY_BASE_URL) {
+      candidates.push(`${CLOUDINARY_BASE_URL}/${normalized}.png`);
+    }
   }
+
   candidates.push('/images/avatar-login.png');
   return candidates;
 };
@@ -101,11 +101,22 @@ function AvatarImage({ avatar, nombre }: { avatar?: string | null; nombre: strin
   const [indice, setIndice] = useState(0);
   const candidates = buildAvatarCandidates(avatar);
   const src = candidates[indice] ?? null;
-  useEffect(() => { setIndice(0); }, [avatar]);
-  if (!src) return <div className="pp-jugador-avatar-placeholder">{nombre.charAt(0)}</div>;
+
+  useEffect(() => {
+    setIndice(0);
+  }, [avatar]);
+
+  if (!src) {
+    return <div className="pp-jugador-avatar-placeholder">{nombre.charAt(0)}</div>;
+  }
+
   return (
-    <img src={src} alt={nombre} className="pp-jugador-avatar"
-      onError={() => setIndice(prev => (prev + 1 < candidates.length ? prev + 1 : prev))} />
+    <img
+      src={src}
+      alt={nombre}
+      className="pp-jugador-avatar"
+      onError={() => setIndice(prev => (prev + 1 < candidates.length ? prev + 1 : prev))}
+    />
   );
 }
 
@@ -119,8 +130,12 @@ function renderTextoConEmotes(texto: string) {
     const match = parte.match(/^\[([^\]]+)\]$/);
     if (match) {
       return (
-        <img key={i} src={`/images/emotes/${match[1]}.png`} alt={match[1]}
-          style={{ width: 64, height: 64, verticalAlign: 'middle', margin: '0 2px' }} />
+        <img
+          key={i}
+          src={`/images/emotes/${match[1]}.png`}
+          alt={match[1]}
+          style={{ width: 64, height: 64, verticalAlign: 'middle', margin: '0 2px' }}
+        />
       );
     }
     return <span key={i}>{parte}</span>;
@@ -135,11 +150,20 @@ interface Props {
   campanaId?: number | string;
   jugadorActual?: any;
   esMaster?: boolean;
-  chatSince?: string | null;
-  lanzarDadoCaracteristicaRef?: MutableRefObject<((label: string, mod: number) => void) | null>;
+  dicesComponent?: React.ComponentType<any>;
+  turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
+  onMovimientoRollResult?: (resultado: number) => void;
+  movimientoYaLanzado?: boolean;
+  onAtaqueRollResult?: (cantidadResultados: number) => void;
+  ataqueYaLanzado?: boolean;
+  playerHpMap?: Record<string, number>;
+  onPlayerHpUpdate?: (jugadorId: string, hp: number) => void;
+  mensajes?: any[];
+  pushLocalChatMessage?: (m: { autor: string; colorAutor?: string; texto: string; tipo?: string; timestamp?: string }) => void;
+  sendChatMessage?: (m: { autor: string; colorAutor?: string; texto: string; tipo?: string }) => void;
 }
 
-export function PanelPartida({
+export function PanelPartidaStoryModeChat({
   nombreMaster = 'Tú (Master)',
   colorMaster = '#c0392b',
   panelSuperior,
@@ -147,50 +171,29 @@ export function PanelPartida({
   campanaId,
   jugadorActual,
   esMaster = false,
-  chatSince,
-  lanzarDadoCaracteristicaRef,
+  dicesComponent: CustomDicePanel,
+  turnoActual,
+  onMovimientoRollResult,
+  movimientoYaLanzado = false,
+  onAtaqueRollResult,
+  ataqueYaLanzado = false,
+  playerHpMap,
+  onPlayerHpUpdate,
+  mensajes = [],
+  pushLocalChatMessage,
+  sendChatMessage,
 }: Props) {
-
-  const [pestana, setPestana]                   = useState<'chat' | 'jugadores' | 'voz'>('chat');
-  const [mensajes, setMensajes]                 = useState<MensajeChat[]>([]);
-  const [inputChat, setInputChat]               = useState('');
-  const [modificador, setModificador]           = useState(0);
-  const [conectado, setConectado]               = useState(false);
-  const [dadoActivo, setDadoActivo]             = useState<string | null>(null);
-  const [resultadoActivo, setResultadoActivo]   = useState<number | null>(null);
-  const [mostrarEmotes, setMostrarEmotes]       = useState(false);
-  const [mostrarDados, setMostrarDados]         = useState(false);
-
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'voz'>('chat');
-  const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [inputChat, setInputChat] = useState('');
-  const [modificador] = useState(0);
+  const modificador = 0;
   const [conectado, setConectado] = useState(false);
   const [dadoActivo, setDadoActivo] = useState<string | null>(null);
   const [resultadoActivo, setResultadoActivo] = useState<number | null>(null);
   const [mostrarEmotes, setMostrarEmotes] = useState(false);
   const [mostrarDados, setMostrarDados] = useState(false);
-
   const [perfilPersonajeId, setPerfilPersonajeId] = useState<number | null>(null);
-  const [hpOverrides, setHpOverrides]           = useState<Record<string, number>>({});
-  const [pendingLabel, setPendingLabel]         = useState<string | null>(null);
-  const [pendingMod, setPendingMod]             = useState<number | null>(null);
-  const [micActivo, setMicActivo]               = useState(false);
-  const [usuariosVoz, setUsuariosVoz]           = useState<string[]>([]);
-  const [jugadoresRed, setJugadoresRed]         = useState<any[]>(jugadores || []);
-
-  const esAnimacionRemota         = useRef(false);
+  const esAnimacionRemota = useRef(false);
   const jugadoresInicializadosRef = useRef(false);
-
-  const jugadoresInicialesIdsRef  = useRef<Set<string>>(new Set());
-  const chatRef                   = useRef<HTMLDivElement>(null);
-  const stompRef                  = useRef<Client | null>(null);
-  const localStreamRef            = useRef<MediaStream | null>(null);
-  const peersRef                  = useRef<Map<string, RTCPeerConnection>>(new Map());
-  const lastSentAvatarRef         = useRef<string | null>(null);
-
-  // ── Registrar función de tirada de característica en el ref de Tablero ──
-
   const jugadoresInicialesIdsRef = useRef<Set<string>>(new Set());
 
   const chatRef = useRef<HTMLDivElement>(null);
@@ -203,27 +206,6 @@ export function PanelPartida({
   const [jugadoresRed, setJugadoresRed] = useState<any[]>(jugadores || []);
   const lastSentAvatarRef = useRef<string | null>(null);
 
-  // ── Registrar nuestra función en el ref de Tablero ──
-
-  useEffect(() => {
-    if (!lanzarDadoCaracteristicaRef) return;
-    lanzarDadoCaracteristicaRef.current = (label: string, mod: number) => {
-      const resultadoReal = Math.floor(Math.random() * 20) + 1;
-      setPendingLabel(label);
-      setPendingMod(mod);
-      setDadoActivo('d20');
-      setResultadoActivo(0);
-      if (stompRef.current?.connected && campanaId) {
-        const senderId = jugadorActual?.id?.toString() || 'jugador';
-        stompRef.current.publish({
-          destination: `/app/campana/${campanaId}/dice-roll`,
-          body: JSON.stringify({ dado: 'd20', resultado: resultadoReal, senderId }),
-        });
-      }
-    };
-  }, [lanzarDadoCaracteristicaRef, campanaId, jugadorActual]);
-
-  // ── WebSocket principal ──
   useEffect(() => {
     const client = new Client({
       webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
@@ -232,44 +214,14 @@ export function PanelPartida({
         setConectado(true);
         jugadoresInicializadosRef.current = false;
         jugadoresInicialesIdsRef.current = new Set();
-
         if (campanaId) {
-          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-          const sinceParam = chatSince ? `?since=${encodeURIComponent(chatSince)}` : '';
-          fetch(`http://localhost:8080/api/misiones/${campanaId}/chat${sinceParam}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          })
-            .then(r => (r.ok ? r.json() : []))
-            .then((items: any[]) => {
-              const historial: MensajeChat[] = Array.isArray(items)
-                ? items.map((m: any) => ({ ...m, id: m.id || (Date.now().toString() + Math.random()) }))
-                : [];
-              setMensajes(historial.length > 0 ? historial : [{
-                id: '0', autor: 'Sistema', colorAutor: '#8b0000',
-                texto: 'La partida ha comenzado. ¡Que empiece la aventura!',
-                tipo: 'sistema' as const, timestamp: hora(),
-              }]);
-            })
-            .catch(() => {
-              setMensajes([{
-                id: '0', autor: 'Sistema', colorAutor: '#8b0000',
-                texto: 'La partida ha comenzado. ¡Que empiece la aventura!',
-                tipo: 'sistema' as const, timestamp: hora(),
-              }]);
-            });
+          // chat history and incoming chat messages are handled centrally by useStoryModeSync
+          // PanelPartidaStoryModeChat will receive `mensajes` and `sendChatMessage` via props
 
-          client.subscribe(`/topic/campana/${campanaId}/chat`, (frame) => {
-            const msg = JSON.parse(frame.body);
-            setMensajes(prev => [...prev, {
-              ...msg,
-              id: Date.now().toString() + Math.random(),
-              timestamp: msg.timestamp || hora(),
-            }]);
-          });
-
-          // ── Jugadores: solo detección de entradas ──
           client.subscribe(`/topic/campana/${campanaId}/jugadores`, (frame) => {
+            console.log('📣 Recibido broadcast jugadores:', frame.body);
             const list = JSON.parse(frame.body);
+
             if (!Array.isArray(list) || list.length === 0) return;
 
             setJugadoresRed(prev => {
@@ -277,24 +229,25 @@ export function PanelPartida({
                 jugadoresInicializadosRef.current = true;
                 jugadoresInicialesIdsRef.current = new Set(
                   list
-                    .filter((j: any) => j.id?.toString() !== jugadorActual?.id?.toString())
-                    .map((j: any) => j.id?.toString())
-                );
+                  .filter((j: any) => j.id?.toString() !== jugadorActual?.id?.toString())
+                  .map((j: any) => j.id?.toString()));
                 return list;
               }
 
               const prevIds = new Set(prev.map((j: any) => j.id?.toString()));
+              const newIds = new Set(list.map((j: any) => j.id?.toString()));
 
-              // Solo mensajes de entrada — las salidas las gestiona jugadores-leave
               list.forEach((j: any) => {
                 const id = j.id?.toString();
                 if (!prevIds.has(id) && !jugadoresInicialesIdsRef.current.has(id)) {
-                  setMensajes(msgs => [...msgs, {
-                    id: `join-${id}-${Date.now()}`,
-                    autor: 'Sistema', colorAutor: '#8b0000',
-                    texto: `⚔ ${j.nombre || j.usuarioNombre || 'Un jugador'} ha entrado a la partida`,
-                    tipo: 'sistema' as const, timestamp: hora(),
-                  }]);
+                  pushLocalChatMessage?.({ autor: 'Sistema', texto: `⚔ ${j.nombre || j.usuarioNombre || 'Un jugador'} ha entrado a la partida`, tipo: 'sistema', colorAutor: '#8b0000' });
+                }
+              });
+
+              prev.forEach((j: any) => {
+                const id = j.id?.toString();
+                if (!newIds.has(id)) {
+                  pushLocalChatMessage?.({ autor: 'Sistema', texto: `[skull] ${j.nombre || j.usuarioNombre || 'Un jugador'} ha salido de la partida`, tipo: 'sistema', colorAutor: '#8b0000' });
                 }
               });
 
@@ -302,37 +255,18 @@ export function PanelPartida({
             });
           });
 
-          // ── Salidas reales via leave explícito del backend ──
-          client.subscribe(`/topic/campana/${campanaId}/jugadores-leave`, (frame) => {
-            const { jugadorId, nombre } = JSON.parse(frame.body);
-            setMensajes(msgs => [...msgs, {
-              id: `leave-${jugadorId}-${Date.now()}`,
-              autor: 'Sistema', colorAutor: '#8b0000',
-              texto: `[skull] ${nombre} ha abandonado la partida`,
-              tipo: 'sistema' as const, timestamp: hora(),
-            }]);
-            setJugadoresRed(prev =>
-              prev.filter((j: any) => j.id?.toString() !== jugadorId?.toString())
-            );
-          });
-
-          client.subscribe(`/topic/campana/${campanaId}/hp-update`, (frame) => {
-            const { jugadorId, hp } = JSON.parse(frame.body);
-            setHpOverrides(prev => ({ ...prev, [jugadorId]: hp }));
-          });
-
           client.subscribe(`/topic/campana/${campanaId}/dice-roll`, (frame) => {
-            const { dado, resultado, senderId } = JSON.parse(frame.body); // añade resultado
-                const miId = jugadorActual?.id?.toString() || 'master';
-                if (senderId !== miId) {
-                  esAnimacionRemota.current = true;
-                  setDadoActivo(null);
-                  setTimeout(() => {
-                    setDadoActivo(dado);
-                    setResultadoActivo(resultado); 
-                  }, 50);
-                }
-              });
+            const { dado, senderId } = JSON.parse(frame.body);
+            const miId = jugadorActual?.id?.toString() || 'master';
+            if (senderId !== miId) {
+              esAnimacionRemota.current = true;
+              setDadoActivo(null);
+              setTimeout(() => {
+                setDadoActivo(dado);
+                setResultadoActivo(Math.floor(Math.random() * 20) + 1);
+              }, 50);
+            }
+          });
 
           client.subscribe(`/topic/campana/${campanaId}/voice`, async (frame) => {
             const señal = JSON.parse(frame.body);
@@ -360,22 +294,15 @@ export function PanelPartida({
           if (jugadorActual) {
             client.publish({
               destination: `/app/campana/${campanaId}/join`,
-              body: JSON.stringify({ ...jugadorActual, esMaster }),
+              body: JSON.stringify(jugadorActual),
             });
           }
-        } // fin if (campanaId)
-
-        setMensajes(prev => [...prev, {
-          id: 'connected-' + Date.now(), autor: 'Sistema', colorAutor: '#8b0000',
-          texto: 'Conectado a la partida en tiempo real.', tipo: 'sistema', timestamp: hora(),
-        }]);
-      }, // fin onConnect
+        }
+        pushLocalChatMessage?.({ autor: 'Sistema', texto: 'Conectado a la partida en tiempo real.', tipo: 'sistema', colorAutor: '#8b0000' });
+      },
       onDisconnect: () => {
         setConectado(false);
-        setMensajes(prev => [...prev, {
-          id: 'disconnected-' + Date.now(), autor: 'Sistema', colorAutor: '#8b0000',
-          texto: 'Desconectado del servidor.', tipo: 'sistema', timestamp: hora(),
-        }]);
+        pushLocalChatMessage?.({ autor: 'Sistema', texto: 'Desconectado del servidor.', tipo: 'sistema', colorAutor: '#8b0000' });
       },
       onStompError: () => setConectado(false),
     });
@@ -397,8 +324,10 @@ export function PanelPartida({
       handleLeave();
       window.removeEventListener('beforeunload', handleLeave);
       try { client.deactivate(); } catch {}
+      // Stop local stream
       try { localStreamRef.current?.getTracks().forEach(t => t.stop()); } catch {}
       localStreamRef.current = null;
+      // Close peers and cleanup audio nodes
       peersRef.current.forEach((pc, id) => {
         try { pc.close(); } catch {}
         const audio = audioElementsRef.current.get(id);
@@ -412,7 +341,6 @@ export function PanelPartida({
     };
   }, [campanaId, jugadorActual]);
 
-  // ── Re-publicar join si cambia el avatar ──
   useEffect(() => {
     if (!stompRef.current?.connected || !campanaId || !jugadorActual) return;
     const avatarActual = jugadorActual?.avatar ?? null;
@@ -420,157 +348,191 @@ export function PanelPartida({
     lastSentAvatarRef.current = avatarActual;
     stompRef.current.publish({
       destination: `/app/campana/${campanaId}/join`,
-      body: JSON.stringify({ ...jugadorActual, esMaster }),
+      body: JSON.stringify(jugadorActual),
     });
   }, [campanaId, jugadorActual]);
 
   useEffect(() => {
-    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    if (chatRef.current) {
+      chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }
   }, [mensajes]);
 
   const enviarMensaje = useCallback(() => {
     const texto = inputChat.trim();
-    if (!texto || !stompRef.current?.connected || !campanaId) return;
-    const autorNombre = jugadorActual?.nombre || nombreMaster;
-    const autorColor  = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    if (!texto || !campanaId) return;
+    const usuarioNombre = jugadorActual?.usuarioNombre ?? jugadorActual?.usuario?.nombre ?? jugadorActual?.usuarioName;
+    const personajeNombre = jugadorActual?.nombrePersonaje ?? jugadorActual?.nombre ?? jugadorActual?.personajeNombre;
+    const autorNombre = esMaster
+      ? `${usuarioNombre || nombreMaster} (Master)`
+      : (personajeNombre || nombreMaster);
+    const autorColor = esMaster ? '#f1c40f' : (jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster);
     const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
-    const usuarioId   = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
-    stompRef.current.publish({
-      destination: `/app/campana/${campanaId}/chat.enviar`,
-      body: JSON.stringify({ personajeId, usuarioId, autor: autorNombre, colorAutor: autorColor, texto, tipo: 'mensaje', timestamp: hora() }),
-    });
+    const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
+    const payload = {
+      personajeId,
+      usuarioId,
+      autor: autorNombre,
+      colorAutor: autorColor,
+      texto,
+      tipo: 'mensaje',
+      timestamp: hora(),
+    };
+    if (sendChatMessage) {
+      sendChatMessage({ autor: payload.autor, colorAutor: payload.colorAutor, texto: payload.texto, tipo: payload.tipo });
+    } else if (stompRef.current?.connected) {
+      stompRef.current.publish({ destination: `/app/campana/${campanaId}/chat.enviar`, body: JSON.stringify(payload) });
+    } else {
+      pushLocalChatMessage?.({ autor: payload.autor, colorAutor: payload.colorAutor, texto: payload.texto, tipo: payload.tipo, timestamp: payload.timestamp });
+    }
     setInputChat('');
   }, [inputChat, nombreMaster, colorMaster, campanaId, jugadorActual]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensaje(); }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      enviarMensaje();
+    }
   };
 
   const lanzarDado = (_caras: number, label: string) => {
-    const caras = _caras;
-        const resultadoReal = Math.floor(Math.random() * caras) + 1; // ← calcular aquí
-
-        if (stompRef.current?.connected && campanaId) {
-          const senderId = jugadorActual?.id?.toString() || 'master';
-          stompRef.current.publish({
-            destination: `/app/campana/${campanaId}/dice-roll`,
-            body: JSON.stringify({ dado: label, resultado: resultadoReal, senderId }), // ← enviar resultado
-          });
-        }
-        setDadoActivo(label);
-        setResultadoActivo(resultadoReal); // ← usar el mismo resultado
-        setMostrarDados(false);
-};
+    if (stompRef.current?.connected && campanaId) {
+      const senderId = jugadorActual?.id?.toString() || 'master';
+      stompRef.current.publish({
+        destination: `/app/campana/${campanaId}/dice-roll`,
+        body: JSON.stringify({ dado: label, resultado: 0, senderId }),
+      });
+    }
+    setDadoActivo(label);
+    setResultadoActivo(0);
+  };
 
   const handleAnimacionFin = useCallback((resultadoReal: number) => {
     if (dadoActivo === null) return;
+
     if (esAnimacionRemota.current) {
       esAnimacionRemota.current = false;
       setDadoActivo(null);
       setResultadoActivo(null);
       return;
     }
-    const autorNombre = jugadorActual?.nombre || nombreMaster;
-    const autorColor  = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+
+    const usuarioNombre = jugadorActual?.usuarioNombre ?? jugadorActual?.usuario?.nombre ?? jugadorActual?.usuarioName;
+    const personajeNombre = jugadorActual?.nombrePersonaje ?? jugadorActual?.nombre ?? jugadorActual?.personajeNombre;
+    const autorNombre = esMaster
+      ? `${usuarioNombre || nombreMaster} (Master)`
+      : (personajeNombre || nombreMaster);
+    const autorColor = esMaster ? '#f1c40f' : (jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster);
     const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
-    const usuarioId   = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
-
-    const esTiradaCaracteristica = pendingLabel !== null && pendingMod !== null;
-    const modFinal  = esTiradaCaracteristica ? pendingMod!  : modificador;
-    const dadoFinal = esTiradaCaracteristica ? `d20 (${pendingLabel})` : dadoActivo;
-    const total     = resultadoReal + modFinal;
-
+    const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
+    const total = resultadoReal + modificador;
     const msg: MensajeChat = {
-      id: Date.now().toString(), autor: autorNombre, colorAutor: autorColor,
-      texto: '', tipo: 'tirada', timestamp: hora(),
-      tirada: { dado: dadoFinal, resultado: resultadoReal, modificador: modFinal, total },
+      id: Date.now().toString(),
+      autor: autorNombre,
+      colorAutor: autorColor,
+      texto: '',
+      tipo: 'tirada',
+      timestamp: hora(),
+      tirada: { dado: dadoActivo, resultado: resultadoReal, modificador, total },
     };
 
-    if (stompRef.current?.connected && campanaId) {
-      stompRef.current.publish({
-        destination: `/app/campana/${campanaId}/chat.enviar`,
-        body: JSON.stringify({ ...msg, personajeId, usuarioId }),
-      });
+    if (sendChatMessage) {
+      sendChatMessage({ autor: msg.autor, colorAutor: msg.colorAutor, texto: JSON.stringify(msg.tirada), tipo: 'tirada' });
+    } else if (stompRef.current?.connected && campanaId) {
+      stompRef.current.publish({ destination: `/app/campana/${campanaId}/chat.enviar`, body: JSON.stringify({ ...msg, personajeId, usuarioId }) });
     } else {
-      setMensajes(prev => [...prev, msg]);
+      pushLocalChatMessage?.(msg);
     }
-
-    setPendingLabel(null);
-    setPendingMod(null);
 
     onMovimientoRollResult?.(resultadoReal);
     setDadoActivo(null);
     setResultadoActivo(null);
-  }, [dadoActivo, modificador, pendingLabel, pendingMod, nombreMaster, colorMaster, campanaId, jugadorActual, onMovimientoRollResult]);
+    setMostrarDados(false);
+  }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual, onMovimientoRollResult]);
 
   const handleAtaqueAnimacionFin = useCallback((imagenesResultado: string[]) => {
     if (!CustomDicePanel || dadoActivo === null) return;
-    const dado        = dadoActivo.replace(/^ataque-/, '');
-    const autorNombre = jugadorActual?.nombre || nombreMaster;
-    const autorColor  = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    const dado = dadoActivo.replace(/^ataque-/, '');
+    const usuarioNombre = jugadorActual?.usuarioNombre ?? jugadorActual?.usuario?.nombre ?? jugadorActual?.usuarioName;
+    const personajeNombre = jugadorActual?.nombrePersonaje ?? jugadorActual?.nombre ?? jugadorActual?.personajeNombre;
+    const autorNombre = esMaster
+      ? `${usuarioNombre || nombreMaster} (Master)`
+      : (personajeNombre || nombreMaster);
+    const autorColor = esMaster ? '#f1c40f' : (jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster);
     const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
-    const usuarioId   = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
+    const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
     const msg: MensajeChat = {
-      id: Date.now().toString(), autor: autorNombre, colorAutor: autorColor,
-      texto: '', tipo: 'tirada', timestamp: hora(),
+      id: Date.now().toString(),
+      autor: autorNombre,
+      colorAutor: autorColor,
+      texto: '',
+      tipo: 'tirada',
+      timestamp: hora(),
       tirada: { dado, resultado: 0, modificador: 0, total: 0, imagenes: imagenesResultado },
     };
-    if (stompRef.current?.connected && campanaId) {
-      stompRef.current.publish({
-        destination: `/app/campana/${campanaId}/chat.enviar`,
-        body: JSON.stringify({ ...msg, personajeId, usuarioId }),
-      });
+    if (sendChatMessage) {
+      sendChatMessage({ autor: msg.autor, colorAutor: msg.colorAutor, texto: JSON.stringify(msg.tirada || {}), tipo: 'tirada' });
+    } else if (stompRef.current?.connected && campanaId) {
+      stompRef.current.publish({ destination: `/app/campana/${campanaId}/chat.enviar`, body: JSON.stringify({ ...msg, personajeId, usuarioId }) });
     } else {
-      setMensajes(prev => [...prev, msg]);
+      pushLocalChatMessage?.(msg);
     }
     onAtaqueRollResult?.(imagenesResultado.length);
-
-
     setDadoActivo(null);
     setResultadoActivo(null);
-  }, [dadoActivo, modificador, pendingLabel, pendingMod, nombreMaster, colorMaster, campanaId, jugadorActual]);
+    setMostrarDados(false);
+  }, [dadoActivo, nombreMaster, colorMaster, campanaId, jugadorActual, onAtaqueRollResult]);
 
   const cambiarHp = (jugadorId: string, hpActual: number, hpMax: number, delta: number) => {
     const nuevoHp = Math.max(0, Math.min(hpMax, hpActual + delta));
-    setHpOverrides(prev => ({ ...prev, [jugadorId]: nuevoHp }));
-    if (stompRef.current?.connected && campanaId) {
-      stompRef.current.publish({
-        destination: `/app/campana/${campanaId}/hp-update`,
-        body: JSON.stringify({ jugadorId, hp: nuevoHp }),
-      });
-    }
+    onPlayerHpUpdate?.(jugadorId, nuevoHp);
   };
 
   const jugadoresBase = Array.isArray(jugadores) ? jugadores : [];
-  const jugadoresBasePorId = new Map(jugadoresBase.map(j => [j?.id?.toString?.(), j]));
+  // jugadoresBase[i].id = usuarioId (remapeado en useStoryModeSync)
+  const jugadoresBasePorUsuarioId = new Map(jugadoresBase.map(j => [j?.id?.toString?.(), j]));
+  // jugadoresBase[i].personajeId viene del spread de ParticipanteJugadorDTO
+  const jugadoresBasePorPersonajeId = new Map(jugadoresBase.map(j => [j?.personajeId?.toString?.(), j]));
   const jugadoresBasePorNombre = new Map<string, any>();
   jugadoresBase.forEach(j => {
     if (j?.nombre) jugadoresBasePorNombre.set(j.nombre, j);
     if (j?.usuarioNombre) jugadoresBasePorNombre.set(j.usuarioNombre, j);
   });
 
+  // personajeId canónico del usuario actual: preferir personajeId, caer en id si es objeto personaje
+  const miPersonajeId = (jugadorActual?.personajeId ?? jugadorActual?.id)?.toString() ?? null;
+
   const jugadoresAMostrar = (jugadoresRed.length > 0 ? jugadoresRed : (jugadores !== undefined ? jugadores : JUGADORES_DEMO))
-    .filter((j: any) => {
-      if (j.esMaster === true) return false;
-      if (!j.hp && !j.hpMax) return false;
+      .filter((j: any) => {
+
       if (esMaster) {
-        const miId = jugadorActual?.id?.toString();
-        return j.id?.toString() !== miId;
-      }
-      return true;
-    })
+      const miId = jugadorActual?.id?.toString();
+      return j.id?.toString() !== miId;
+    }
+    return true;
+  })
+
     .map((j: any, i: number) => {
-      const base = jugadoresBasePorId.get(j.id?.toString?.())
+      // jugadoresRed viene del campana WS (JugadorWsDTO): j.id = personajeId, sin personajeId explícito
+      // jugadores prop viene de useStoryModeSync (mision WS): j.id = usuarioId, con personajeId
+      const base = jugadoresBasePorUsuarioId.get(j.id?.toString?.())
+        || jugadoresBasePorPersonajeId.get(j.id?.toString?.())
         || jugadoresBasePorNombre.get(j.nombre || j.usuarioNombre);
+      // personajeId: tomar del campo explícito, o del base, o de j.id (que en campana WS ya ES el personajeId)
+      const personajeIdResuelto = (j.personajeId ?? base?.personajeId ?? j.id)?.toString() ?? null;
       return {
         id: j.id?.toString() || i.toString(),
-        usuarioId: j.usuarioId ?? j.usuario_id ?? null,
+        personajeId: personajeIdResuelto,
+        usuarioId: (j.usuarioId ?? j.usuario_id ?? base?.usuarioId)?.toString() ?? null,
         nombre: j.nombre || j.usuarioNombre || 'Aventurero',
         clase: j.clase || base?.clase || 'Desconocida',
-        avatar: j.avatar || j.foto || base?.avatar
+        avatar: j.avatar
+          || j.foto
+          || base?.avatar
           || (jugadorActual?.id?.toString?.() === j.id?.toString?.() ? jugadorActual?.avatar : null)
           || (jugadorActual?.nombre && (jugadorActual.nombre === j.nombre || jugadorActual.nombre === j.usuarioNombre)
-            ? jugadorActual?.avatar : null)
+            ? jugadorActual?.avatar
+            : null)
           || null,
         hp: j.hp || base?.hp || 10,
         hpMax: j.hpMax || base?.hpMax || 10,
@@ -586,9 +548,13 @@ export function PanelPartida({
     });
 
   const crearPeerConnection = (peerId: string): RTCPeerConnection => {
-    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => pc.addTrack(track, localStreamRef.current!));
+      localStreamRef.current.getTracks().forEach(track => {
+        pc.addTrack(track, localStreamRef.current!);
+      });
     }
     pc.onicecandidate = (event) => {
       if (event.candidate && stompRef.current?.connected && campanaId) {
@@ -642,6 +608,7 @@ export function PanelPartida({
     } else {
       localStreamRef.current?.getTracks().forEach(t => t.stop());
       localStreamRef.current = null;
+      // Close peers and cleanup audio elements
       peersRef.current.forEach((pc, id) => {
         try { pc.close(); } catch {}
         const audio = audioElementsRef.current.get(id);
@@ -659,16 +626,11 @@ export function PanelPartida({
 
   return (
     <div className="pp-panel">
-
-      <DiceRoller dado={dadoActivo} resultado={resultadoActivo} onAnimacionFin={handleAnimacionFin} />
-
       <DiceRoller
         dado={dadoActivo}
         resultado={resultadoActivo}
         onAnimacionFin={handleAnimacionFin}
-        containerId="dice-box-chat"
       />
-
 
       <div className="pp-conexion">
         <span className={`pp-conexion-dot ${conectado ? 'online' : 'offline'}`} />
@@ -724,9 +686,14 @@ export function PanelPartida({
                       <div className="pp-tirada-ataque">
                         <span className="pp-tirada-dado">{msg.tirada.dado}</span>
                         <div className="pp-tirada-caras">
-                          {msg.tirada.imagenes.map((cara, i) => (
-                            <img key={i} src={`/images/dadosModHistoria/${cara}.png`} alt={cara}
-                              className="pp-tirada-cara-img" title={cara} />
+                          {msg.tirada.imagenes.map((cara: string, i: number) => (
+                            <img
+                              key={i}
+                              src={`/images/dadosModHistoria/${cara}.png`}
+                              alt={cara}
+                              className="pp-tirada-cara-img"
+                              title={cara}
+                            />
                           ))}
                         </div>
                       </div>
@@ -763,30 +730,50 @@ export function PanelPartida({
           <div className="pp-chat-input-wrap">
             {mostrarDados && (
               <div className="pp-dados-picker">
-                {DADOS.map(({ caras, label }) => (
-                  <button key={label} className="pp-dado-pick-btn"
-                    onClick={() => lanzarDado(caras, label)} disabled={dadoActivo !== null}>
-                    <img src={`/images/dadoCampana/${label}.png`} alt={label} className="pp-dado-pick-img" />
-                    <span>{label}</span>
-                  </button>
-                ))}
+                {/* En Story Mode mostramos sólo el panel específico (movimiento d6/d12 + ataque/defensa) */}
+                {CustomDicePanel ? (
+                  <CustomDicePanel
+                    dadoActivo={dadoActivo}
+                    onLanzarDado={lanzarDado}
+                    onAtaqueAnimacionFin={handleAtaqueAnimacionFin}
+                    turnoActual={turnoActual}
+                    jugadorActual={jugadorActual}
+                    movimientoYaLanzado={movimientoYaLanzado}
+                    ataqueYaLanzado={ataqueYaLanzado}
+                  />
+                ) : null}
               </div>
             )}
             {mostrarEmotes && (
               <div className="pp-emotes-picker">
                 {EMOTES.map(e => (
-                  <img key={e.id} src={e.src} alt={e.label} title={e.label} className="pp-emote-opcion"
-                    onClick={() => { setInputChat(prev => prev + `[${e.id}]`); setMostrarEmotes(false); }} />
+                  <img
+                    key={e.id}
+                    src={e.src}
+                    alt={e.label}
+                    title={e.label}
+                    className="pp-emote-opcion"
+                    onClick={() => {
+                      setInputChat(prev => prev + `[${e.id}]`);
+                      setMostrarEmotes(false);
+                    }}
+                  />
                 ))}
               </div>
             )}
             <div className="pp-chat-input-row">
-              <button className="pp-emote-btn"
+              <button
+                className="pp-emote-btn"
                 onClick={() => { setMostrarEmotes(!mostrarEmotes); setMostrarDados(false); }}
-                title="Emotes"><Smile /></button>
-              <button className={`pp-emote-btn ${mostrarDados ? 'active' : ''}`}
+                title="Emotes"
+              ><Smile /></button>
+              <button
+                className={`pp-emote-btn ${mostrarDados ? 'active' : ''}`}
                 onClick={() => { setMostrarDados(!mostrarDados); setMostrarEmotes(false); }}
-                title="Dados"><Dices width={16} height={16} /></button>
+                title="Dados"
+              >
+                <Dices width={16} height={16} />
+              </button>
               <textarea
                 className="pp-chat-input"
                 placeholder={conectado ? 'Escribe un mensaje...' : 'Sin conexión al servidor...'}
@@ -806,29 +793,39 @@ export function PanelPartida({
       {pestana === 'jugadores' && (
         <div className="pp-seccion">
           <div className="pp-jugadores-lista">
-            <div className="pp-jugador">
+            {/* Tarjeta del Master */}
+            <div className="pp-jugador pp-jugador--master">
               <div className="pp-jugador-cabecera">
-                <span className="pp-jugador-dot" style={{ background: colorMaster }} />
-                <div className="pp-jugador-avatar-placeholder">M</div>
-                <span className="pp-jugador-nombre">{nombreMaster}</span>
-                <span className="pp-jugador-clase">Master</span>
+                <span className="pp-jugador-dot" style={{ background: '#f1c40f' }} />
+                <span className="pp-master-avatar">M</span>
+                <span className="pp-jugador-nombre" style={{ color: '#f1c40f' }}>{nombreMaster}</span>
+                <span className="pp-master-badge-tag">Master</span>
               </div>
             </div>
 
             {jugadoresAMostrar.length > 0 ? (
               jugadoresAMostrar.map(j => {
-                const hpReal = hpOverrides[j.id] ?? j.hp;
+                const hpReal = playerHpMap?.[j.id] ?? j.hp;
+                const sumaAtaque  = (j.fuerza ?? 10) + (j.destreza ?? 10) + (j.constitucion ?? 10);
+                const sumaDefensa = (j.inteligencia ?? 10) + (j.sabiduria ?? 10) + (j.carisma ?? 10);
+                const dadosAtaque  = sumaAtaque  <= 30 ? 1 : sumaAtaque  <= 50 ? 2 : 3;
+                const dadosDefensa = sumaDefensa <= 30 ? 1 : sumaDefensa <= 50 ? 2 : 3;
                 return (
                   <div key={j.id} className={`pp-jugador ${j.conectado ? '' : 'desconectado'}`}>
                     <div className="pp-jugador-cabecera">
                       <span className="pp-jugador-dot" style={{ background: j.conectado ? j.color : '#555' }} />
                       <AvatarImage avatar={j.avatar} nombre={j.nombre} />
-                      <span className="pp-jugador-nombre" style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                      <span
+                        className="pp-jugador-nombre"
+                        style={{ cursor: 'pointer', textDecoration: 'underline' }}
                         onClick={() => {
                           const pid = parseInt(j.id);
                           const miId = jugadorActual?.personajeId ?? jugadorActual?.id;
-                          if (!isNaN(pid) && String(pid) !== String(miId)) setPerfilPersonajeId(pid);
-                        }}>
+                          if (!isNaN(pid) && String(pid) !== String(miId)) {
+                            setPerfilPersonajeId(pid);
+                          }
+                        }}
+                      >
                         {j.nombre}
                       </span>
                       <span className="pp-jugador-clase">{j.clase}</span>
@@ -836,19 +833,34 @@ export function PanelPartida({
                     </div>
                     <div className="pp-jugador-hp-wrap">
                       <span className="pp-jugador-hp-label">HP</span>
-                      {esMaster && (
+                      {j.personajeId != null && miPersonajeId != null && j.personajeId === miPersonajeId && (
                         <button className="pp-hp-btn" onClick={() => cambiarHp(j.id, hpReal, j.hpMax, -1)}>−</button>
                       )}
                       <div className="pp-jugador-hp-barra">
-                        <div className="pp-jugador-hp-fill" style={{
-                          width: `${(hpReal / j.hpMax) * 100}%`,
-                          background: hpReal / j.hpMax > 0.5 ? '#2ecc71' : hpReal / j.hpMax > 0.25 ? '#f39c12' : '#e74c3c',
-                        }} />
+                        <div
+                          className="pp-jugador-hp-fill"
+                          style={{
+                            width: `${(hpReal / j.hpMax) * 100}%`,
+                            background: hpReal / j.hpMax > 0.5 ? '#2ecc71' : hpReal / j.hpMax > 0.25 ? '#f39c12' : '#e74c3c',
+                          }}
+                        />
                       </div>
-                      {esMaster && (
+                      {j.personajeId != null && miPersonajeId != null && j.personajeId === miPersonajeId && (
                         <button className="pp-hp-btn" onClick={() => cambiarHp(j.id, hpReal, j.hpMax, 1)}>+</button>
                       )}
                       <span className="pp-jugador-hp-num">{hpReal}/{j.hpMax}</span>
+                    </div>
+                    <div className="pp-jugador-stats">
+                      <div className="pp-jugador-stat pp-jugador-stat--ata">
+                        <span className="pp-jugador-stat-label">ATA</span>
+                        <span className="pp-jugador-stat-valor">{dadosAtaque}</span>
+                        <span className="pp-jugador-stat-mod">{dadosAtaque === 1 ? '1 dado' : `${dadosAtaque} dados`}</span>
+                      </div>
+                      <div className="pp-jugador-stat pp-jugador-stat--def">
+                        <span className="pp-jugador-stat-label">DEF</span>
+                        <span className="pp-jugador-stat-valor">{dadosDefensa}</span>
+                        <span className="pp-jugador-stat-mod">{dadosDefensa === 1 ? '1 dado' : `${dadosDefensa} dados`}</span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -871,7 +883,9 @@ export function PanelPartida({
           </button>
           <div className="pp-voz-usuarios">
             {usuariosVoz.length === 0 ? (
-              <p className="pp-dados-hint" style={{ marginTop: 12 }}>Nadie más en el canal de voz</p>
+              <p className="pp-dados-hint" style={{ marginTop: 12 }}>
+                Nadie más en el canal de voz
+              </p>
             ) : (
               usuariosVoz.map(id => (
                 <div key={id} className="pp-voz-usuario">
@@ -884,8 +898,12 @@ export function PanelPartida({
         </div>
       )}
 
+      {/* ── MODAL PERFIL PÚBLICO ── */}
       {perfilPersonajeId !== null && (
-        <PerfilPublicoModal personajeId={perfilPersonajeId} onClose={() => setPerfilPersonajeId(null)} />
+        <PerfilPublicoModal
+          personajeId={perfilPersonajeId}
+          onClose={() => setPerfilPersonajeId(null)}
+        />
       )}
     </div>
   );

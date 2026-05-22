@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './StoryModeDiceRoller.css';
 
@@ -54,6 +54,10 @@ export function StoryModeDiceRoller({ cantidadResultados, onFin }: Props) {
   const [aterrizados, setAterrizados] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
 
+  // Ref para que el efecto no dependa de onFin y los timers no se reinicien con cada render
+  const onFinRef = useRef(onFin);
+  onFinRef.current = onFin;
+
   const [dadosDatos] = useState(() => {
     const ladosBarajados = [...LADOS].sort(() => Math.random() - 0.5);
 
@@ -100,7 +104,7 @@ export function StoryModeDiceRoller({ cantidadResultados, onFin }: Props) {
 
     const timerSalida = setTimeout(() => setSaliendo(true), duracionMs + 400);
     const timerFin = setTimeout(() => {
-      onFin(dadosDatos.map(d => d.resultado));
+      onFinRef.current(dadosDatos.map(d => d.resultado));
     }, duracionMs + 900);
 
     return () => {
@@ -109,7 +113,7 @@ export function StoryModeDiceRoller({ cantidadResultados, onFin }: Props) {
       clearTimeout(timerSalida);
       clearTimeout(timerFin);
     };
-  }, [cantidadResultados, dadosDatos, onFin]);
+  }, [cantidadResultados, dadosDatos]); // onFin excluido intencionalmente — se accede por ref
 
   return createPortal(
     <div className={`smdr-container${saliendo ? ' smdr-saliendo' : ''}`}>

@@ -470,6 +470,8 @@ function MissionDetailView() {
 	const [personajeAsignado, setPersonajeAsignado] = useState<CharacterLike | null>(null);
 	const [masterCheckLoading, setMasterCheckLoading] = useState(false);
 	const [showMasterOcupadoModal, setShowMasterOcupadoModal] = useState(false);
+	const [showJasSoyMasterModal, setShowJasSoyMasterModal] = useState(false);
+	const [showJasSoyPersonajeModal, setShowJasSoyPersonajeModal] = useState(false);
 	const statsPersonajeSeleccionado = useMemo(
 		() => STAT_KEYS.map(statKey => ({
 			key: statKey,
@@ -663,6 +665,11 @@ function MissionDetailView() {
 					});
 					return;
 				}
+				if (participante.personajeId) {
+					// Usuario ya está en la partida como personaje -> mostrar modal que debe abandonar primero
+					setShowJasSoyPersonajeModal(true);
+					return;
+				}
 				// Si existe con otro rol, caemos al flujo normal (CreateMission bloqueará si hay master)
 			} else if (meResponse.status === 404) {
 				// 2. El usuario no participa — comprobar si hay otro master asignado
@@ -687,13 +694,31 @@ function MissionDetailView() {
 		navigate(buildCreateMissionPath(modoHistoriaId!, misionId!), { state: { mision, modoHistoria } });
 	};
 
-	const abrirModalPersonaje = () => {
+	const abrirModalPersonaje = async () => {
 		if (personajeAsignado) {
 			navigate('/tablero-story-mode', {
 				state: { modoHistoria, mision, personaje: personajeAsignado },
 			});
 			return;
 		}
+
+		try {
+			// Verificar si el usuario actual es master de esta misión
+			const meResponse = await fetch(`${API_URL}/api/misiones/${misionIdNumero}/participantes/me`, {
+				headers: authHeaders(),
+			});
+			if (meResponse.ok) {
+				const participante = (await meResponse.json()) as MisionParticipanteResponse;
+				if (participante.rol === 'MASTER') {
+					// El usuario es master, no puede unirse como personaje
+					setShowJasSoyMasterModal(true);
+					return;
+				}
+			}
+		} catch {
+			// Si falla el check, proceder igualmente
+		}
+
 		setIsCharacterModalOpen(true);
 	};
 
@@ -1043,6 +1068,24 @@ function MissionDetailView() {
 				message="Esta misión ya tiene un master asignado. Solo puede haber un master por partida. Si quieres participar, únete como personaje."
 				confirmText="Entendido"
 				onConfirm={() => setShowMasterOcupadoModal(false)}
+				showImage={true}
+			/>
+
+			<ModalAlert
+				isOpen={showJasSoyMasterModal}
+				title="YA ERES MASTER"
+				message="Ya estás jugando esta partida como master. Si quieres jugar como personaje, debes acceder como master y abandonar la misión para borrarla."
+				confirmText="Entendido"
+				onConfirm={() => setShowJasSoyMasterModal(false)}
+				showImage={true}
+			/>
+
+			<ModalAlert
+				isOpen={showJasSoyPersonajeModal}
+				title="YA ESTÁS EN LA PARTIDA"
+				message="Estás participando en esta misión como personaje. Debes abandonar la misión antes de poder entrar como Master."
+				confirmText="Entendido"
+				onConfirm={() => setShowJasSoyPersonajeModal(false)}
 				showImage={true}
 			/>
 

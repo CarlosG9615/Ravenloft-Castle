@@ -5,8 +5,6 @@ import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaDetalleDTO;
 import com.gvc.ravenloftcastleapi.dto.modo_historia.CodigoInvitacionDTO;
 import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaUpdateDTO;
 import com.gvc.ravenloftcastleapi.dto.mision.MisionResumenDTO;
-import com.gvc.ravenloftcastleapi.dto.enemigo.ModoHistoriaEnemigoDTO;
-import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaEnemigoUpdateDTO;
 import com.gvc.ravenloftcastleapi.dto.modo_historia.ModoHistoriaEnemigoResponseDTO;
 import com.gvc.ravenloftcastleapi.service.ModoHistoriaService;
 import com.gvc.ravenloftcastleapi.service.JoinService;
@@ -15,7 +13,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -88,32 +85,5 @@ public class ModoHistoriaController {
         return ResponseEntity.ok(modoHistoriaService.listarEnemigosDeModoHistoria(id));
     }
 
-    @PostMapping("/{id}/enemigos")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> asignarEnemigo(
-            @PathVariable Long id,
-            @Valid @RequestBody ModoHistoriaEnemigoDTO dto) {
-        modoHistoriaService.asignarEnemigo(id, dto);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
-    }
-
-    @PatchMapping("/{id}/enemigos/{enemigoId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> editarEnemigoModoHistoria(
-            @PathVariable Long id,
-            @PathVariable Long enemigoId,
-            @Valid @RequestBody ModoHistoriaEnemigoUpdateDTO dto) {
-        modoHistoriaService.editarEnemigoModoHistoria(id, enemigoId, dto);
-        return ResponseEntity.ok().build();
-    }
-
-    @DeleteMapping("/{id}/enemigos/{enemigoId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> eliminarEnemigoModoHistoria(
-            @PathVariable Long id,
-            @PathVariable Long enemigoId) {
-        modoHistoriaService.eliminarEnemigoModoHistoria(id, enemigoId);
-        return ResponseEntity.noContent().build();
-    }
 }
 

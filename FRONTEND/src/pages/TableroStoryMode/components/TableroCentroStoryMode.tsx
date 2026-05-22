@@ -47,6 +47,7 @@ interface MisionStoryMode {
 
 interface Jugador {
   id?: string | number;
+  personajeId?: string | number;
   usuario_id?: string | number;
   nombre: string;
   clase?: string;
@@ -92,6 +93,15 @@ interface Props {
   onMasterFinTurno?: () => void;
   nombreMaster?: string;
   onActiveEnemiesChange?: (ids: Set<string>) => void;
+  onOpenEnemyDetails?: (instanciaId: string) => void;
+  removedTrapIds?: Set<string>;
+  revealedTrapIds?: Set<string>;
+  blockedCells?: Map<string, string>;
+  onCellBlocked?: (col: number, row: number, imageUrl: string) => void;
+  onTrapTriggered?: (instanciaId: string, outcome: 'daño' | 'superado') => void;
+  onPlayerTokenClick?: (token: import('./GameBoard').BoardToken) => void;
+  hiddenPlayerIds?: Set<string>;
+  hiddenEnemyIds?: Set<string>;
 }
 
 const COLORES_CLASES: Record<string, string> = {
@@ -172,6 +182,15 @@ export function TableroCentroStoryMode({
   onMasterFinTurno,
   nombreMaster,
   onActiveEnemiesChange,
+  onOpenEnemyDetails,
+  removedTrapIds,
+  revealedTrapIds,
+  blockedCells,
+  onCellBlocked,
+  onTrapTriggered,
+  onPlayerTokenClick,
+  hiddenPlayerIds,
+  hiddenEnemyIds,
 }: Props) {
   const [participantes, setParticipantes] = useState<ParticipanteDTO[]>([]);
 
@@ -226,7 +245,9 @@ export function TableroCentroStoryMode({
 
   // Generar tokens desde participantes de la BD
   const tokensFromParticipantes = useMemo(() => {
-    return participantes.map(p => {
+    return participantes
+      .filter(p => !hiddenPlayerIds?.has(String(p.personajeId)))
+      .map(p => {
       // Determinar posición: usar posición guardada si existe, si no usar spawn según ordenUnion
       const ordenUnion = p.ordenUnion ?? 0;
       const spawn = SPAWN_POSITIONS[ordenUnion] ?? { col: 12, row: 19 };
@@ -243,7 +264,7 @@ export function TableroCentroStoryMode({
         movement: 6,
       };
     });
-  }, [participantes]);
+  }, [participantes, hiddenPlayerIds]);
 
   // Generar tokens dinámicamente basados en jugadores conectados (fallback si participantes vacío)
   const initialTokens = useMemo(() => {
@@ -280,6 +301,8 @@ export function TableroCentroStoryMode({
 
     // Tokens de aliados conectados
     const aliados = jugadoresSincronizados.filter(j => {
+      const personajeKey = String(j.personajeId ?? j.id ?? '');
+      if (hiddenPlayerIds?.has(personajeKey)) return false;
       if (!jugadorActual) return j.conectado !== false;
       
       // Convertir IDs a números para comparación segura
@@ -321,7 +344,7 @@ export function TableroCentroStoryMode({
     });
 
     return tokens;
-  }, [participantes, tokensFromParticipantes, personaje, jugadoresSincronizados, jugadorActual]);
+  }, [participantes, tokensFromParticipantes, personaje, jugadoresSincronizados, jugadorActual, hiddenPlayerIds]);
 
   const [tokens, setTokens] = useState<BoardToken[]>(initialTokens);
 
@@ -366,8 +389,8 @@ export function TableroCentroStoryMode({
         miPersonajeId={jugadorActual?.personajeId?.toString() ?? jugadorActual?.id?.toString()}
         movimientoRoll={movimientoRoll}
         onMovimientoUsed={onMovimientoUsed}
-        enemyTokens={configPartida?.enemigos ?? []}
-        trapTokens={esMaster ? (configPartida?.trampas ?? []) : []}
+        enemyTokens={(configPartida?.enemigos ?? []).filter(enemy => !hiddenEnemyIds?.has(enemy.instanciaId))}
+        trapTokens={(configPartida?.trampas ?? []).filter(t => !removedTrapIds?.has(t.instanciaId))}
         esMaster={esMaster}
         revealedRooms={revealedRooms}
         onRoomRevealed={onRoomRevealed}
@@ -375,6 +398,12 @@ export function TableroCentroStoryMode({
         onMasterFinTurno={onMasterFinTurno}
         nombreMaster={nombreMaster}
         onActiveEnemiesChange={onActiveEnemiesChange}
+        onOpenEnemyDetails={onOpenEnemyDetails}
+        onTrapTriggered={onTrapTriggered}
+        blockedCells={blockedCells}
+        revealedTrapIds={revealedTrapIds}
+        onCellBlocked={onCellBlocked}
+        onPlayerTokenClick={onPlayerTokenClick}
       />
     </div>
   );

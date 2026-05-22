@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Characters.css';
 
@@ -44,7 +44,6 @@ const avatars = [
 
 export function Characters() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [selected, setSelected] = useState<string>(avatars[0]);
 
   return (
@@ -98,7 +97,6 @@ export function Characters() {
                 <button
                   className="btn characters-btn-primary"
                   onClick={() => {
-                      const state = location.state as any;
                       // aquí guardas todo junto con el avatar
                       navigate('/characters/list');
                     }}
