@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -19,8 +20,11 @@ import com.gvc.ravenloftcastleapi.entity.MensajeChatPersistido;
 import com.gvc.ravenloftcastleapi.repository.MensajeChatRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionParticipanteRepository;
 import com.gvc.ravenloftcastleapi.service.TurnoService;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
+@RestController
 public class TableroWebSocketController {
 
     private final SimpMessagingTemplate messagingTemplate;
@@ -274,6 +278,13 @@ public class TableroWebSocketController {
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/dice-roll", (Object) payload);
     }
 
+    @GetMapping("/api/campanas/{campanaId}/master-conectado")
+    public ResponseEntity<Boolean> masterConectado(@PathVariable String campanaId) {
+        Map<String, JugadorWsDTO> sesiones = sessionesCampana.getOrDefault(campanaId, new ConcurrentHashMap<>());
+        boolean conectado = sesiones.values().stream()
+                .anyMatch(j -> Boolean.TRUE.equals(j.getEsMaster()));
+        return ResponseEntity.ok(conectado);
+    }
     // ── Lobby de preparación de partida ─────────────────────────────────────
 
     @MessageMapping("/mision/{misionId}/master-listo")
