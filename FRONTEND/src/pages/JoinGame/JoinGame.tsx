@@ -209,6 +209,7 @@ export function JoinGame() {
   const [personajesCargando, setPersonajesCargando] = useState(false);
   const [personajesError, setPersonajesError] = useState<string | null>(null);
   const [personajeSeleccionado, setPersonajeSeleccionado] = useState<Personaje | null>(null);
+  const [mensajeEspera, setMensajeEspera] = useState(false);
 
   const statsPersonajeSeleccionado = useMemo(
     () => STAT_KEYS.map(statKey => ({
@@ -318,7 +319,7 @@ export function JoinGame() {
     navigate('/tablero', {
       state: {
         campanaId: campanaParaUnirse.id,
-        campaaNombre: campanaParaUnirse.nombre, // ← corregido
+        campaaNombre: campanaParaUnirse.nombre,
         mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
         jugadores: misJugadores,
         esMaster: false,
@@ -335,7 +336,7 @@ export function JoinGame() {
     navigate('/join/story-mode');
   };
 
-  const handleJoinCampana = (campana: Campana, soyMaster: boolean) => {
+  const handleJoinCampana = async (campana: Campana, soyMaster: boolean) => {
     setCampanaSeleccionada(null);
 
     if (soyMaster) {
@@ -346,7 +347,7 @@ export function JoinGame() {
       navigate('/tablero', {
         state: {
           campanaId: campana.id,
-          campaaNombre: campana.nombre, // ← corregido
+          campaaNombre: campana.nombre,
           mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
           jugadores: campana.jugadores,
           esMaster: true,
@@ -354,6 +355,22 @@ export function JoinGame() {
           masterNombre: user?.nombre || 'Master',
         }
       });
+      return;
+    }
+
+    // ── Verificar si el master está conectado antes de dejar entrar al jugador ──
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    try {
+      const res = await fetch(`http://localhost:8080/api/campanas/${campana.id}/master-conectado`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const masterOnline = await res.json();
+      if (!masterOnline) {
+        setMensajeEspera(true);
+        return;
+      }
+    } catch {
+      alert('No se pudo verificar el estado de la partida. Inténtalo de nuevo.');
       return;
     }
 
@@ -464,6 +481,24 @@ export function JoinGame() {
           onJoinCampana={handleJoinCampana}
           user={user}
         />
+      )}
+      {mensajeEspera && (
+        <div className="jg-modal-overlay" onClick={() => setMensajeEspera(false)}>
+          <div className="jg-espera-modal" onClick={e => e.stopPropagation()}>
+            <img
+              src="/images/roloRuffles.png"
+              alt="RoloRuffles"
+              className="jg-espera-mascota"
+            />
+            <h3 className="jg-espera-titulo">¡La partida aún no ha comenzado!</h3>
+            <p className="jg-espera-texto">
+              Ve a por tus patatas, prepara tus dados y espera a que la partida comience.
+            </p>
+            <button className="jg-btn-unirse" onClick={() => setMensajeEspera(false)}>
+              ¡Entendido!
+            </button>
+          </div>
+        </div>
       )}
       <CharacterSelectModal
         isOpen={isCharacterModalOpen}
