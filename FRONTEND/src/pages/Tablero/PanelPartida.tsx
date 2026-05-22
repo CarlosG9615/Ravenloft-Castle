@@ -7,7 +7,6 @@ import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import { Comment, Users, Mic, Skull, Sword } from 'pixelarticons/react'
 import { Dices, Smile } from 'lucide-react';
 import { PerfilPublicoModal } from '../../components/PerfilPublicoModal/PerfilPublicoModal';
-import { API_URL, WS_URL } from '../../services/api';
 import './PanelPartida.css';
 
 interface Jugador {
@@ -155,22 +154,12 @@ export function PanelPartida({
   const [pestana, setPestana]                   = useState<'chat' | 'jugadores' | 'voz'>('chat');
   const [mensajes, setMensajes]                 = useState<MensajeChat[]>([]);
   const [inputChat, setInputChat]               = useState('');
-  const [modificador, setModificador]           = useState(0);
+  const [modificador]                           = useState(0);
   const [conectado, setConectado]               = useState(false);
   const [dadoActivo, setDadoActivo]             = useState<string | null>(null);
   const [resultadoActivo, setResultadoActivo]   = useState<number | null>(null);
   const [mostrarEmotes, setMostrarEmotes]       = useState(false);
   const [mostrarDados, setMostrarDados]         = useState(false);
-
-  const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'voz'>('chat');
-  const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
-  const [inputChat, setInputChat] = useState('');
-  const [modificador] = useState(0);
-  const [conectado, setConectado] = useState(false);
-  const [dadoActivo, setDadoActivo] = useState<string | null>(null);
-  const [resultadoActivo, setResultadoActivo] = useState<number | null>(null);
-  const [mostrarEmotes, setMostrarEmotes] = useState(false);
-  const [mostrarDados, setMostrarDados] = useState(false);
 
   const [perfilPersonajeId, setPerfilPersonajeId] = useState<number | null>(null);
   const [hpOverrides, setHpOverrides]           = useState<Record<string, number>>({});
@@ -189,20 +178,7 @@ export function PanelPartida({
   const localStreamRef            = useRef<MediaStream | null>(null);
   const peersRef                  = useRef<Map<string, RTCPeerConnection>>(new Map());
   const lastSentAvatarRef         = useRef<string | null>(null);
-
-  // ── Registrar función de tirada de característica en el ref de Tablero ──
-
-  const jugadoresInicialesIdsRef = useRef<Set<string>>(new Set());
-
-  const chatRef = useRef<HTMLDivElement>(null);
-  const stompRef = useRef<Client | null>(null);
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
-  const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
-  const [micActivo, setMicActivo] = useState(false);
-  const [usuariosVoz, setUsuariosVoz] = useState<string[]>([]);
-  const [jugadoresRed, setJugadoresRed] = useState<any[]>(jugadores || []);
-  const lastSentAvatarRef = useRef<string | null>(null);
+  const audioElementsRef          = useRef<Map<string, HTMLAudioElement>>(new Map());
 
   // ── Registrar nuestra función en el ref de Tablero ──
 
@@ -227,7 +203,7 @@ export function PanelPartida({
   // ── WebSocket principal ──
   useEffect(() => {
     const client = new Client({
-      webSocketFactory: () => new (SockJS as any)(`${WS_URL}`),
+      webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
       reconnectDelay: 5000,
       onConnect: () => {
         setConectado(true);
@@ -237,7 +213,7 @@ export function PanelPartida({
         if (campanaId) {
           const token = localStorage.getItem('token') || sessionStorage.getItem('token');
           const sinceParam = chatSince ? `?since=${encodeURIComponent(chatSince)}` : '';
-          fetch(`${API_URL}/api/misiones/${campanaId}/chat${sinceParam}`, {
+          fetch(`http://localhost:8080/api/misiones/${campanaId}/chat${sinceParam}`, {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           })
             .then(r => (r.ok ? r.json() : []))
@@ -447,9 +423,8 @@ export function PanelPartida({
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensaje(); }
   };
 
-  const lanzarDado = (_caras: number, label: string) => {
-    const caras = _caras;
-        const resultadoReal = Math.floor(Math.random() * caras) + 1; // ← calcular aquí
+  const lanzarDado = (caras: number, label: string) => {
+    const resultadoReal = Math.floor(Math.random() * caras) + 1; // ← calcular aquí
 
         if (stompRef.current?.connected && campanaId) {
           const senderId = jugadorActual?.id?.toString() || 'master';
@@ -498,34 +473,6 @@ export function PanelPartida({
 
     setPendingLabel(null);
     setPendingMod(null);
-
-    onMovimientoRollResult?.(resultadoReal);
-    setDadoActivo(null);
-    setResultadoActivo(null);
-  }, [dadoActivo, modificador, pendingLabel, pendingMod, nombreMaster, colorMaster, campanaId, jugadorActual, onMovimientoRollResult]);
-
-  const handleAtaqueAnimacionFin = useCallback((imagenesResultado: string[]) => {
-    if (!CustomDicePanel || dadoActivo === null) return;
-    const dado        = dadoActivo.replace(/^ataque-/, '');
-    const autorNombre = jugadorActual?.nombre || nombreMaster;
-    const autorColor  = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
-    const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
-    const usuarioId   = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
-    const msg: MensajeChat = {
-      id: Date.now().toString(), autor: autorNombre, colorAutor: autorColor,
-      texto: '', tipo: 'tirada', timestamp: hora(),
-      tirada: { dado, resultado: 0, modificador: 0, total: 0, imagenes: imagenesResultado },
-    };
-    if (stompRef.current?.connected && campanaId) {
-      stompRef.current.publish({
-        destination: `/app/campana/${campanaId}/chat.enviar`,
-        body: JSON.stringify({ ...msg, personajeId, usuarioId }),
-      });
-    } else {
-      setMensajes(prev => [...prev, msg]);
-    }
-    onAtaqueRollResult?.(imagenesResultado.length);
-
 
     setDadoActivo(null);
     setResultadoActivo(null);
@@ -662,13 +609,6 @@ export function PanelPartida({
     <div className="pp-panel">
 
       <DiceRoller dado={dadoActivo} resultado={resultadoActivo} onAnimacionFin={handleAnimacionFin} />
-
-      <DiceRoller
-        dado={dadoActivo}
-        resultado={resultadoActivo}
-        onAnimacionFin={handleAnimacionFin}
-        containerId="dice-box-chat"
-      />
 
 
       <div className="pp-conexion">

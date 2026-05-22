@@ -12,7 +12,6 @@ import type { AttackSpellEntry } from '../Characters/CharacterSheet';
 import useImage from 'use-image';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { WS_URL } from '../../services/api';
 import './Tablero.css';
 import { Hand } from 'lucide-react';
 
@@ -56,6 +55,7 @@ interface NpcCampana {
   descripcion?: string;
   rol: string;
   imagenUrl?: string;
+}
 
 interface CombatePendiente {
   atacanteNombre: string;
@@ -712,7 +712,7 @@ export function Tablero() {
   useEffect(() => {
     if (!campanaId) return;
     const client = new Client({
-      webSocketFactory: () => new (SockJS as any)(`${WS_URL}`),
+      webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
       reconnectDelay: 5000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,

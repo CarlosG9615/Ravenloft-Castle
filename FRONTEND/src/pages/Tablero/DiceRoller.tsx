@@ -7,7 +7,6 @@ interface Props {
   resultado: number | null;
 
   onAnimacionFin: (resultadoReal: number) => void;
-  onAnimacionFin: (resultadoReal : number) => void;
   containerId?: string;
 
 }
@@ -52,7 +51,7 @@ const sumDiceResults = (resultados: any, fallback: number | null) => {
 
 export function DiceRoller({ dado, resultado, onAnimacionFin, containerId = 'dice-box-container' }: Props) {
   const diceBoxRef = useRef<any>(null);
-  const [animando, setAnimando] = useState(false);
+  const [, setAnimando] = useState(false);
   const callbackRef = useRef(onAnimacionFin);
   const initializedRef = useRef(false);
   const rollSound = new Audio('public/sounds/diceroll/dado.wav');
@@ -106,7 +105,7 @@ export function DiceRoller({ dado, resultado, onAnimacionFin, containerId = 'dic
       }).catch((err: any) => console.error('Error init:', err));
 
     }).catch((err: any) => console.error('Error cargando DiceBox:', err));
-  }, [animando, containerId]);
+  }, [containerId]);
 
   useEffect(() => {
     if (!dado || resultado === null || !diceBoxRef.current) return;
@@ -139,8 +138,6 @@ export function DiceRoller({ dado, resultado, onAnimacionFin, containerId = 'dic
 
     diceBoxRef.current.roll(rollConfig).then((resultados: any[]) => {
       console.log('Resultado DiceBox:', JSON.stringify(resultados));
-
-      const resultadoReal = resultados?.[0]?.value ?? resultado;
 
       const resultadoReal = sumDiceResults(resultados, resultado);
 
