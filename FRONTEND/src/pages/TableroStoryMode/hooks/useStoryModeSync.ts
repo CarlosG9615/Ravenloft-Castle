@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { WS_URL, API_URL, authHeaders } from '../../../services/api';
+import { API_URL, authHeaders } from '../../../services/api';
 
 interface JugadorSync {
   id: string | number;
@@ -268,7 +268,7 @@ export function useStoryModeSync(
     });
   }, [misionId]);
 
-  const sendChatMessage = useCallback((mensaje: { autor: string; colorAutor?: string; texto: string; tipo?: string }) => {
+  const sendChatMessage = useCallback((mensaje: { autor: string; colorAutor?: string; texto: string; tipo?: string; tirada?: unknown }) => {
     const client = stompRef.current;
     if (!client?.connected || !misionId) return;
     client.publish({
@@ -279,6 +279,7 @@ export function useStoryModeSync(
         texto: mensaje.texto,
         tipo: mensaje.tipo ?? 'sistema',
         timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+        tirada: mensaje.tirada,
       }),
     });
   }, [misionId]);
@@ -322,7 +323,7 @@ export function useStoryModeSync(
     if (!token) return;
 
     const client = new Client({
-      webSocketFactory: () => new (SockJS as any)(`${WS_URL}/ws`),
+      webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
       reconnectDelay: 5000,
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,

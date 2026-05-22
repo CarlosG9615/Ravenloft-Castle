@@ -8,6 +8,7 @@ interface StoryModeDicePanelProps {
   turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
   jugadorActual?: any;
   movimientoYaLanzado?: boolean;
+  ataqueYaLanzado?: boolean;
 }
 
 const DADOS_MOVIMIENTO = [
@@ -28,6 +29,7 @@ export function StoryModeDicePanel({
   turnoActual,
   jugadorActual,
   movimientoYaLanzado = false,
+  ataqueYaLanzado = false,
 }: StoryModeDicePanelProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -81,7 +83,8 @@ export function StoryModeDicePanel({
                 }
                 onLanzarDado(caras, 'ataque-' + label);
               }}
-              disabled={dadoActivo !== null}
+              // Attack/defense dice must be available to all users (not restricted to the current turn)
+              disabled={dadoActivo !== null || ataqueYaLanzado}
             >
               <img src={imagen} alt={label} className="pp-dado-imagen" />
             </button>

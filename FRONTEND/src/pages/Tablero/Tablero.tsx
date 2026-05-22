@@ -55,6 +55,7 @@ interface NpcCampana {
   descripcion?: string;
   rol: string;
   imagenUrl?: string;
+}
 
 interface CombatePendiente {
   atacanteNombre: string;
