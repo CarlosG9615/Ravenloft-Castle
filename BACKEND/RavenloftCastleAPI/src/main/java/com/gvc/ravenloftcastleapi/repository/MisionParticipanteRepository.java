@@ -44,6 +44,9 @@ public interface MisionParticipanteRepository extends JpaRepository<MisionPartic
     @Transactional
     void deleteByMisionId(Long misionId);
 
+    @Query("SELECT mp.usuario.nombre FROM MisionParticipante mp WHERE mp.mision.id = :misionId AND mp.rol = com.gvc.ravenloftcastleapi.enums.RolParticipante.MASTER")
+    java.util.Optional<String> findNombreMasterByMisionId(@Param("misionId") Long misionId);
+
     @Query("""
         SELECT DISTINCT mp.personaje FROM MisionParticipante mp
         WHERE mp.mision.modoHistoria.id = :modoHistoriaId

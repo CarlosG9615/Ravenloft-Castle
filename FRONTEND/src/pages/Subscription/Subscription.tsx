@@ -19,6 +19,14 @@ export function Subscription() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState<{ message: string; title: string; }>({ message: '', title: '' });
 
+  const handleGuestPlanClick = () => {
+    setModalConfig({
+      title: '¡VAYA!',
+      message: 'Parece que estás intentando suscribirte sin ni si quiera haberte logueado... ¡no corras tanto y ve paso a paso!',
+    });
+    setIsModalOpen(true);
+  };
+
   useEffect(() => {
     if (user?.id) {
       getUserSuscripciones(user.id)
@@ -32,7 +40,7 @@ export function Subscription() {
 
   const handleSelectPlan = async (tipo: 'BASICA' | 'PREMIUM' | 'VIP') => {
     if (!user) {
-      navigate('/login');
+      handleGuestPlanClick();
       return;
     }
 
@@ -96,7 +104,7 @@ export function Subscription() {
           </ul>
           <button
             className="plan-btn featured-btn"
-            onClick={() => activeSubscription?.tipo === 'BASICA' ? navigate('/profile') : handleSelectPlan('BASICA')}
+            onClick={() => (!user ? handleGuestPlanClick() : activeSubscription?.tipo === 'BASICA' ? navigate('/profile') : handleSelectPlan('BASICA'))}
             disabled={!!activeSubscription && activeSubscription.tipo !== 'BASICA'}
           >
             {activeSubscription?.tipo === 'BASICA' ? 'Plan Actual' : 'Elegir Héroe'}
@@ -128,7 +136,7 @@ export function Subscription() {
           </ul>
           <button
             className="plan-btn"
-            onClick={() => activeSubscription?.tipo === 'PREMIUM' ? navigate('/profile') : handleSelectPlan('PREMIUM')}
+            onClick={() => (!user ? handleGuestPlanClick() : activeSubscription?.tipo === 'PREMIUM' ? navigate('/profile') : handleSelectPlan('PREMIUM'))}
             disabled={!!activeSubscription && activeSubscription.tipo !== 'PREMIUM'}
           >
             {activeSubscription?.tipo === 'PREMIUM' ? 'Plan Actual' : 'Elegir DM'}
@@ -163,7 +171,7 @@ export function Subscription() {
           </ul>
           <button
             className="plan-btn"
-            onClick={() => activeSubscription?.tipo === 'VIP' ? navigate('/profile') : handleSelectPlan('VIP')}
+            onClick={() => (!user ? handleGuestPlanClick() : activeSubscription?.tipo === 'VIP' ? navigate('/profile') : handleSelectPlan('VIP'))}
             disabled={!!activeSubscription && activeSubscription.tipo !== 'VIP'}
           >
             {activeSubscription?.tipo === 'VIP' ? 'Plan Actual' : 'Elegir Archimago'}
@@ -177,7 +185,7 @@ export function Subscription() {
         message={modalConfig.message}
         confirmText="Aceptar"
         onConfirm={() => setIsModalOpen(false)}
-        showImage={false}
+        showImage={true}
       />
     </div>
   );

@@ -2,11 +2,13 @@ import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Stage, Layer, Image, Line, Circle, Text, Group, Rect } from 'react-konva';
 import { PanelPartida } from './PanelPartida';
+import { DiceRoller } from './DiceRoller';
 import { obtenerCampanaPorId } from '../../services/campanaService';
 import { getPersonajes } from '../../services/personajeService';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import { getEnemigos } from '../../services/enemigoService';
 import type { EnemigoDetalleDTO } from '../../services/enemigoService';
+import type { AttackSpellEntry } from '../Characters/CharacterSheet';
 import useImage from 'use-image';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -44,6 +46,20 @@ interface EnemigoCombate extends EnemigoDetalleDTO {
   hpActual: number;
 }
 
+interface CombatePendiente {
+  atacanteNombre: string;
+  objetivoNombre: string;
+  objetivoTokenId: string;
+  objetivoOwnerId?: string | number | null;
+  objetivoTipo: 'jugador' | 'enemigo' | 'npc';
+  objetivoCA: number;
+  accion: AttackSpellEntry;
+  critico: boolean;
+  etapa: 'ataque' | 'dano';
+  modAtaque: number;
+  modDano: number;
+}
+
 const COLORES_TOKEN = {
   jugador: '#4a90d9',
   enemigo: '#e74c3c',
@@ -68,6 +84,41 @@ const resolveCartaUrl = (avatar?: string | null): string | null => {
   if (!avatar) return null;
   if (isAbsoluteUrl(avatar) || isDataUrl(avatar) || isAppPath(avatar)) return avatar;
   return getCartaUrl(avatar);
+};
+
+const parseBonus = (texto: string) => {
+  const match = texto.replace(/\s+/g, '').match(/-?\d+/);
+  return match ? Number(match[0]) : 0;
+};
+
+const formatBonus = (valor: number) => (valor >= 0 ? `+${valor}` : `${valor}`);
+
+const getStatMod = (valor: number) => Math.floor((valor - 10) / 2);
+
+const parseDamage = (
+  texto: string,
+  stats: { fuerza: number; destreza: number; constitucion: number; inteligencia: number; sabiduria: number; carisma: number; }
+) => {
+  const raw = texto.toLowerCase();
+  const diceMatch = raw.match(/(\d*d\d+)/);
+  let notation = diceMatch ? diceMatch[1] : null;
+  if (notation && notation.startsWith('d')) notation = `1${notation}`;
+
+  let mod = 0;
+  const numericMods = raw.match(/([+-]\s*\d+)/g) || [];
+  numericMods.forEach((m) => {
+    mod += Number(m.replace(/\s+/g, ''));
+  });
+
+  const statMap: Record<string, keyof typeof stats> = {
+    fue: 'fuerza', des: 'destreza', con: 'constitucion',
+    int: 'inteligencia', sab: 'sabiduria', car: 'carisma',
+  };
+  Object.entries(statMap).forEach(([key, stat]) => {
+    if (raw.includes(key)) mod += getStatMod(stats[stat]);
+  });
+
+  return { notation, mod };
 };
 
 function MapaFondo({ src, ancho, alto }: { src: string; ancho: number; alto: number }) {
@@ -150,8 +201,17 @@ export function Tablero() {
   const [panelEnemigos, setPanelEnemigos]         = useState(false);
   const [enemigos, setEnemigos]                   = useState<EnemigoDetalleDTO[]>([]);
   const [hpEnemigos, setHpEnemigos]               = useState<Record<string, number>>({});
+  const [hpEnemigosMax, setHpEnemigosMax]         = useState<Record<string, number>>({});
+  const [hpJugadores, setHpJugadores]             = useState<Record<string, number>>({});
   const [enemigosCombate, setEnemigosCombate]     = useState<EnemigoCombate[]>([]);
   const [busquedaEnemigo, setBusquedaEnemigo]     = useState('');
+  const [ataquesConjuros, setAtaquesConjuros]     = useState<AttackSpellEntry[]>([]);
+  const [accionSeleccionadaId, setAccionSeleccionadaId] = useState<string | null>(null);
+  const [modoAtaque, setModoAtaque]               = useState(false);
+  const [mensajeCombate, setMensajeCombate]       = useState<string | null>(null);
+  const [combatDado, setCombatDado]               = useState<string | null>(null);
+  const [combatResultado, setCombatResultado]     = useState<number | null>(null);
+  const [combatePendiente, setCombatePendiente]   = useState<CombatePendiente | null>(null);
 
   const currentPlayerId = jugadorActualConAvatar?.id ?? jugadorActualConAvatar?.personajeId ?? personaje?.id ?? null;
 
@@ -164,6 +224,14 @@ export function Tablero() {
     x: col * TAMANYO_CELDA + TAMANYO_CELDA / 2,
     y: row * TAMANYO_CELDA + TAMANYO_CELDA / 2,
   });
+
+  const getTokenGrid = (token: Token) => toGrid(token.x, token.y);
+
+  const gridDistance = (a: Token, b: Token) => {
+    const g1 = getTokenGrid(a);
+    const g2 = getTokenGrid(b);
+    return Math.max(Math.abs(g1.col - g2.col), Math.abs(g1.row - g2.row));
+  };
 
   const canMoverToken = (token: Token) => {
     if (esMaster) return token.tipo !== 'jugador';
@@ -271,6 +339,26 @@ export function Tablero() {
     }
   }, [esMaster]);
 
+  useEffect(() => {
+    if (!personaje) return;
+    const keyById = `rc:attacks-spells:${personaje.id}`;
+    const keyByName = `rc:attacks-spells:${personaje.nombre}`;
+    const raw = localStorage.getItem(keyById) ?? localStorage.getItem(keyByName);
+    if (!raw) {
+      setAtaquesConjuros([]);
+      setAccionSeleccionadaId(null);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(raw) as AttackSpellEntry[];
+      setAtaquesConjuros(parsed);
+      setAccionSeleccionadaId(parsed[0]?.id ?? null);
+    } catch {
+      setAtaquesConjuros([]);
+      setAccionSeleccionadaId(null);
+    }
+  }, [personaje?.id, personaje?.nombre]);
+
   const buildPath = (from: {x:number, y:number}, to: {x:number, y:number}) => {
     const path = [from];
     if (from.x === to.x) {
@@ -325,7 +413,7 @@ export function Tablero() {
     overlayCells = animPath.slice(1, animStep + 1).map((pos, i) => ({ ...pos, step: i + 1 }));
   }
 
-  const handleStagePointerMove = (e: any) => {
+  const handleStagePointerMove = () => {
     if (draggingRef.current) {
       const stage = stageRef.current;
       const pointer = stage.getPointerPosition();
@@ -450,6 +538,7 @@ export function Tablero() {
     const nuevoEnemigo: EnemigoCombate = { ...enemigo, instanciaId, hpActual: enemigo.salud };
     setEnemigosCombate(prev => [...prev, nuevoEnemigo]);
     setHpEnemigos(prev => ({ ...prev, [instanciaId]: enemigo.salud }));
+    setHpEnemigosMax(prev => ({ ...prev, [instanciaId]: enemigo.salud }));
     const token: Token = {
       id: instanciaId,
       ownerId: null,
@@ -461,23 +550,64 @@ export function Tablero() {
     };
     setTokens(prev => [...prev, token]);
     publishTokenMove(token, token.x, token.y);
+    if (stompRef.current?.connected && campanaId) {
+      // Enviar HP inicial para que todos los clientes conozcan la vida del enemigo.
+      stompRef.current.publish({
+        destination: `/app/campana/${campanaId}/hp-update`,
+        body: JSON.stringify({ jugadorId: instanciaId, hp: enemigo.salud, hpMax: enemigo.salud }),
+      });
+    }
     setPanelEnemigos(false);
   };
 
-  const cambiarHpEnemigo = (instanciaId: string, hpActual: number, hpMax: number, delta: number) => {
-    const nuevoHp = Math.max(0, Math.min(hpMax, hpActual + delta));
+  const cambiarHpEnemigo = (instanciaId: string, hpActual: number, hpMax: number | null | undefined, delta: number) => {
+    const upperBound = typeof hpMax === 'number' ? hpMax : Number.MAX_SAFE_INTEGER;
+    const nuevoHp = Math.max(0, Math.min(upperBound, hpActual + delta));
     setHpEnemigos(prev => ({ ...prev, [instanciaId]: nuevoHp }));
+    if (typeof hpMax === 'number') {
+      setHpEnemigosMax(prev => ({ ...prev, [instanciaId]: hpMax }));
+    }
+    setEnemigosCombate(prev => prev.map(e => e.instanciaId === instanciaId ? { ...e, hpActual: nuevoHp } : e));
     if (stompRef.current?.connected && campanaId) {
       stompRef.current.publish({
         destination: `/app/campana/${campanaId}/hp-update`,
-        body: JSON.stringify({ jugadorId: instanciaId, hp: nuevoHp }),
+        body: JSON.stringify({ jugadorId: instanciaId, hp: nuevoHp, hpMax: typeof hpMax === 'number' ? hpMax : undefined }),
       });
     }
+  };
+
+  const aplicarHpJugador = (jugadorId: string, nuevoHp: number) => {
+    setHpJugadores(prev => ({ ...prev, [jugadorId]: nuevoHp }));
+    if (stompRef.current?.connected && campanaId) {
+      stompRef.current.publish({
+        destination: `/app/campana/${campanaId}/hp-update`,
+        body: JSON.stringify({ jugadorId, hp: nuevoHp }),
+      });
+    }
+  };
+
+  const publicarSistema = (texto: string) => {
+    if (!stompRef.current?.connected || !campanaId) return;
+    stompRef.current.publish({
+      destination: `/app/campana/${campanaId}/chat.enviar`,
+      body: JSON.stringify({
+        autor: 'Sistema',
+        colorAutor: '#8b0000',
+        texto,
+        tipo: 'sistema',
+        timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+      }),
+    });
   };
 
   const eliminarEnemigoCombate = (instanciaId: string) => {
     setEnemigosCombate(prev => prev.filter(e => e.instanciaId !== instanciaId));
     setHpEnemigos(prev => {
+      const next = { ...prev };
+      delete next[instanciaId];
+      return next;
+    });
+    setHpEnemigosMax(prev => {
       const next = { ...prev };
       delete next[instanciaId];
       return next;
@@ -532,12 +662,43 @@ export function Tablero() {
             console.error('Error borrando token:', e);
           }
         });
+        client.subscribe(`/topic/campana/${campanaId}/hp-update`, (frame) => {
+          try {
+            const { jugadorId, hp, hpMax } = JSON.parse(frame.body) as { jugadorId: string; hp: number; hpMax?: number };
+            setHpJugadores(prev => ({ ...prev, [jugadorId]: hp }));
+            setHpEnemigos(prev => ({ ...prev, [jugadorId]: hp }));
+            if (typeof hpMax === 'number') {
+              setHpEnemigosMax(prev => ({ ...prev, [jugadorId]: hpMax }));
+            }
+            setEnemigosCombate(prev => prev.map(e => e.instanciaId === jugadorId ? { ...e, hpActual: hp } : e));
+          } catch (e) {
+            console.error('Error hp-update:', e);
+          }
+        });
+        client.subscribe(`/topic/campana/${campanaId}/hp-sync`, (frame) => {
+          try {
+            const hpMap = JSON.parse(frame.body) as Record<string, number>;
+            setHpJugadores(prev => ({ ...prev, ...hpMap }));
+            setHpEnemigos(prev => ({ ...prev, ...hpMap }));
+            setEnemigosCombate(prev => prev.map(e => {
+              if (hpMap[e.instanciaId] !== undefined) {
+                return { ...e, hpActual: hpMap[e.instanciaId] };
+              }
+              return e;
+            }));
+          } catch (e) {
+            console.error('Error hp-sync:', e);
+          }
+        });
         if (!syncRequestedRef.current) {
           syncRequestedRef.current = true;
           const sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
           client.publish({
             destination: `/app/campana/${campanaId}/token-request-sync`,
             body: JSON.stringify({ sessionId }),
+          });
+          client.publish({
+            destination: `/app/campana/${campanaId}/hp-request-sync`
           });
         }
       },
@@ -550,6 +711,38 @@ export function Tablero() {
       syncRequestedRef.current = false;
     };
   }, [campanaId, mapaActualUrl]);
+
+  // Sincronizar enemigosCombate con tokens (para recuperar estado si el master sale y entra)
+  useEffect(() => {
+    if (!esMaster || enemigos.length === 0 || tokens.length === 0) return;
+    
+    setEnemigosCombate(prev => {
+      let changed = false;
+      const newEnemigos = [...prev];
+      const prevIds = new Set(prev.map(e => e.instanciaId));
+      
+      tokens.forEach(token => {
+        if (token.tipo === 'enemigo' && !prevIds.has(token.id)) {
+          const parts = token.id.split('-');
+          if (parts.length >= 3 && parts[0] === 'enemigo') {
+            const baseIdStr = parts[1];
+            const enemigoBase = enemigos.find(e => String(e.id) === baseIdStr);
+            if (enemigoBase) {
+              const hpActual = hpEnemigos[token.id] ?? enemigoBase.salud;
+              newEnemigos.push({
+                ...enemigoBase,
+                instanciaId: token.id,
+                hpActual
+              });
+              changed = true;
+            }
+          }
+        }
+      });
+      
+      return changed ? newEnemigos : prev;
+    });
+  }, [tokens, enemigos, esMaster, hpEnemigos]);
 
   useEffect(() => {
     if (!jugadoresCampaa || jugadoresCampaa.length === 0) return;
@@ -604,6 +797,129 @@ export function Tablero() {
       publishTokenMove(token, token.x, token.y);
     });
   }, [tokens, campanaId, esMaster, currentPlayerId]);
+
+  const accionSeleccionada = ataquesConjuros.find(a => a.id === accionSeleccionadaId) || null;
+
+  const iniciarAtaque = (objetivo: Token) => {
+    if (!accionSeleccionada || !personaje) {
+      setMensajeCombate('Selecciona un ataque o conjuro primero.');
+      return;
+    }
+    if (objetivo.tipo === 'jugador' && String(objetivo.ownerId) === String(currentPlayerId)) {
+      setMensajeCombate('No puedes atacarte a ti mismo.');
+      return;
+    }
+
+    const rango = accionSeleccionada.rangoCasillas ?? (accionSeleccionada.tipo === 'conjuro' ? 6 : 1);
+    const atacante = tokens.find(t => t.tipo === 'jugador' && String(t.ownerId) === String(currentPlayerId));
+    if (!atacante) {
+      setMensajeCombate('No se encontro tu token en el mapa.');
+      return;
+    }
+    const distancia = gridDistance(atacante, objetivo);
+    if (distancia > rango) {
+      setMensajeCombate(`Objetivo fuera de rango (${distancia} > ${rango}).`);
+      return;
+    }
+
+    const enemigo = enemigosCombate.find(e => e.instanciaId === objetivo.id);
+    const jugadorObjetivo = jugadoresCampaa.find((j: any) => String(j.id ?? j.personajeId ?? j.usuarioId) === String(objetivo.ownerId));
+    const objetivoCA = enemigo?.ca ?? jugadorObjetivo?.claseArmadura ?? 10;
+    const modAtaque = parseBonus(accionSeleccionada.bonificador || '0');
+    const { mod: modDano } = parseDamage(accionSeleccionada.dano, personaje);
+
+    setCombatePendiente({
+      atacanteNombre: personaje.nombre,
+      objetivoNombre: objetivo.nombre,
+      objetivoTokenId: objetivo.id,
+      objetivoOwnerId: objetivo.ownerId ?? null,
+      objetivoTipo: objetivo.tipo,
+      objetivoCA,
+      accion: accionSeleccionada,
+      critico: false,
+      etapa: 'ataque',
+      modAtaque,
+      modDano,
+    });
+    setMensajeCombate(null);
+    setCombatDado('d20');
+    setCombatResultado(0);
+  };
+
+  const resolverAtaque = (resultado: number) => {
+    if (!combatePendiente) return;
+    const total = resultado + combatePendiente.modAtaque;
+    const critico = resultado === 20;
+    const impacto = total >= combatePendiente.objetivoCA || critico;
+    if (!impacto) {
+      setMensajeCombate(`Fallo: ${total} vs CA ${combatePendiente.objetivoCA}.`);
+      publicarSistema(`❌ ${combatePendiente.atacanteNombre} fallo el ataque contra ${combatePendiente.objetivoNombre}.`);
+      setCombatePendiente(null);
+      setCombatDado(null);
+      setCombatResultado(null);
+      return;
+    }
+
+    const { notation } = parseDamage(combatePendiente.accion.dano, personaje);
+    if (!notation) {
+      setMensajeCombate('No se pudo interpretar el dado de daño.');
+      setCombatePendiente(null);
+      setCombatDado(null);
+      setCombatResultado(null);
+      return;
+    }
+
+    let notationFinal = notation;
+    if (critico) {
+      const parts = notation.split('d');
+      const count = Number(parts[0] || '1');
+      const faces = parts[1];
+      notationFinal = `${count * 2}d${faces}`;
+    }
+
+    setCombatePendiente(prev => prev ? { ...prev, critico, etapa: 'dano' } : prev);
+    setCombatDado(notationFinal);
+    setCombatResultado(0);
+  };
+
+  const resolverDano = (resultado: number) => {
+    if (!combatePendiente) return;
+    const totalDano = Math.max(0, resultado + combatePendiente.modDano);
+    const mensajeCritico = combatePendiente.critico ? ' (critico)' : '';
+    if (combatePendiente.objetivoTipo === 'enemigo') {
+      const enemigo = enemigosCombate.find(e => e.instanciaId === combatePendiente.objetivoTokenId);
+      const hpMax = enemigo?.salud ?? hpEnemigosMax[combatePendiente.objetivoTokenId] ?? null;
+      const hpActual = hpEnemigos[combatePendiente.objetivoTokenId] ?? hpMax ?? null;
+      if (hpActual !== null) {
+        cambiarHpEnemigo(combatePendiente.objetivoTokenId, hpActual, hpMax, -totalDano);
+      }
+    } else {
+      const jugadorId = combatePendiente.objetivoOwnerId ?? combatePendiente.objetivoTokenId;
+      const jugadorKey = String(jugadorId);
+      const jugador = jugadoresCampaa.find((j: any) => String(j.id ?? j.personajeId ?? j.usuarioId) === jugadorKey);
+      const hpBase = hpJugadores[jugadorKey] ?? jugador?.hp ?? jugador?.puntosGolpeActual ?? null;
+      const hpMax = jugador?.hpMax ?? jugador?.puntosGolpeMax ?? null;
+      if (hpBase !== null && hpMax !== null) {
+        const nuevoHp = Math.max(0, Math.min(hpMax, hpBase - totalDano));
+        aplicarHpJugador(jugadorKey, nuevoHp);
+      }
+    }
+
+    setMensajeCombate(`Impacto: ${totalDano} daño${mensajeCritico}.`);
+    publicarSistema(`⚔ ${combatePendiente.atacanteNombre} golpea a ${combatePendiente.objetivoNombre} por ${totalDano} daño${mensajeCritico}.`);
+    setCombatePendiente(null);
+    setCombatDado(null);
+    setCombatResultado(null);
+  };
+
+  const handleCombatAnimacionFin = (resultado: number) => {
+    if (!combatePendiente) return;
+    if (combatePendiente.etapa === 'ataque') {
+      resolverAtaque(resultado);
+      return;
+    }
+    resolverDano(resultado);
+  };
 
   return (
     <div className="tb-page" ref={containerRef}>
@@ -919,6 +1235,41 @@ export function Tablero() {
               </div>
             </div>
 
+            <div className="tb-seccion">
+              <span className="tb-seccion-label">Ataques y Conjuros</span>
+              {ataquesConjuros.length === 0 && (
+                <p className="tb-vacio">No tienes ataques/conjuros guardados.</p>
+              )}
+              {ataquesConjuros.length > 0 && (
+                <div className="tb-combate-lista">
+                  {ataquesConjuros.map(entry => (
+                    <button
+                      key={entry.id}
+                      className={`tb-combate-item-btn ${accionSeleccionadaId === entry.id ? 'active' : ''}`}
+                      onClick={() => setAccionSeleccionadaId(entry.id)}
+                    >
+                      <span className="tb-combate-item-nombre">{entry.tipo === 'conjuro' ? `Conjuro: ${entry.nombre}` : entry.nombre}</span>
+                      <span className="tb-combate-item-detalle">{formatBonus(parseBonus(entry.bonificador))} / {entry.dano}</span>
+                      <span className="tb-combate-item-detalle">Rango {entry.rangoCasillas ?? (entry.tipo === 'conjuro' ? 6 : 1)} casillas</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                className={`tb-combate-toggle ${modoAtaque ? 'active' : ''}`}
+                onClick={() => setModoAtaque(prev => !prev)}
+                disabled={!accionSeleccionada}
+              >
+                {modoAtaque ? '🛑 Cancelar ataque' : '⚔ Modo ataque'}
+              </button>
+              {modoAtaque && (
+                <p className="tb-combate-hint">Selecciona un objetivo haciendo click en su token.</p>
+              )}
+              {mensajeCombate && (
+                <p className="tb-combate-msg">{mensajeCombate}</p>
+              )}
+            </div>
+
             <button className="tb-btn-salir" onClick={() => navigate('/join')}>
               &#8592; Salir de Partida
             </button>
@@ -978,7 +1329,13 @@ export function Tablero() {
                     draggingRef.current = { tokenId: token.id, origin, current: origin };
                   }
                 }}
-                onClick={() => borrarToken(token.id)}
+                onClick={() => {
+                  if (modoAtaque) {
+                    iniciarAtaque(token);
+                    return;
+                  }
+                  borrarToken(token.id);
+                }}
                 onMouseEnter={e => {
                   const stage = e.target.getStage();
                   if (stage) stage.container().style.cursor = herramienta === 'borrar' ? 'not-allowed' : 'grab';
@@ -997,6 +1354,13 @@ export function Tablero() {
           })}
         </Layer>
       </Stage>
+
+      <DiceRoller
+        dado={combatDado}
+        resultado={combatResultado}
+        onAnimacionFin={handleCombatAnimacionFin}
+        containerId="dice-box-combat"
+      />
 
       {/* INSTRUCCIONES */}
       <div className="tb-instrucciones">

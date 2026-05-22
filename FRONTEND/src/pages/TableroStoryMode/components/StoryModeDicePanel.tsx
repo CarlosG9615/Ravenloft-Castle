@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { StoryModeDiceRoller } from './StoryModeDiceRoller';
 
 interface StoryModeDicePanelProps {
@@ -7,7 +8,6 @@ interface StoryModeDicePanelProps {
   turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
   jugadorActual?: any;
   movimientoYaLanzado?: boolean;
-  ataqueYaLanzado?: boolean;
 }
 
 const DADOS_MOVIMIENTO = [
@@ -28,15 +28,26 @@ export function StoryModeDicePanel({
   turnoActual,
   jugadorActual,
   movimientoYaLanzado = false,
-  ataqueYaLanzado = false,
 }: StoryModeDicePanelProps) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const isMyTurn =
-    turnoActual?.fase === 'personajes' &&
-    (turnoActual?.turnoActualPersonajeId?.toString() === jugadorActual?.personajeId?.toString() ||
-     turnoActual?.turnoActualPersonajeId?.toString() === jugadorActual?.id?.toString());
+    turnoActual?.turnoActualPersonajeId?.toString() === jugadorActual?.personajeId?.toString() ||
+    turnoActual?.turnoActualPersonajeId?.toString() === jugadorActual?.id?.toString();
   const dadoAtaque = dadoActivo?.startsWith('ataque-')
     ? DADOS_ATAQUE.find(d => 'ataque-' + d.label === dadoActivo) ?? null
     : null;
+
+  const playDiceSound = () => {
+    try {
+      if (!audioRef.current) {
+        audioRef.current = new Audio('/public/sounds/diceroll/dado.wav');
+      }
+      // Reset time to start para poder reproducir múltiples veces sin esperar
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {});
+    } catch {}
+  };
 
   return (
     <>
@@ -46,12 +57,12 @@ export function StoryModeDicePanel({
           {DADOS_MOVIMIENTO.map(({ caras, label }) => (
             <button
               key={label}
-              className={`pp-dado-btn ${dadoActivo === label ? 'animando' : ''}`}
+              className="pp-dado-pick-btn"
               onClick={() => onLanzarDado(caras, label)}
               disabled={dadoActivo !== null || !isMyTurn || movimientoYaLanzado}
             >
-              <span className="pp-dado-icono">{dadoActivo === label ? '💫' : '⬡'}</span>
-              <span className="pp-dado-label">{label}</span>
+              <img src={`/images/dadoCampana/${label}.png`} alt={label} className="pp-dado-pick-img" />
+              <span>{label}</span>
             </button>
           ))}
         </div>
@@ -65,12 +76,12 @@ export function StoryModeDicePanel({
               onClick={() => {
                 for (let i = 0; i < cantidadResultados; i++) {
                   setTimeout(() => {
-                    new Audio('/public/sounds/diceroll/dado.wav').play().catch(() => {});
+                    playDiceSound();
                   }, i * 350);
                 }
                 onLanzarDado(caras, 'ataque-' + label);
               }}
-              disabled={dadoActivo !== null || !isMyTurn || ataqueYaLanzado}
+              disabled={dadoActivo !== null}
             >
               <img src={imagen} alt={label} className="pp-dado-imagen" />
             </button>

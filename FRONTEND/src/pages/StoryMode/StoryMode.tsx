@@ -171,13 +171,6 @@ const getPlazasJugadorLibres = (modoHistoria: ModoHistoria): number => {
   return Math.max(0, MAX_JUGADORES_ROL - getJugadoresActuales(modoHistoria));
 };
 
-const getPlazasMasterLibres = (modoHistoria: ModoHistoria): number => {
-  if (typeof modoHistoria.plazasMasterLibres === 'number') {
-    return Math.max(0, modoHistoria.plazasMasterLibres);
-  }
-  return Math.max(0, MAX_MASTER_ROL - getMastersActuales(modoHistoria));
-};
-
 function ModoHistoriaCover({
   titulo,
   imageClassName,
@@ -234,7 +227,6 @@ function ModalModoHistoria({
   const jugadoresActuales = getJugadoresActuales(modoHistoria);
   const mastersActuales = getMastersActuales(modoHistoria);
   const plazasJugadorLibres = getPlazasJugadorLibres(modoHistoria);
-  const plazasMasterLibres = getPlazasMasterLibres(modoHistoria);
   const misionesTotales = modoHistoria.misiones.length;
 
   return (

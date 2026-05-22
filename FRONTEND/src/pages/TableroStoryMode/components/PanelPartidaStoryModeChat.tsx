@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import type { ReactNode, MutableRefObject } from 'react';
+import type { ReactNode } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import { DiceRoller } from './DiceRoller';
-import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
+import { DiceRoller } from '../../Tablero/DiceRoller';
+import { getAvatarUrl, getCartaUrl } from '../../../utils/imageUtils';
 import { Comment, Users, Mic, Skull, Sword } from 'pixelarticons/react'
 import { Dices, Smile } from 'lucide-react';
-import { PerfilPublicoModal } from '../../components/PerfilPublicoModal/PerfilPublicoModal';
-import './PanelPartida.css';
+import { PerfilPublicoModal } from '../../../components/PerfilPublicoModal/PerfilPublicoModal';
+import './PanelPartidaStoryMode.css';
 
 interface Jugador {
   id: string;
@@ -42,14 +42,7 @@ interface MensajeChat {
   };
 }
 
-const DADOS = [
-  { caras: 4,  label: 'd4'  },
-  { caras: 6,  label: 'd6'  },
-  { caras: 8,  label: 'd8'  },
-  { caras: 10, label: 'd10' },
-  { caras: 12, label: 'd12' },
-  { caras: 20, label: 'd20' },
-];
+// DADOS removed for Story Mode — movement/attack dice handled by StoryModeDicePanel
 
 const EMOTES = [
   { id: 'emoji-sorpre',   src: '/images/emotes/emoji-sorpre.png',   label: 'Sorprendido' },
@@ -157,12 +150,20 @@ interface Props {
   campanaId?: number | string;
   jugadorActual?: any;
   esMaster?: boolean;
-  chatSince?: string | null;
-  // ── NUEVO: ref que Tablero pasa para que registremos nuestra función de tirada ──
-  lanzarDadoCaracteristicaRef?: MutableRefObject<((label: string, mod: number) => void) | null>;
+  dicesComponent?: React.ComponentType<any>;
+  turnoActual?: { turnoActualPersonajeId: string | number | null; fase: 'personajes' | 'master' } | null;
+  onMovimientoRollResult?: (resultado: number) => void;
+  movimientoYaLanzado?: boolean;
+  onAtaqueRollResult?: (cantidadResultados: number) => void;
+  ataqueYaLanzado?: boolean;
+  playerHpMap?: Record<string, number>;
+  onPlayerHpUpdate?: (jugadorId: string, hp: number) => void;
+  mensajes?: any[];
+  pushLocalChatMessage?: (m: { autor: string; colorAutor?: string; texto: string; tipo?: string; timestamp?: string }) => void;
+  sendChatMessage?: (m: { autor: string; colorAutor?: string; texto: string; tipo?: string }) => void;
 }
 
-export function PanelPartida({
+export function PanelPartidaStoryModeChat({
   nombreMaster = 'Tú (Master)',
   colorMaster = '#c0392b',
   panelSuperior,
@@ -170,25 +171,27 @@ export function PanelPartida({
   campanaId,
   jugadorActual,
   esMaster = false,
-  chatSince,
-  lanzarDadoCaracteristicaRef,
+  dicesComponent: CustomDicePanel,
+  turnoActual,
+  onMovimientoRollResult,
+  movimientoYaLanzado = false,
+  onAtaqueRollResult,
+  ataqueYaLanzado = false,
+  playerHpMap,
+  onPlayerHpUpdate,
+  mensajes = [],
+  pushLocalChatMessage,
+  sendChatMessage,
 }: Props) {
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'voz'>('chat');
-  const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [inputChat, setInputChat] = useState('');
-  const [modificador] = useState(0);
+  const modificador = 0;
   const [conectado, setConectado] = useState(false);
   const [dadoActivo, setDadoActivo] = useState<string | null>(null);
   const [resultadoActivo, setResultadoActivo] = useState<number | null>(null);
   const [mostrarEmotes, setMostrarEmotes] = useState(false);
   const [mostrarDados, setMostrarDados] = useState(false);
   const [perfilPersonajeId, setPerfilPersonajeId] = useState<number | null>(null);
-  const [hpOverrides, setHpOverrides] = useState<Record<string, number>>({});
-
-  // ── Estados para tirada de característica ──
-  const [pendingLabel, setPendingLabel] = useState<string | null>(null);
-  const [pendingMod, setPendingMod]     = useState<number | null>(null);
-
   const esAnimacionRemota = useRef(false);
   const jugadoresInicializadosRef = useRef(false);
   const jugadoresInicialesIdsRef = useRef<Set<string>>(new Set());
@@ -203,26 +206,6 @@ export function PanelPartida({
   const [jugadoresRed, setJugadoresRed] = useState<any[]>(jugadores || []);
   const lastSentAvatarRef = useRef<string | null>(null);
 
-  // ── Registrar nuestra función en el ref de Tablero ──
-  useEffect(() => {
-    if (!lanzarDadoCaracteristicaRef) return;
-    lanzarDadoCaracteristicaRef.current = (label: string, mod: number) => {
-      setPendingLabel(label);
-      setPendingMod(mod);
-      // Activar DiceRoller con d20
-      setDadoActivo('d20');
-      setResultadoActivo(0);
-      // Notificar animación a los demás jugadores
-      if (stompRef.current?.connected && campanaId) {
-        const senderId = jugadorActual?.id?.toString() || 'jugador';
-        stompRef.current.publish({
-          destination: `/app/campana/${campanaId}/dice-roll`,
-          body: JSON.stringify({ dado: 'd20', resultado: 0, senderId }),
-        });
-      }
-    };
-  }, [lanzarDadoCaracteristicaRef, campanaId, jugadorActual]);
-
   useEffect(() => {
     const client = new Client({
       webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
@@ -232,44 +215,8 @@ export function PanelPartida({
         jugadoresInicializadosRef.current = false;
         jugadoresInicialesIdsRef.current = new Set();
         if (campanaId) {
-          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-          const sinceParam = chatSince ? `?since=${encodeURIComponent(chatSince)}` : '';
-          fetch(`http://localhost:8080/api/misiones/${campanaId}/chat${sinceParam}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-          })
-            .then(r => (r.ok ? r.json() : []))
-            .then((items: any[]) => {
-              const historial: MensajeChat[] = Array.isArray(items)
-                ? items.map((m: any) => ({ ...m, id: m.id || (Date.now().toString() + Math.random()) }))
-                : [];
-              setMensajes(historial.length > 0 ? historial : [{
-                id: '0',
-                autor: 'Sistema',
-                colorAutor: '#8b0000',
-                texto: 'La partida ha comenzado. ¡Que empiece la aventura!',
-                tipo: 'sistema' as const,
-                timestamp: hora(),
-              }]);
-            })
-            .catch(() => {
-              setMensajes([{
-                id: '0',
-                autor: 'Sistema',
-                colorAutor: '#8b0000',
-                texto: 'La partida ha comenzado. ¡Que empiece la aventura!',
-                tipo: 'sistema' as const,
-                timestamp: hora(),
-              }]);
-            });
-
-          client.subscribe(`/topic/campana/${campanaId}/chat`, (frame) => {
-            const msg = JSON.parse(frame.body);
-            setMensajes(prev => [...prev, {
-              ...msg,
-              id: Date.now().toString() + Math.random(),
-              timestamp: msg.timestamp || hora(),
-            }]);
-          });
+          // chat history and incoming chat messages are handled centrally by useStoryModeSync
+          // PanelPartidaStoryModeChat will receive `mensajes` and `sendChatMessage` via props
 
           client.subscribe(`/topic/campana/${campanaId}/jugadores`, (frame) => {
             console.log('📣 Recibido broadcast jugadores:', frame.body);
@@ -293,38 +240,19 @@ export function PanelPartida({
               list.forEach((j: any) => {
                 const id = j.id?.toString();
                 if (!prevIds.has(id) && !jugadoresInicialesIdsRef.current.has(id)) {
-                  setMensajes(msgs => [...msgs, {
-                    id: `join-${id}-${Date.now()}`,
-                    autor: 'Sistema',
-                    colorAutor: '#8b0000',
-                    texto: `⚔ ${j.nombre || j.usuarioNombre || 'Un jugador'} ha entrado a la partida`,
-                    tipo: 'sistema' as const,
-                    timestamp: hora(),
-                  }]);
+                  pushLocalChatMessage?.({ autor: 'Sistema', texto: `⚔ ${j.nombre || j.usuarioNombre || 'Un jugador'} ha entrado a la partida`, tipo: 'sistema', colorAutor: '#8b0000' });
                 }
               });
 
               prev.forEach((j: any) => {
                 const id = j.id?.toString();
                 if (!newIds.has(id)) {
-                  setMensajes(msgs => [...msgs, {
-                    id: `leave-${id}-${Date.now()}`,
-                    autor: 'Sistema',
-                    colorAutor: '#8b0000',
-                    texto: `[skull] ${j.nombre || j.usuarioNombre || 'Un jugador'} ha salido de la partida`,
-                    tipo: 'sistema' as const,
-                    timestamp: hora(),
-                  }]);
+                  pushLocalChatMessage?.({ autor: 'Sistema', texto: `[skull] ${j.nombre || j.usuarioNombre || 'Un jugador'} ha salido de la partida`, tipo: 'sistema', colorAutor: '#8b0000' });
                 }
               });
 
               return list;
             });
-          });
-
-          client.subscribe(`/topic/campana/${campanaId}/hp-update`, (frame) => {
-            const { jugadorId, hp } = JSON.parse(frame.body);
-            setHpOverrides(prev => ({ ...prev, [jugadorId]: hp }));
           });
 
           client.subscribe(`/topic/campana/${campanaId}/dice-roll`, (frame) => {
@@ -370,25 +298,11 @@ export function PanelPartida({
             });
           }
         }
-        setMensajes(prev => [...prev, {
-          id: 'connected-' + Date.now(),
-          autor: 'Sistema',
-          colorAutor: '#8b0000',
-          texto: 'Conectado a la partida en tiempo real.',
-          tipo: 'sistema',
-          timestamp: hora(),
-        }]);
+        pushLocalChatMessage?.({ autor: 'Sistema', texto: 'Conectado a la partida en tiempo real.', tipo: 'sistema', colorAutor: '#8b0000' });
       },
       onDisconnect: () => {
         setConectado(false);
-        setMensajes(prev => [...prev, {
-          id: 'disconnected-' + Date.now(),
-          autor: 'Sistema',
-          colorAutor: '#8b0000',
-          texto: 'Desconectado del servidor.',
-          tipo: 'sistema',
-          timestamp: hora(),
-        }]);
+        pushLocalChatMessage?.({ autor: 'Sistema', texto: 'Desconectado del servidor.', tipo: 'sistema', colorAutor: '#8b0000' });
       },
       onStompError: () => setConectado(false),
     });
@@ -410,8 +324,10 @@ export function PanelPartida({
       handleLeave();
       window.removeEventListener('beforeunload', handleLeave);
       try { client.deactivate(); } catch {}
+      // Stop local stream
       try { localStreamRef.current?.getTracks().forEach(t => t.stop()); } catch {}
       localStreamRef.current = null;
+      // Close peers and cleanup audio nodes
       peersRef.current.forEach((pc, id) => {
         try { pc.close(); } catch {}
         const audio = audioElementsRef.current.get(id);
@@ -444,23 +360,31 @@ export function PanelPartida({
 
   const enviarMensaje = useCallback(() => {
     const texto = inputChat.trim();
-    if (!texto || !stompRef.current?.connected || !campanaId) return;
-    const autorNombre = jugadorActual?.nombre || nombreMaster;
-    const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    if (!texto || !campanaId) return;
+    const usuarioNombre = jugadorActual?.usuarioNombre ?? jugadorActual?.usuario?.nombre ?? jugadorActual?.usuarioName;
+    const personajeNombre = jugadorActual?.nombrePersonaje ?? jugadorActual?.nombre ?? jugadorActual?.personajeNombre;
+    const autorNombre = esMaster
+      ? `${usuarioNombre || nombreMaster} (Master)`
+      : (personajeNombre || nombreMaster);
+    const autorColor = esMaster ? '#f1c40f' : (jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster);
     const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
     const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
-    stompRef.current.publish({
-      destination: `/app/campana/${campanaId}/chat.enviar`,
-      body: JSON.stringify({
-        personajeId,
-        usuarioId,
-        autor: autorNombre,
-        colorAutor: autorColor,
-        texto,
-        tipo: 'mensaje',
-        timestamp: hora(),
-      }),
-    });
+    const payload = {
+      personajeId,
+      usuarioId,
+      autor: autorNombre,
+      colorAutor: autorColor,
+      texto,
+      tipo: 'mensaje',
+      timestamp: hora(),
+    };
+    if (sendChatMessage) {
+      sendChatMessage({ autor: payload.autor, colorAutor: payload.colorAutor, texto: payload.texto, tipo: payload.tipo });
+    } else if (stompRef.current?.connected) {
+      stompRef.current.publish({ destination: `/app/campana/${campanaId}/chat.enviar`, body: JSON.stringify(payload) });
+    } else {
+      pushLocalChatMessage?.({ autor: payload.autor, colorAutor: payload.colorAutor, texto: payload.texto, tipo: payload.tipo, timestamp: payload.timestamp });
+    }
     setInputChat('');
   }, [inputChat, nombreMaster, colorMaster, campanaId, jugadorActual]);
 
@@ -481,10 +405,8 @@ export function PanelPartida({
     }
     setDadoActivo(label);
     setResultadoActivo(0);
-    setMostrarDados(false);
   };
 
-  // ── handleAnimacionFin: gestiona tanto dados normales como tiradas de característica ──
   const handleAnimacionFin = useCallback((resultadoReal: number) => {
     if (dadoActivo === null) return;
 
@@ -495,17 +417,15 @@ export function PanelPartida({
       return;
     }
 
-    const autorNombre = jugadorActual?.nombre || nombreMaster;
-    const autorColor = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    const usuarioNombre = jugadorActual?.usuarioNombre ?? jugadorActual?.usuario?.nombre ?? jugadorActual?.usuarioName;
+    const personajeNombre = jugadorActual?.nombrePersonaje ?? jugadorActual?.nombre ?? jugadorActual?.personajeNombre;
+    const autorNombre = esMaster
+      ? `${usuarioNombre || nombreMaster} (Master)`
+      : (personajeNombre || nombreMaster);
+    const autorColor = esMaster ? '#f1c40f' : (jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster);
     const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
     const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
-
-    // Si viene de una característica usa su mod y label, si no usa el modificador manual
-    const esTiradaCaracteristica = pendingLabel !== null && pendingMod !== null;
-    const modFinal  = esTiradaCaracteristica ? pendingMod!  : modificador;
-    const dadoFinal = esTiradaCaracteristica ? `d20 (${pendingLabel})` : dadoActivo;
-    const total     = resultadoReal + modFinal;
-
+    const total = resultadoReal + modificador;
     const msg: MensajeChat = {
       id: Date.now().toString(),
       autor: autorNombre,
@@ -513,81 +433,119 @@ export function PanelPartida({
       texto: '',
       tipo: 'tirada',
       timestamp: hora(),
-      tirada: { dado: dadoFinal, resultado: resultadoReal, modificador: modFinal, total },
+      tirada: { dado: dadoActivo, resultado: resultadoReal, modificador, total },
     };
 
-    if (stompRef.current?.connected && campanaId) {
-      stompRef.current.publish({
-        destination: `/app/campana/${campanaId}/chat.enviar`,
-        body: JSON.stringify({ ...msg, personajeId, usuarioId }),
-      });
+    if (sendChatMessage) {
+      sendChatMessage({ autor: msg.autor, colorAutor: msg.colorAutor, texto: JSON.stringify(msg.tirada), tipo: 'tirada' });
+    } else if (stompRef.current?.connected && campanaId) {
+      stompRef.current.publish({ destination: `/app/campana/${campanaId}/chat.enviar`, body: JSON.stringify({ ...msg, personajeId, usuarioId }) });
     } else {
-      setMensajes(prev => [...prev, msg]);
+      pushLocalChatMessage?.(msg);
     }
 
-    // Limpiar pending de característica
-    setPendingLabel(null);
-    setPendingMod(null);
-
+    onMovimientoRollResult?.(resultadoReal);
     setDadoActivo(null);
     setResultadoActivo(null);
-  }, [dadoActivo, modificador, pendingLabel, pendingMod, nombreMaster, colorMaster, campanaId, jugadorActual]);
+    setMostrarDados(false);
+  }, [dadoActivo, modificador, nombreMaster, colorMaster, campanaId, jugadorActual, onMovimientoRollResult]);
+
+  const handleAtaqueAnimacionFin = useCallback((imagenesResultado: string[]) => {
+    if (!CustomDicePanel || dadoActivo === null) return;
+    const dado = dadoActivo.replace(/^ataque-/, '');
+    const usuarioNombre = jugadorActual?.usuarioNombre ?? jugadorActual?.usuario?.nombre ?? jugadorActual?.usuarioName;
+    const personajeNombre = jugadorActual?.nombrePersonaje ?? jugadorActual?.nombre ?? jugadorActual?.personajeNombre;
+    const autorNombre = esMaster
+      ? `${usuarioNombre || nombreMaster} (Master)`
+      : (personajeNombre || nombreMaster);
+    const autorColor = esMaster ? '#f1c40f' : (jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster);
+    const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
+    const usuarioId = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
+    const msg: MensajeChat = {
+      id: Date.now().toString(),
+      autor: autorNombre,
+      colorAutor: autorColor,
+      texto: '',
+      tipo: 'tirada',
+      timestamp: hora(),
+      tirada: { dado, resultado: 0, modificador: 0, total: 0, imagenes: imagenesResultado },
+    };
+    if (sendChatMessage) {
+      sendChatMessage({ autor: msg.autor, colorAutor: msg.colorAutor, texto: JSON.stringify(msg.tirada || {}), tipo: 'tirada' });
+    } else if (stompRef.current?.connected && campanaId) {
+      stompRef.current.publish({ destination: `/app/campana/${campanaId}/chat.enviar`, body: JSON.stringify({ ...msg, personajeId, usuarioId }) });
+    } else {
+      pushLocalChatMessage?.(msg);
+    }
+    onAtaqueRollResult?.(imagenesResultado.length);
+    setDadoActivo(null);
+    setResultadoActivo(null);
+    setMostrarDados(false);
+  }, [dadoActivo, nombreMaster, colorMaster, campanaId, jugadorActual, onAtaqueRollResult]);
 
   const cambiarHp = (jugadorId: string, hpActual: number, hpMax: number, delta: number) => {
     const nuevoHp = Math.max(0, Math.min(hpMax, hpActual + delta));
-    setHpOverrides(prev => ({ ...prev, [jugadorId]: nuevoHp }));
-    if (stompRef.current?.connected && campanaId) {
-      stompRef.current.publish({
-        destination: `/app/campana/${campanaId}/hp-update`,
-        body: JSON.stringify({ jugadorId, hp: nuevoHp }),
-      });
-    }
+    onPlayerHpUpdate?.(jugadorId, nuevoHp);
   };
 
   const jugadoresBase = Array.isArray(jugadores) ? jugadores : [];
-  const jugadoresBasePorId = new Map(jugadoresBase.map(j => [j?.id?.toString?.(), j]));
+  // jugadoresBase[i].id = usuarioId (remapeado en useStoryModeSync)
+  const jugadoresBasePorUsuarioId = new Map(jugadoresBase.map(j => [j?.id?.toString?.(), j]));
+  // jugadoresBase[i].personajeId viene del spread de ParticipanteJugadorDTO
+  const jugadoresBasePorPersonajeId = new Map(jugadoresBase.map(j => [j?.personajeId?.toString?.(), j]));
   const jugadoresBasePorNombre = new Map<string, any>();
   jugadoresBase.forEach(j => {
     if (j?.nombre) jugadoresBasePorNombre.set(j.nombre, j);
     if (j?.usuarioNombre) jugadoresBasePorNombre.set(j.usuarioNombre, j);
   });
 
+  // personajeId canónico del usuario actual: preferir personajeId, caer en id si es objeto personaje
+  const miPersonajeId = (jugadorActual?.personajeId ?? jugadorActual?.id)?.toString() ?? null;
+
   const jugadoresAMostrar = (jugadoresRed.length > 0 ? jugadoresRed : (jugadores !== undefined ? jugadores : JUGADORES_DEMO))
       .filter((j: any) => {
-        if (esMaster) {
-          const miId = jugadorActual?.id?.toString();
-          return j.id?.toString() !== miId;
-        }
-        return true;
-      })
-      .map((j: any, i: number) => {
-        const base = jugadoresBasePorId.get(j.id?.toString?.())
-          || jugadoresBasePorNombre.get(j.nombre || j.usuarioNombre);
-        return {
-          id: j.id?.toString() || i.toString(),
-          usuarioId: j.usuarioId ?? j.usuario_id ?? null,
-          nombre: j.nombre || j.usuarioNombre || 'Aventurero',
-          clase: j.clase || base?.clase || 'Desconocida',
-          avatar: j.avatar
-            || j.foto
-            || base?.avatar
-            || (jugadorActual?.id?.toString?.() === j.id?.toString?.() ? jugadorActual?.avatar : null)
-            || (jugadorActual?.nombre && (jugadorActual.nombre === j.nombre || jugadorActual.nombre === j.usuarioNombre)
-              ? jugadorActual?.avatar
-              : null)
-            || null,
-          hp: j.hp || base?.hp || 10,
-          hpMax: j.hpMax || base?.hpMax || 10,
-          color: j.color || base?.color || COLORES_CLASES[j.clase || base?.clase] || '#4a90d9',
-          conectado: j.conectado !== false,
-          fuerza: j.fuerza ?? base?.fuerza,
-          destreza: j.destreza ?? base?.destreza,
-          constitucion: j.constitucion ?? base?.constitucion,
-          inteligencia: j.inteligencia ?? base?.inteligencia,
-          sabiduria: j.sabiduria ?? base?.sabiduria,
-          carisma: j.carisma ?? base?.carisma,
-        };
-      });
+
+      if (esMaster) {
+      const miId = jugadorActual?.id?.toString();
+      return j.id?.toString() !== miId;
+    }
+    return true;
+  })
+
+    .map((j: any, i: number) => {
+      // jugadoresRed viene del campana WS (JugadorWsDTO): j.id = personajeId, sin personajeId explícito
+      // jugadores prop viene de useStoryModeSync (mision WS): j.id = usuarioId, con personajeId
+      const base = jugadoresBasePorUsuarioId.get(j.id?.toString?.())
+        || jugadoresBasePorPersonajeId.get(j.id?.toString?.())
+        || jugadoresBasePorNombre.get(j.nombre || j.usuarioNombre);
+      // personajeId: tomar del campo explícito, o del base, o de j.id (que en campana WS ya ES el personajeId)
+      const personajeIdResuelto = (j.personajeId ?? base?.personajeId ?? j.id)?.toString() ?? null;
+      return {
+        id: j.id?.toString() || i.toString(),
+        personajeId: personajeIdResuelto,
+        usuarioId: (j.usuarioId ?? j.usuario_id ?? base?.usuarioId)?.toString() ?? null,
+        nombre: j.nombre || j.usuarioNombre || 'Aventurero',
+        clase: j.clase || base?.clase || 'Desconocida',
+        avatar: j.avatar
+          || j.foto
+          || base?.avatar
+          || (jugadorActual?.id?.toString?.() === j.id?.toString?.() ? jugadorActual?.avatar : null)
+          || (jugadorActual?.nombre && (jugadorActual.nombre === j.nombre || jugadorActual.nombre === j.usuarioNombre)
+            ? jugadorActual?.avatar
+            : null)
+          || null,
+        hp: j.hp || base?.hp || 10,
+        hpMax: j.hpMax || base?.hpMax || 10,
+        color: j.color || base?.color || COLORES_CLASES[j.clase || base?.clase] || '#4a90d9',
+        conectado: j.conectado !== false,
+        fuerza: j.fuerza ?? base?.fuerza,
+        destreza: j.destreza ?? base?.destreza,
+        constitucion: j.constitucion ?? base?.constitucion,
+        inteligencia: j.inteligencia ?? base?.inteligencia,
+        sabiduria: j.sabiduria ?? base?.sabiduria,
+        carisma: j.carisma ?? base?.carisma,
+      };
+    });
 
   const crearPeerConnection = (peerId: string): RTCPeerConnection => {
     const pc = new RTCPeerConnection({
@@ -650,6 +608,7 @@ export function PanelPartida({
     } else {
       localStreamRef.current?.getTracks().forEach(t => t.stop());
       localStreamRef.current = null;
+      // Close peers and cleanup audio elements
       peersRef.current.forEach((pc, id) => {
         try { pc.close(); } catch {}
         const audio = audioElementsRef.current.get(id);
@@ -671,7 +630,6 @@ export function PanelPartida({
         dado={dadoActivo}
         resultado={resultadoActivo}
         onAnimacionFin={handleAnimacionFin}
-        containerId="dice-box-chat"
       />
 
       <div className="pp-conexion">
@@ -728,7 +686,7 @@ export function PanelPartida({
                       <div className="pp-tirada-ataque">
                         <span className="pp-tirada-dado">{msg.tirada.dado}</span>
                         <div className="pp-tirada-caras">
-                          {msg.tirada.imagenes.map((cara, i) => (
+                          {msg.tirada.imagenes.map((cara: string, i: number) => (
                             <img
                               key={i}
                               src={`/images/dadosModHistoria/${cara}.png`}
@@ -772,17 +730,18 @@ export function PanelPartida({
           <div className="pp-chat-input-wrap">
             {mostrarDados && (
               <div className="pp-dados-picker">
-                {DADOS.map(({ caras, label }) => (
-                  <button
-                    key={label}
-                    className="pp-dado-pick-btn"
-                    onClick={() => lanzarDado(caras, label)}
-                    disabled={dadoActivo !== null}
-                  >
-                    <img src={`/images/dadoCampana/${label}.png`} alt={label} className="pp-dado-pick-img" />
-                    <span>{label}</span>
-                  </button>
-                ))}
+                {/* En Story Mode mostramos sólo el panel específico (movimiento d6/d12 + ataque/defensa) */}
+                {CustomDicePanel ? (
+                  <CustomDicePanel
+                    dadoActivo={dadoActivo}
+                    onLanzarDado={lanzarDado}
+                    onAtaqueAnimacionFin={handleAtaqueAnimacionFin}
+                    turnoActual={turnoActual}
+                    jugadorActual={jugadorActual}
+                    movimientoYaLanzado={movimientoYaLanzado}
+                    ataqueYaLanzado={ataqueYaLanzado}
+                  />
+                ) : null}
               </div>
             )}
             {mostrarEmotes && (
@@ -834,18 +793,23 @@ export function PanelPartida({
       {pestana === 'jugadores' && (
         <div className="pp-seccion">
           <div className="pp-jugadores-lista">
-            <div className="pp-jugador">
+            {/* Tarjeta del Master */}
+            <div className="pp-jugador pp-jugador--master">
               <div className="pp-jugador-cabecera">
-                <span className="pp-jugador-dot" style={{ background: colorMaster }} />
-                <div className="pp-jugador-avatar-placeholder">M</div>
-                <span className="pp-jugador-nombre">{nombreMaster}</span>
-                <span className="pp-jugador-clase">Master</span>
+                <span className="pp-jugador-dot" style={{ background: '#f1c40f' }} />
+                <span className="pp-master-avatar">M</span>
+                <span className="pp-jugador-nombre" style={{ color: '#f1c40f' }}>{nombreMaster}</span>
+                <span className="pp-master-badge-tag">Master</span>
               </div>
             </div>
+
             {jugadoresAMostrar.length > 0 ? (
               jugadoresAMostrar.map(j => {
-                const hpReal = hpOverrides[j.id] ?? j.hp;
-                
+                const hpReal = playerHpMap?.[j.id] ?? j.hp;
+                const sumaAtaque  = (j.fuerza ?? 10) + (j.destreza ?? 10) + (j.constitucion ?? 10);
+                const sumaDefensa = (j.inteligencia ?? 10) + (j.sabiduria ?? 10) + (j.carisma ?? 10);
+                const dadosAtaque  = sumaAtaque  <= 30 ? 1 : sumaAtaque  <= 50 ? 2 : 3;
+                const dadosDefensa = sumaDefensa <= 30 ? 1 : sumaDefensa <= 50 ? 2 : 3;
                 return (
                   <div key={j.id} className={`pp-jugador ${j.conectado ? '' : 'desconectado'}`}>
                     <div className="pp-jugador-cabecera">
@@ -869,7 +833,7 @@ export function PanelPartida({
                     </div>
                     <div className="pp-jugador-hp-wrap">
                       <span className="pp-jugador-hp-label">HP</span>
-                      {esMaster && (
+                      {j.personajeId != null && miPersonajeId != null && j.personajeId === miPersonajeId && (
                         <button className="pp-hp-btn" onClick={() => cambiarHp(j.id, hpReal, j.hpMax, -1)}>−</button>
                       )}
                       <div className="pp-jugador-hp-barra">
@@ -881,12 +845,23 @@ export function PanelPartida({
                           }}
                         />
                       </div>
-                      {esMaster && (
+                      {j.personajeId != null && miPersonajeId != null && j.personajeId === miPersonajeId && (
                         <button className="pp-hp-btn" onClick={() => cambiarHp(j.id, hpReal, j.hpMax, 1)}>+</button>
                       )}
                       <span className="pp-jugador-hp-num">{hpReal}/{j.hpMax}</span>
                     </div>
-                    
+                    <div className="pp-jugador-stats">
+                      <div className="pp-jugador-stat pp-jugador-stat--ata">
+                        <span className="pp-jugador-stat-label">ATA</span>
+                        <span className="pp-jugador-stat-valor">{dadosAtaque}</span>
+                        <span className="pp-jugador-stat-mod">{dadosAtaque === 1 ? '1 dado' : `${dadosAtaque} dados`}</span>
+                      </div>
+                      <div className="pp-jugador-stat pp-jugador-stat--def">
+                        <span className="pp-jugador-stat-label">DEF</span>
+                        <span className="pp-jugador-stat-valor">{dadosDefensa}</span>
+                        <span className="pp-jugador-stat-mod">{dadosDefensa === 1 ? '1 dado' : `${dadosDefensa} dados`}</span>
+                      </div>
+                    </div>
                   </div>
                 );
               })

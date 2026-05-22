@@ -631,6 +631,107 @@
   color: rgba(255, 255, 255, 0.35);
 }
 
+/* INFORME DE COMBATE */
+.tsm-combat-report {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 110px;
+}
+
+.tsm-combat-step-title {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(220, 190, 140, 0.95);
+  margin: 0 0 4px;
+  letter-spacing: 0.04em;
+}
+
+.tsm-combat-step-text {
+  font-family: 'Cinzel', serif;
+  font-size: 10.5px;
+  color: rgba(185, 162, 118, 0.82);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.tsm-combat-highlight {
+  color: rgba(220, 170, 90, 0.95);
+  font-weight: 700;
+}
+
+.tsm-combat-dice-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.tsm-combat-dice-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tsm-combat-dice-img {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  padding: 4px;
+}
+
+.tsm-combat-dice-label {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.tsm-combat-dice-label.bad    { color: rgba(220, 80, 60, 0.9); }
+.tsm-combat-dice-label.good   { color: rgba(60, 190, 110, 0.9); }
+.tsm-combat-dice-label.enemy  { color: rgba(200, 130, 50, 0.9); }
+
+.tsm-combat-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+/* INSTRUCCIONES */
+.tb-btn-guia {
+  padding: 10px;
+  background: rgba(10, 6, 2, 0.85);
+  border: 1px solid rgba(200, 158, 78, 0.28);
+  border-radius: 8px;
+  color: rgba(200, 168, 100, 0.85);
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.tb-btn-guia:hover {
+  background: rgba(25, 14, 4, 0.92);
+  border-color: rgba(200, 158, 78, 0.55);
+  color: rgba(230, 195, 120, 1);
+  box-shadow: 0 0 10px rgba(200, 158, 78, 0.12);
+}
+
+.tb-btn-guia:active {
+  transform: scale(0.97);
+}
+
 /* ABANDONAR MISIÓN */
 .tb-btn-abandonar {
   padding: 10px;
@@ -680,6 +781,230 @@
 .tb-btn-salir:hover {
   background: rgba(68, 16, 16, 1);
   color: white;
+}
+
+/* ── INTRO MODAL ── */
+.tsm-intro-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.84);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  backdrop-filter: blur(7px);
+  padding: 20px;
+}
+
+.tsm-intro-modal {
+  width: min(92vw, 520px);
+  max-height: 90vh;
+  overflow-y: auto;
+  background:
+    radial-gradient(ellipse at top, rgba(60, 10, 10, 0.9) 0%, transparent 50%),
+    linear-gradient(180deg, rgba(14, 3, 3, 0.99) 0%, rgba(6, 1, 1, 0.99) 100%);
+  border: 1px solid rgba(160, 22, 26, 0.55);
+  border-radius: 20px;
+  padding: 30px 26px 26px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 24px 80px rgba(0, 0, 0, 0.78),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(160, 22, 26, 0.4) transparent;
+}
+
+.tsm-intro-modal--master {
+  border-color: rgba(200, 80, 20, 0.55);
+  background:
+    radial-gradient(ellipse at top, rgba(80, 20, 5, 0.88) 0%, transparent 50%),
+    linear-gradient(180deg, rgba(14, 5, 2, 0.99) 0%, rgba(6, 2, 1, 0.99) 100%);
+}
+
+.tsm-intro-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+
+.tsm-intro-title {
+  font-family: 'Metal Mania', cursive;
+  font-size: clamp(18px, 4vw, 24px);
+  color: #e8c87a;
+  letter-spacing: 2px;
+  margin: 0;
+  text-shadow: 0 0 24px rgba(232, 200, 122, 0.35);
+}
+
+.tsm-intro-modal--master .tsm-intro-title {
+  color: #e8894a;
+  text-shadow: 0 0 24px rgba(232, 137, 74, 0.38);
+}
+
+.tsm-intro-subtitle {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: rgba(255, 255, 255, 0.28);
+  margin: 0;
+}
+
+.tsm-intro-divider {
+  width: 90px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(200, 160, 80, 0.6), transparent);
+  margin: 2px auto 0;
+}
+
+.tsm-intro-modal--master .tsm-intro-divider {
+  background: linear-gradient(90deg, transparent, rgba(210, 100, 40, 0.6), transparent);
+}
+
+.tsm-intro-text {
+  font-family: 'Cinzel', serif;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: rgba(215, 190, 148, 0.9);
+  text-align: center;
+  margin: 0;
+}
+
+.tsm-intro-objectives {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.tsm-intro-objectives-title {
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  color: rgba(255, 255, 255, 0.26);
+  margin: 0 0 12px;
+}
+
+.tsm-intro-objective {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tsm-intro-objective:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.tsm-intro-objective:first-of-type {
+  padding-top: 0;
+}
+
+.tsm-intro-objective::before {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(200, 158, 78, 0.75);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.tsm-intro-modal--master .tsm-intro-objective::before {
+  background: rgba(210, 110, 50, 0.75);
+}
+
+.tsm-intro-objective-text {
+  font-family: 'Cinzel', serif;
+  font-size: 11.5px;
+  color: rgba(205, 180, 135, 0.9);
+  line-height: 1.6;
+}
+
+.tsm-intro-objective-text strong {
+  color: rgba(232, 200, 122, 0.95);
+  font-weight: 700;
+}
+
+.tsm-intro-modal--master .tsm-intro-objective-text strong {
+  color: rgba(232, 150, 90, 0.95);
+}
+
+.tsm-intro-warning {
+  background: rgba(160, 30, 12, 0.12);
+  border: 1px solid rgba(190, 45, 18, 0.26);
+  border-left: 3px solid rgba(190, 45, 18, 0.6);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.tsm-intro-warning-label {
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  color: rgba(220, 110, 80, 0.85);
+  margin-bottom: 6px;
+}
+
+.tsm-intro-warning-text {
+  font-family: 'Cinzel', serif;
+  font-size: 11.5px;
+  color: rgba(215, 170, 140, 0.9);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.tsm-intro-btn {
+  width: 100%;
+  padding: 13px 20px;
+  background: linear-gradient(135deg, rgba(148, 24, 24, 0.96), rgba(88, 10, 10, 0.99));
+  border: 1px solid rgba(210, 80, 80, 0.42);
+  border-radius: 12px;
+  color: #fff;
+  font-family: 'Metal Mania', cursive;
+  font-size: 15px;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 22px rgba(148, 24, 24, 0.38);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  margin-top: 2px;
+}
+
+.tsm-intro-btn:hover {
+  background: linear-gradient(135deg, rgba(185, 32, 32, 0.99), rgba(115, 14, 14, 1));
+  border-color: rgba(230, 105, 105, 0.58);
+  box-shadow: 0 6px 30px rgba(148, 24, 24, 0.52);
+  transform: translateY(-1px);
+}
+
+.tsm-intro-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 16px rgba(148, 24, 24, 0.38);
+}
+
+.tsm-intro-modal--master .tsm-intro-btn {
+  background: linear-gradient(135deg, rgba(148, 60, 14, 0.96), rgba(80, 28, 4, 0.99));
+  border-color: rgba(220, 120, 55, 0.45);
+  box-shadow: 0 4px 22px rgba(148, 70, 18, 0.38);
+}
+
+.tsm-intro-modal--master .tsm-intro-btn:hover {
+  background: linear-gradient(135deg, rgba(185, 76, 18, 0.99), rgba(110, 40, 6, 1));
+  border-color: rgba(245, 145, 80, 0.58);
+  box-shadow: 0 6px 30px rgba(148, 70, 18, 0.52);
 }
 
 /* ── ÁREA CENTRAL (sin mapa) ── */
