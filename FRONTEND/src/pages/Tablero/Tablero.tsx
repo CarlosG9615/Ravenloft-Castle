@@ -46,6 +46,16 @@ interface EnemigoCombate extends EnemigoDetalleDTO {
   hpActual: number;
 }
 
+
+// ── NPC ──
+interface NpcCampana {
+  id?: number;
+  campanaId?: number;
+  nombre: string;
+  descripcion?: string;
+  rol: string;
+  imagenUrl?: string;
+
 interface CombatePendiente {
   atacanteNombre: string;
   objetivoNombre: string;
@@ -144,7 +154,6 @@ export function Tablero() {
   const syncRequestedRef = useRef(false);
   const sentTokenIdsRef = useRef<Set<string>>(new Set());
 
-  // ── REF que PanelPartida rellenará con su lanzarDadoCaracteristica interno ──
   const lanzarDadoCaracteristicaRef = useRef<((label: string, mod: number) => void) | null>(null);
 
   const mapaUrl         = (location.state as any)?.mapaUrl        ?? '/images/mapas/bosque/caminoForestal.jpg';
@@ -199,6 +208,7 @@ export function Tablero() {
   const [mostrarCuadricula, setMostrarCuadricula] = useState(true);
   const [panelAbierto, setPanelAbierto]           = useState(true);
   const [panelEnemigos, setPanelEnemigos]         = useState(false);
+  const [panelNpcs, setPanelNpcs]                 = useState(false);
   const [enemigos, setEnemigos]                   = useState<EnemigoDetalleDTO[]>([]);
   const [hpEnemigos, setHpEnemigos]               = useState<Record<string, number>>({});
   const [hpEnemigosMax, setHpEnemigosMax]         = useState<Record<string, number>>({});
@@ -212,6 +222,14 @@ export function Tablero() {
   const [combatDado, setCombatDado]               = useState<string | null>(null);
   const [combatResultado, setCombatResultado]     = useState<number | null>(null);
   const [combatePendiente, setCombatePendiente]   = useState<CombatePendiente | null>(null);
+
+  // ── Estado NPCs ──
+  const [npcs, setNpcs]                           = useState<NpcCampana[]>([]);
+  const [npcNombre, setNpcNombre]                 = useState('');
+  const [npcDescripcion, setNpcDescripcion]       = useState('');
+
+  const [npcImagen, setNpcImagen]                 = useState<string | null>(null);
+  const [guardandoNpc, setGuardandoNpc]           = useState(false);
 
   const currentPlayerId = jugadorActualConAvatar?.id ?? jugadorActualConAvatar?.personajeId ?? personaje?.id ?? null;
 
@@ -339,6 +357,73 @@ export function Tablero() {
     }
   }, [esMaster]);
 
+
+  // ── Cargar NPCs al abrir el panel ──
+  useEffect(() => {
+    if (!campanaId || !panelNpcs) return;
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    fetch(`http://localhost:8080/api/campanas/${campanaId}/npcs`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setNpcs(data))
+      .catch(err => console.error('Error cargando NPCs:', err));
+  }, [campanaId, panelNpcs]);
+
+  const handleNpcImagen = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setNpcImagen(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const guardarNpc = async () => {
+    if (!npcNombre.trim() || !campanaId) return;
+    setGuardandoNpc(true);
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    try {
+      const res = await fetch(`http://localhost:8080/api/campanas/${campanaId}/npcs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          nombre: npcNombre.trim(),
+          descripcion: npcDescripcion.trim(),
+          rol: 'ALIADO',
+          imagenUrl: npcImagen,
+        }),
+      });
+      if (res.ok) {
+        const nuevo = await res.json();
+        setNpcs(prev => [...prev, nuevo]);
+        setNpcNombre('');
+        setNpcDescripcion('');
+
+        setNpcImagen(null);
+      }
+    } catch (err) {
+      console.error('Error guardando NPC:', err);
+    } finally {
+      setGuardandoNpc(false);
+    }
+  };
+
+  const eliminarNpc = async (npcId: number) => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    try {
+      await fetch(`http://localhost:8080/api/campanas/${campanaId}/npcs/${npcId}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      setNpcs(prev => prev.filter(n => n.id !== npcId));
+    } catch (err) {
+      console.error('Error eliminando NPC:', err);
+    }
+  };
+
   useEffect(() => {
     if (!personaje) return;
     const keyById = `rc:attacks-spells:${personaje.id}`;
@@ -358,6 +443,7 @@ export function Tablero() {
       setAccionSeleccionadaId(null);
     }
   }, [personaje?.id, personaje?.nombre]);
+
 
   const buildPath = (from: {x:number, y:number}, to: {x:number, y:number}) => {
     const path = [from];
@@ -523,12 +609,10 @@ export function Tablero() {
     setPosition({ x: 0, y: 0 });
   };
 
-  // ── Clic en característica → delega en PanelPartida via ref ──
   const lanzarDadoCaracteristica = (label: string, valorStat: number) => {
     const mod = Math.floor((valorStat - 10) / 2);
     lanzarDadoCaracteristicaRef.current?.(label, mod);
   };
-  // ─────────────────────────────────────────────────────────────
 
   const nombreMapa = (url: string) =>
     url.split('/').pop()?.replace(/\.(jpg|jpeg|png|webp)$/i, '') ?? url;
@@ -798,6 +882,8 @@ export function Tablero() {
     });
   }, [tokens, campanaId, esMaster, currentPlayerId]);
 
+
+
   const accionSeleccionada = ataquesConjuros.find(a => a.id === accionSeleccionadaId) || null;
 
   const iniciarAtaque = (objetivo: Token) => {
@@ -921,6 +1007,7 @@ export function Tablero() {
     resolverDano(resultado);
   };
 
+
   return (
     <div className="tb-page" ref={containerRef}>
 
@@ -983,14 +1070,17 @@ export function Tablero() {
                   <img src="/images/gif/enemigo.gif" alt="Enemigos" className="tb-combat-gif" />
                   <button
                     className={`tb-combat-btn ${panelEnemigos ? 'active' : ''}`}
-                    onClick={() => setPanelEnemigos(!panelEnemigos)}
+                    onClick={() => { setPanelEnemigos(!panelEnemigos); setPanelNpcs(false); }}
                   >
                     Enemigos
                   </button>
                 </div>
                 <div className="tb-combat-item">
                   <img src="/images/gif/npc.gif" alt="Personajes" className="tb-combat-gif tb-combat-gif-npc" />
-                  <button className="tb-combat-btn">
+                  <button
+                    className={`tb-combat-btn ${panelNpcs ? 'active' : ''}`}
+                    onClick={() => { setPanelNpcs(!panelNpcs); setPanelEnemigos(false); }}
+                  >
                     Personajes
                   </button>
                 </div>
@@ -1007,11 +1097,7 @@ export function Tablero() {
                       <div key={e.instanciaId} className="tb-enemigo-combate-item">
                         <div className="tb-enemigo-combate-cabecera">
                           <span className="tb-enemigo-combate-nombre">{e.nombre}</span>
-                          <button
-                            className="tb-token-borrar"
-                            onClick={() => eliminarEnemigoCombate(e.instanciaId)}
-                            title="Eliminar del combate"
-                          >✕</button>
+                          <button className="tb-token-borrar" onClick={() => eliminarEnemigoCombate(e.instanciaId)} title="Eliminar del combate">✕</button>
                         </div>
                         <div className="tb-enemigo-hp-wrap">
                           <button className="tb-hp-btn" onClick={() => cambiarHpEnemigo(e.instanciaId, hpActual, e.salud, -1)}>−</button>
@@ -1115,14 +1201,78 @@ export function Tablero() {
                   <span>⚔ {e.danoAtaque}</span>
                   <span>CR {e.cr}</span>
                 </div>
-                {e.descripcion && (
-                  <p className="tb-enemigo-desc">{e.descripcion}</p>
-                )}
+                {e.descripcion && <p className="tb-enemigo-desc">{e.descripcion}</p>}
               </div>
             ))}
-            {enemigosFiltrados.length === 0 && (
-              <p className="tb-vacio">No se encontraron enemigos</p>
-            )}
+            {enemigosFiltrados.length === 0 && <p className="tb-vacio">No se encontraron enemigos</p>}
+          </div>
+        </div>
+      )}
+
+      {/* PANEL NPCs / PERSONAJES DE LA CAMPAÑA */}
+      {esMaster && panelNpcs && (
+        <div className="tb-enemigos-panel">
+          <div className="tb-enemigos-panel-header">
+            <h4 className="tb-enemigos-titulo">🧙 Personajes de la Campaña</h4>
+            <button className="tb-enemigos-cerrar" onClick={() => setPanelNpcs(false)}>✕</button>
+          </div>
+
+          {/* Formulario nuevo NPC */}
+          <div className="tb-npc-form">
+            {/* Preview imagen */}
+            <div className="tb-npc-imagen-preview">
+              {npcImagen
+                ? <img src={npcImagen} alt="preview" className="tb-npc-img" />
+                : <div className="tb-npc-img-placeholder">📷</div>
+              }
+              <label className="tb-npc-upload-btn" htmlFor="npc-upload">
+                {npcImagen ? 'Cambiar' : 'Subir foto'}
+              </label>
+              <input id="npc-upload" type="file" accept="image/*" className="tb-npc-upload-input" onChange={handleNpcImagen} />
+            </div>
+
+            <input
+              className="tb-input"
+              placeholder="Nombre del personaje..."
+              value={npcNombre}
+              onChange={e => setNpcNombre(e.target.value)}
+              style={{ marginBottom: 6 }}
+            />
+            <textarea
+              className="tb-input"
+              placeholder="Descripción (opcional)..."
+              value={npcDescripcion}
+              onChange={e => setNpcDescripcion(e.target.value)}
+              rows={2}
+              style={{ marginBottom: 6, resize: 'none' }}
+            />
+            <button
+              className="tb-combat-btn"
+              onClick={guardarNpc}
+              disabled={!npcNombre.trim() || guardandoNpc}
+              style={{ width: '100%', borderRadius: 6 }}
+            >
+              {guardandoNpc ? 'Guardando...' : '+ Añadir personaje'}
+            </button>
+          </div>
+
+          {/* Lista NPCs */}
+          <div className="tb-enemigos-lista" style={{ marginTop: 12 }}>
+            {npcs.length === 0 && <p className="tb-vacio">Sin personajes añadidos</p>}
+            {npcs.map(npc => (
+              <div key={npc.id} className="tb-npc-card">
+                {npc.imagenUrl && (
+                  <img src={npc.imagenUrl} alt={npc.nombre} className="tb-npc-card-img" />
+                )}
+                <div className="tb-npc-card-info">
+                  <div className="tb-npc-card-header">
+                    <span className="tb-enemigo-nombre">{npc.nombre}</span>
+                    <button className="tb-token-borrar" onClick={() => npc.id && eliminarNpc(npc.id)}>✕</button>
+                  </div>
+                  {npc.descripcion && <p className="tb-enemigo-desc">{npc.descripcion}</p>}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -1165,7 +1315,6 @@ export function Tablero() {
               </div>
             </div>
 
-            {/* HP */}
             <div className="tb-seccion">
               <span className="tb-seccion-label">Puntos de Golpe</span>
               <div className="tb-ficha-hp">
@@ -1183,7 +1332,6 @@ export function Tablero() {
               </div>
             </div>
 
-            {/* CARACTERÍSTICAS — clic para lanzar d20 + modificador via DiceRoller */}
             <div className="tb-seccion">
               <span className="tb-seccion-label">Características</span>
               <div className="tb-ficha-stats">
@@ -1212,7 +1360,6 @@ export function Tablero() {
               </div>
             </div>
 
-            {/* COMBATE */}
             <div className="tb-seccion">
               <span className="tb-seccion-label">Combate</span>
               <div className="tb-ficha-combate">
@@ -1355,6 +1502,8 @@ export function Tablero() {
         </Layer>
       </Stage>
 
+
+
       <DiceRoller
         dado={combatDado}
         resultado={combatResultado}
@@ -1363,6 +1512,7 @@ export function Tablero() {
       />
 
       {/* INSTRUCCIONES */}
+
       <div className="tb-instrucciones">
         <span>🖱 Rueda: zoom</span>
         <span>🤚 Arrastrar: mover vista</span>
@@ -1370,7 +1520,6 @@ export function Tablero() {
         {herramienta === 'borrar' && <span>🗑 Clic en token: borrar</span>}
       </div>
 
-      {/* PanelPartida recibe el ref para registrar su función interna */}
       <PanelPartida
         nombreMaster={esMaster ? 'Tú (Master)' : masterNombre}
         jugadores={jugadoresCampaa}
