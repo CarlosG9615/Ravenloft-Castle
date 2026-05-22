@@ -413,7 +413,7 @@ export function Tablero() {
     overlayCells = animPath.slice(1, animStep + 1).map((pos, i) => ({ ...pos, step: i + 1 }));
   }
 
-  const handleStagePointerMove = (e: any) => {
+  const handleStagePointerMove = () => {
     if (draggingRef.current) {
       const stage = stageRef.current;
       const pointer = stage.getPointerPosition();
