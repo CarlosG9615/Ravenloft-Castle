@@ -5,8 +5,11 @@ import './DiceRoller.css';
 interface Props {
   dado: string | null;
   resultado: number | null;
+
+  onAnimacionFin: (resultadoReal: number) => void;
   onAnimacionFin: (resultadoReal : number) => void;
   containerId?: string;
+
 }
 
 const buildNotation = (dado: string | null) => {
@@ -110,15 +113,37 @@ export function DiceRoller({ dado, resultado, onAnimacionFin, containerId = 'dic
 
     setAnimando(true);
 
+
+    const diceMap: Record<string, number> = {
+      'd4': 4, 'd6': 6, 'd8': 8,
+      'd10': 10, 'd12': 12, 'd20': 20,
+    };
+
+    // Extraer el tipo base del dado (por si viene como "d20 (FUE)" etc.)
+    const dadoBase = dado.startsWith('d') ? dado.split(' ')[0] : dado;
+    const caras = diceMap[dadoBase];
+    if (!caras) { setAnimando(false); return; }
+
     const notation = buildNotation(dado);
     if (!notation) { setAnimando(false); return; }
+
 
     rollSound.currentTime = 0;
     rollSound.play().catch(() => {});
 
-    diceBoxRef.current.roll(notation).then((resultados: any[]) => {
+    // Si resultado > 0 forzamos ese valor en la animación 3D
+    // Si es 0 dejamos que el dado ruede libremente (no debería pasar con los cambios del PanelPartida)
+    const rollConfig = resultado > 0
+      ? [{ qty: 1, sides: caras, theme: 'default', themeColor: '#591414', value: resultado }]
+      : `1${dadoBase}`;
+
+    diceBoxRef.current.roll(rollConfig).then((resultados: any[]) => {
       console.log('Resultado DiceBox:', JSON.stringify(resultados));
+
+      const resultadoReal = resultados?.[0]?.value ?? resultado;
+
       const resultadoReal = sumDiceResults(resultados, resultado);
+
       setTimeout(() => {
         setAnimando(false);
         callbackRef.current(resultadoReal);
