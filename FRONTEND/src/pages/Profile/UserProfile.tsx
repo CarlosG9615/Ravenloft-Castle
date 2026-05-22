@@ -160,8 +160,6 @@ export function UserProfile() {
 
   const nivel = calcularNivel(suscripcionActual, campanas.length, personajes.length);
   const nombreNivel = getNombreNivel(nivel);
-  const xpActual = nivel * 100;
-  const xpSiguiente = (nivel + 1) * 100;
   const porcentajeXP = ((nivel % 1) * 100) || 60;
 
   const getInitials = () => user.nombre?.charAt(0).toUpperCase() ?? '?';

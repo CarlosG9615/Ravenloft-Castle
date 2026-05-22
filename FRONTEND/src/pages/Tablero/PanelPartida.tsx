@@ -176,7 +176,7 @@ export function PanelPartida({
   const [pestana, setPestana] = useState<'chat' | 'jugadores' | 'voz'>('chat');
   const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
   const [inputChat, setInputChat] = useState('');
-  const [modificador, setModificador] = useState(0);
+  const [modificador] = useState(0);
   const [conectado, setConectado] = useState(false);
   const [dadoActivo, setDadoActivo] = useState<string | null>(null);
   const [resultadoActivo, setResultadoActivo] = useState<number | null>(null);

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { createSuscripcion } from '../../services/suscripcionService';
+import { createSuscripcion, type SuscripcionCreateDTO } from '../../services/suscripcionService';
 import { useAuth } from '../../services/AuthContext';
 
 export function PagoExitoso() {
@@ -18,7 +18,11 @@ export function PagoExitoso() {
       hasProcessed.current = true;
 
       const sessionId = searchParams.get('session_id');
-      const plan = searchParams.get('plan') as 'BASICA' | 'PREMIUM' | 'VIP' | 'ARCHIMAGO';
+      const planParam = searchParams.get('plan');
+      const plan: SuscripcionCreateDTO['tipo'] | null =
+        planParam === 'BASICA' || planParam === 'PREMIUM' || planParam === 'VIP'
+          ? planParam
+          : null;
       const usuarioIdStr = searchParams.get('usuarioId');
       const usuarioId = usuarioIdStr ? parseInt(usuarioIdStr) : user?.id;
 
@@ -29,14 +33,8 @@ export function PagoExitoso() {
       }
 
       try {
-        let nombre = 'Aventurero';
-        if (plan === 'PREMIUM') nombre = 'Héroe';
-        if (plan === 'VIP') nombre = 'Dungeon Master';
-        if (plan === 'ARCHIMAGO') nombre = 'Archimago';
-
         await createSuscripcion({
           usuarioId,
-          nombre,
           tipo: plan
         });
 
