@@ -81,7 +81,7 @@ export function Header() {
     cargarNotificaciones();
 
     const client = new Client({
-      webSocketFactory: () => new (SockJS as any)(`${WS_URL}/ws`),
+      webSocketFactory: () => new (SockJS as any)(`${WS_URL}`),
       reconnectDelay: 5000,
       onConnect: () => {
         client.subscribe(`/topic/usuario/${user.id}/notificaciones`, (frame) => {
