@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.security.Principal;
+import java.util.Optional;
 
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -26,6 +28,7 @@ public class TableroWebSocketController {
     private final MisionParticipanteRepository misionParticipanteRepository;
     private final TurnoService turnoService;
     private final MensajeChatRepository mensajeChatRepository;
+    private final com.gvc.ravenloftcastleapi.repository.UsuarioRepository usuarioRepository;
     private final Map<String, Map<String, JugadorWsDTO>> sessionesCampana = new ConcurrentHashMap<>();
     private final Map<String, Map<String, CampanaTokenStateDTO>> tokensCampana = new ConcurrentHashMap<>();
     private final Map<String, Map<String, Integer>> hpOverridesCampana = new ConcurrentHashMap<>();
@@ -42,11 +45,13 @@ public class TableroWebSocketController {
     public TableroWebSocketController(SimpMessagingTemplate messagingTemplate,
                                       MisionParticipanteRepository misionParticipanteRepository,
                                       TurnoService turnoService,
-                                      MensajeChatRepository mensajeChatRepository) {
+                                      MensajeChatRepository mensajeChatRepository,
+                                      com.gvc.ravenloftcastleapi.repository.UsuarioRepository usuarioRepository) {
         this.messagingTemplate = messagingTemplate;
         this.misionParticipanteRepository = misionParticipanteRepository;
         this.turnoService = turnoService;
         this.mensajeChatRepository = mensajeChatRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @MessageMapping("/campana/{campanaId}/join")
@@ -163,10 +168,35 @@ public class TableroWebSocketController {
     }
 
     @MessageMapping("/mision/{misionId}/dado-movimiento")
-    public void dadoMovimiento(@DestinationVariable String misionId, @Payload DadoRollWsDTO dto) {
+    public void dadoMovimiento(@DestinationVariable String misionId, @Payload DadoRollWsDTO dto, Principal principal) {
         try {
-            misionParticipanteRepository.actualizarMovimientoRoll(
-                    Long.valueOf(misionId), dto.getPersonajeId(), dto.getValor());
+            Long mid = Long.valueOf(misionId);
+            Long personajeId = dto.getPersonajeId();
+
+            Long usuarioId = null;
+            if (principal != null) {
+                Optional<com.gvc.ravenloftcastleapi.entity.Usuario> opt = usuarioRepository.findByEmail(principal.getName());
+                if (opt.isPresent()) usuarioId = opt.get().getId();
+            }
+
+            boolean autorizado = false;
+            if (usuarioId != null) {
+                // Master can always initiate
+                autorizado = misionParticipanteRepository.existsByMisionIdAndUsuarioIdAndRol(mid, usuarioId, com.gvc.ravenloftcastleapi.enums.RolParticipante.MASTER);
+                if (!autorizado && personajeId != null) {
+                    Optional<com.gvc.ravenloftcastleapi.entity.MisionParticipante> mp = misionParticipanteRepository.findByMisionIdAndPersonajeId(mid, personajeId);
+                    if (mp.isPresent() && mp.get().getUsuario() != null && mp.get().getUsuario().getId().equals(usuarioId)) {
+                        autorizado = true;
+                    }
+                }
+            }
+
+            if (!autorizado) {
+                System.err.println("[WS] dado-movimiento: usuario no autorizado para mision=" + misionId + " principal=" + (principal != null ? principal.getName() : "null"));
+                return;
+            }
+
+            misionParticipanteRepository.actualizarMovimientoRoll(mid, personajeId, dto.getValor());
             dto.setTipo("movimiento");
             messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/dado-roll", dto);
         } catch (NumberFormatException e) {
@@ -175,10 +205,34 @@ public class TableroWebSocketController {
     }
 
     @MessageMapping("/mision/{misionId}/dado-ataque")
-    public void dadoAtaque(@DestinationVariable String misionId, @Payload DadoRollWsDTO dto) {
+    public void dadoAtaque(@DestinationVariable String misionId, @Payload DadoRollWsDTO dto, Principal principal) {
         try {
-            misionParticipanteRepository.actualizarAtaqueRoll(
-                    Long.valueOf(misionId), dto.getPersonajeId(), dto.getValor());
+            Long mid = Long.valueOf(misionId);
+            Long personajeId = dto.getPersonajeId();
+
+            Long usuarioId = null;
+            if (principal != null) {
+                Optional<com.gvc.ravenloftcastleapi.entity.Usuario> opt = usuarioRepository.findByEmail(principal.getName());
+                if (opt.isPresent()) usuarioId = opt.get().getId();
+            }
+
+            boolean autorizado = false;
+            if (usuarioId != null) {
+                autorizado = misionParticipanteRepository.existsByMisionIdAndUsuarioIdAndRol(mid, usuarioId, com.gvc.ravenloftcastleapi.enums.RolParticipante.MASTER);
+                if (!autorizado && personajeId != null) {
+                    Optional<com.gvc.ravenloftcastleapi.entity.MisionParticipante> mp = misionParticipanteRepository.findByMisionIdAndPersonajeId(mid, personajeId);
+                    if (mp.isPresent() && mp.get().getUsuario() != null && mp.get().getUsuario().getId().equals(usuarioId)) {
+                        autorizado = true;
+                    }
+                }
+            }
+
+            if (!autorizado) {
+                System.err.println("[WS] dado-ataque: usuario no autorizado para mision=" + misionId + " principal=" + (principal != null ? principal.getName() : "null"));
+                return;
+            }
+
+            misionParticipanteRepository.actualizarAtaqueRoll(mid, personajeId, dto.getValor());
             dto.setTipo("ataque");
             messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/dado-roll", dto);
         } catch (NumberFormatException e) {

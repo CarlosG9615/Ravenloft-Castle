@@ -1,21 +1,28 @@
 package com.gvc.ravenloftcastleapi.controller.suscripcion;
 
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.gvc.ravenloftcastleapi.dto.suscripcion.SuscripcionCreateDTO;
 import com.gvc.ravenloftcastleapi.dto.suscripcion.SuscripcionDTO;
 import com.gvc.ravenloftcastleapi.dto.suscripcion.SuscripcionUpdateDTO;
 import com.gvc.ravenloftcastleapi.service.SuscripcionService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/suscripciones")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class SuscripcionController {
 
     private final SuscripcionService suscripcionService;

@@ -1,17 +1,22 @@
 package com.gvc.ravenloftcastleapi.controller;
 
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.gvc.ravenloftcastleapi.dto.NotificacionDTO;
 import com.gvc.ravenloftcastleapi.service.NotificacionService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/notificaciones")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class NotificacionController {
 
     private final NotificacionService notificacionService;

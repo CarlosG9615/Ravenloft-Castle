@@ -7,6 +7,7 @@ import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import { Comment, Users, Mic, Skull, Sword } from 'pixelarticons/react'
 import { Dices, Smile } from 'lucide-react';
 import { PerfilPublicoModal } from '../../components/PerfilPublicoModal/PerfilPublicoModal';
+import { API_URL, WS_URL } from '../../services/api';
 import './PanelPartida.css';
 
 interface Jugador {
@@ -225,7 +226,7 @@ export function PanelPartida({
 
   useEffect(() => {
     const client = new Client({
-      webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
+      webSocketFactory: () => new (SockJS as any)(`${WS_URL}`),
       reconnectDelay: 5000,
       onConnect: () => {
         setConectado(true);
@@ -234,7 +235,7 @@ export function PanelPartida({
         if (campanaId) {
           const token = localStorage.getItem('token') || sessionStorage.getItem('token');
           const sinceParam = chatSince ? `?since=${encodeURIComponent(chatSince)}` : '';
-          fetch(`http://localhost:8080/api/misiones/${campanaId}/chat${sinceParam}`, {
+          fetch(`${API_URL}/api/misiones/${campanaId}/chat${sinceParam}`, {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           })
             .then(r => (r.ok ? r.json() : []))

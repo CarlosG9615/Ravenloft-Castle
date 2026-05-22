@@ -1,26 +1,33 @@
 package com.gvc.ravenloftcastleapi.controller.dice;
 
 
-import com.gvc.ravenloftcastleapi.entity.Usuario;
-import com.gvc.ravenloftcastleapi.repository.UsuarioRepository;
-import com.gvc.ravenloftcastleapi.dto.dice.DiceHistoryDTO;
-import com.gvc.ravenloftcastleapi.dto.dice.DiceRollRequestDTO;
-import com.gvc.ravenloftcastleapi.dto.dice.DiceRollResponseDTO;
-import com.gvc.ravenloftcastleapi.service.DiceService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import com.gvc.ravenloftcastleapi.dto.dice.DiceHistoryDTO;
+import com.gvc.ravenloftcastleapi.dto.dice.DiceRollRequestDTO;
+import com.gvc.ravenloftcastleapi.dto.dice.DiceRollResponseDTO;
+import com.gvc.ravenloftcastleapi.entity.Usuario;
+import com.gvc.ravenloftcastleapi.repository.UsuarioRepository;
+import com.gvc.ravenloftcastleapi.service.DiceService;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/dice")
 @RequiredArgsConstructor
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174", "http://localhost:5175"})
 public class DiceController {
 
     private final UsuarioRepository usuarioRepository;
