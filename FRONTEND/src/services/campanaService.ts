@@ -100,7 +100,7 @@ export const unirseACampana = async (campanaId: number, personajeId?: number): P
 
 export async function getMisCampanas(): Promise<any[]> {
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-  const res = await fetch('http://localhost:8080/api/campanas/mis-campanas', {
+  const res = await fetch(`${API_URL}/api/campanas/mis-campanas`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) throw new Error('Error cargando mis campañas');

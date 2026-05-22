@@ -1,10 +1,14 @@
 package com.gvc.ravenloftcastleapi.websocket;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.security.Principal;
+import java.util.Optional;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -18,14 +22,18 @@ import com.gvc.ravenloftcastleapi.entity.MensajeChatPersistido;
 import com.gvc.ravenloftcastleapi.repository.MensajeChatRepository;
 import com.gvc.ravenloftcastleapi.repository.MisionParticipanteRepository;
 import com.gvc.ravenloftcastleapi.service.TurnoService;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
+@RestController
 public class TableroWebSocketController {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final MisionParticipanteRepository misionParticipanteRepository;
     private final TurnoService turnoService;
     private final MensajeChatRepository mensajeChatRepository;
+    private final com.gvc.ravenloftcastleapi.repository.UsuarioRepository usuarioRepository;
     private final Map<String, Map<String, JugadorWsDTO>> sessionesCampana = new ConcurrentHashMap<>();
     private final Map<String, Map<String, CampanaTokenStateDTO>> tokensCampana = new ConcurrentHashMap<>();
     private final Map<String, Map<String, Integer>> hpOverridesCampana = new ConcurrentHashMap<>();
@@ -42,11 +50,13 @@ public class TableroWebSocketController {
     public TableroWebSocketController(SimpMessagingTemplate messagingTemplate,
                                       MisionParticipanteRepository misionParticipanteRepository,
                                       TurnoService turnoService,
-                                      MensajeChatRepository mensajeChatRepository) {
+                                      MensajeChatRepository mensajeChatRepository,
+                                      com.gvc.ravenloftcastleapi.repository.UsuarioRepository usuarioRepository) {
         this.messagingTemplate = messagingTemplate;
         this.misionParticipanteRepository = misionParticipanteRepository;
         this.turnoService = turnoService;
         this.mensajeChatRepository = mensajeChatRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @MessageMapping("/campana/{campanaId}/join")
@@ -55,7 +65,6 @@ public class TableroWebSocketController {
         String idKey = jugador.getId() != null ? jugador.getId().toString() : String.valueOf(System.currentTimeMillis());
         jugador.setConectado(true);
 
-        // Aplicar HP override si existe
         Map<String, Integer> hpOverrides = hpOverridesCampana.get(campanaId);
         if (hpOverrides != null && hpOverrides.containsKey(idKey)) {
             jugador.setHp(hpOverrides.get(idKey));
@@ -68,8 +77,17 @@ public class TableroWebSocketController {
     @MessageMapping("/campana/{campanaId}/leave")
     public void leaveCampana(@DestinationVariable String campanaId, @Payload String jugadorId) {
         if (sessionesCampana.containsKey(campanaId)) {
-            sessionesCampana.get(campanaId).remove(jugadorId);
+            JugadorWsDTO jugador = sessionesCampana.get(campanaId).remove(jugadorId);
             broadcastJugadores(campanaId);
+            if (jugador != null) {
+                Map<String, Object> leavePayload = new HashMap<>();
+                leavePayload.put("jugadorId", jugadorId);
+                leavePayload.put("nombre", jugador.getNombre() != null ? jugador.getNombre() : "Un jugador");
+                messagingTemplate.convertAndSend(
+                        "/topic/campana/" + campanaId + "/jugadores-leave",
+                        (Object) leavePayload
+                );
+            }
         }
     }
 
@@ -163,10 +181,35 @@ public class TableroWebSocketController {
     }
 
     @MessageMapping("/mision/{misionId}/dado-movimiento")
-    public void dadoMovimiento(@DestinationVariable String misionId, @Payload DadoRollWsDTO dto) {
+    public void dadoMovimiento(@DestinationVariable String misionId, @Payload DadoRollWsDTO dto, Principal principal) {
         try {
-            misionParticipanteRepository.actualizarMovimientoRoll(
-                    Long.valueOf(misionId), dto.getPersonajeId(), dto.getValor());
+            Long mid = Long.valueOf(misionId);
+            Long personajeId = dto.getPersonajeId();
+
+            Long usuarioId = null;
+            if (principal != null) {
+                Optional<com.gvc.ravenloftcastleapi.entity.Usuario> opt = usuarioRepository.findByEmail(principal.getName());
+                if (opt.isPresent()) usuarioId = opt.get().getId();
+            }
+
+            boolean autorizado = false;
+            if (usuarioId != null) {
+                // Master can always initiate
+                autorizado = misionParticipanteRepository.existsByMisionIdAndUsuarioIdAndRol(mid, usuarioId, com.gvc.ravenloftcastleapi.enums.RolParticipante.MASTER);
+                if (!autorizado && personajeId != null) {
+                    Optional<com.gvc.ravenloftcastleapi.entity.MisionParticipante> mp = misionParticipanteRepository.findByMisionIdAndPersonajeId(mid, personajeId);
+                    if (mp.isPresent() && mp.get().getUsuario() != null && mp.get().getUsuario().getId().equals(usuarioId)) {
+                        autorizado = true;
+                    }
+                }
+            }
+
+            if (!autorizado) {
+                System.err.println("[WS] dado-movimiento: usuario no autorizado para mision=" + misionId + " principal=" + (principal != null ? principal.getName() : "null"));
+                return;
+            }
+
+            misionParticipanteRepository.actualizarMovimientoRoll(mid, personajeId, dto.getValor());
             dto.setTipo("movimiento");
             messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/dado-roll", dto);
         } catch (NumberFormatException e) {
@@ -175,10 +218,34 @@ public class TableroWebSocketController {
     }
 
     @MessageMapping("/mision/{misionId}/dado-ataque")
-    public void dadoAtaque(@DestinationVariable String misionId, @Payload DadoRollWsDTO dto) {
+    public void dadoAtaque(@DestinationVariable String misionId, @Payload DadoRollWsDTO dto, Principal principal) {
         try {
-            misionParticipanteRepository.actualizarAtaqueRoll(
-                    Long.valueOf(misionId), dto.getPersonajeId(), dto.getValor());
+            Long mid = Long.valueOf(misionId);
+            Long personajeId = dto.getPersonajeId();
+
+            Long usuarioId = null;
+            if (principal != null) {
+                Optional<com.gvc.ravenloftcastleapi.entity.Usuario> opt = usuarioRepository.findByEmail(principal.getName());
+                if (opt.isPresent()) usuarioId = opt.get().getId();
+            }
+
+            boolean autorizado = false;
+            if (usuarioId != null) {
+                autorizado = misionParticipanteRepository.existsByMisionIdAndUsuarioIdAndRol(mid, usuarioId, com.gvc.ravenloftcastleapi.enums.RolParticipante.MASTER);
+                if (!autorizado && personajeId != null) {
+                    Optional<com.gvc.ravenloftcastleapi.entity.MisionParticipante> mp = misionParticipanteRepository.findByMisionIdAndPersonajeId(mid, personajeId);
+                    if (mp.isPresent() && mp.get().getUsuario() != null && mp.get().getUsuario().getId().equals(usuarioId)) {
+                        autorizado = true;
+                    }
+                }
+            }
+
+            if (!autorizado) {
+                System.err.println("[WS] dado-ataque: usuario no autorizado para mision=" + misionId + " principal=" + (principal != null ? principal.getName() : "null"));
+                return;
+            }
+
+            misionParticipanteRepository.actualizarAtaqueRoll(mid, personajeId, dto.getValor());
             dto.setTipo("ataque");
             messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/dado-roll", dto);
         } catch (NumberFormatException e) {
@@ -265,6 +332,13 @@ public class TableroWebSocketController {
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/dice-roll", (Object) payload);
     }
 
+    @GetMapping("/api/campanas/{campanaId}/master-conectado")
+    public ResponseEntity<Boolean> masterConectado(@PathVariable String campanaId) {
+        Map<String, JugadorWsDTO> sesiones = sessionesCampana.getOrDefault(campanaId, new ConcurrentHashMap<>());
+        boolean conectado = sesiones.values().stream()
+                .anyMatch(j -> Boolean.TRUE.equals(j.getEsMaster()));
+        return ResponseEntity.ok(conectado);
+    }
     // ── Lobby de preparación de partida ─────────────────────────────────────
 
     @MessageMapping("/mision/{misionId}/master-listo")
@@ -452,8 +526,12 @@ public class TableroWebSocketController {
     }
 
     private void broadcastJugadores(String campanaId) {
-        List<JugadorWsDTO> jugadores = new ArrayList<>(
-                sessionesCampana.getOrDefault(campanaId, new ConcurrentHashMap<>()).values());
+        List<JugadorWsDTO> jugadores = sessionesCampana
+                .getOrDefault(campanaId, new ConcurrentHashMap<>())
+                .values()
+                .stream()
+                .filter(j -> j.getEsMaster() == null || !j.getEsMaster())
+                .collect(java.util.stream.Collectors.toList());
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/jugadores", jugadores);
     }
 
@@ -469,7 +547,11 @@ public class TableroWebSocketController {
         private Boolean conectado;
         private String avatar;
         private String color;
+        private Boolean esMaster;
 
+
+        public Boolean getEsMaster() { return esMaster; }
+        public void setEsMaster(Boolean esMaster) { this.esMaster = esMaster; }
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
         public Long getUsuarioId() { return usuarioId; }

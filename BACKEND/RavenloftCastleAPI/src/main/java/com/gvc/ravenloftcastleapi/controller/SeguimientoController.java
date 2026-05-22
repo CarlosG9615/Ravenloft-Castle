@@ -1,18 +1,24 @@
 package com.gvc.ravenloftcastleapi.controller;
 
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.gvc.ravenloftcastleapi.dto.PerfilPublicoDTO;
 import com.gvc.ravenloftcastleapi.dto.SeguimientoDTO;
 import com.gvc.ravenloftcastleapi.service.SeguimientoService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/seguimiento")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
 public class SeguimientoController {
 
     private final SeguimientoService seguimientoService;

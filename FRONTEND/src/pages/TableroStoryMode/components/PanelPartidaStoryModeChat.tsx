@@ -7,6 +7,7 @@ import { getAvatarUrl, getCartaUrl } from '../../../utils/imageUtils';
 import { Comment, Users, Mic, Skull, Sword } from 'pixelarticons/react'
 import { Dices, Smile } from 'lucide-react';
 import { PerfilPublicoModal } from '../../../components/PerfilPublicoModal/PerfilPublicoModal';
+import { WS_URL } from '../../../services/api';
 import './PanelPartidaStoryMode.css';
 
 interface Jugador {
@@ -160,7 +161,7 @@ interface Props {
   onPlayerHpUpdate?: (jugadorId: string, hp: number) => void;
   mensajes?: any[];
   pushLocalChatMessage?: (m: { autor: string; colorAutor?: string; texto: string; tipo?: string; timestamp?: string }) => void;
-  sendChatMessage?: (m: { autor: string; colorAutor?: string; texto: string; tipo?: string }) => void;
+  sendChatMessage?: (m: { autor: string; colorAutor?: string; texto: string; tipo?: string; tirada?: MensajeChat['tirada'] }) => void;
 }
 
 export function PanelPartidaStoryModeChat({
@@ -208,7 +209,7 @@ export function PanelPartidaStoryModeChat({
 
   useEffect(() => {
     const client = new Client({
-      webSocketFactory: () => new (SockJS as any)('http://localhost:8080/ws'),
+      webSocketFactory: () => new (SockJS as any)(`${WS_URL}`),
       reconnectDelay: 5000,
       onConnect: () => {
         setConectado(true);
@@ -255,18 +256,10 @@ export function PanelPartidaStoryModeChat({
             });
           });
 
-          client.subscribe(`/topic/campana/${campanaId}/dice-roll`, (frame) => {
-            const { dado, senderId } = JSON.parse(frame.body);
-            const miId = jugadorActual?.id?.toString() || 'master';
-            if (senderId !== miId) {
-              esAnimacionRemota.current = true;
-              setDadoActivo(null);
-              setTimeout(() => {
-                setDadoActivo(dado);
-                setResultadoActivo(Math.floor(Math.random() * 20) + 1);
-              }, 50);
-            }
-          });
+          // NOTE: campaign-scoped dice-rolls are deprecated for Story Mode.
+          // Story Mode dice must be initiated only by the authorized mission participant
+          // and persisted through mission-scoped endpoints. We ignore the old
+          // `/topic/campana/{id}/dice-roll` messages here to avoid remote triggers.
 
           client.subscribe(`/topic/campana/${campanaId}/voice`, async (frame) => {
             const señal = JSON.parse(frame.body);
@@ -396,13 +389,25 @@ export function PanelPartidaStoryModeChat({
   };
 
   const lanzarDado = (_caras: number, label: string) => {
-    if (stompRef.current?.connected && campanaId) {
-      const senderId = jugadorActual?.id?.toString() || 'master';
-      stompRef.current.publish({
-        destination: `/app/campana/${campanaId}/dice-roll`,
-        body: JSON.stringify({ dado: label, resultado: 0, senderId }),
-      });
+    // Only allow the mission participant that represents this client to initiate dice.
+    const personajeIdLocal = (jugadorActual?.personajeId ?? jugadorActual?.id)?.toString() ?? null;
+    const usuarioIdLocal = (jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? jugadorActual?.id)?.toString() ?? null;
+
+    const autorizado = jugadores?.some((p: any) => {
+      const pid = (p.personajeId ?? p.id ?? p.usuarioId)?.toString?.() ?? null;
+      const uid = (p.usuarioId ?? p.usuario_id ?? p.id)?.toString?.() ?? null;
+      return pid === personajeIdLocal || uid === usuarioIdLocal;
+    });
+
+    // Allow the mission master to initiate dice regardless of participant mapping
+    const puedeIniciar = Boolean(autorizado) || Boolean(esMaster);
+
+    if (!puedeIniciar) {
+      pushLocalChatMessage?.({ autor: 'Sistema', texto: 'No estás autorizado para lanzar dados en esta partida.', tipo: 'sistema', colorAutor: '#8b0000' });
+      return;
     }
+
+    // Local animation for the initiator; final result is persisted via onMovimientoRollResult/onAtaqueRollResult
     setDadoActivo(label);
     setResultadoActivo(0);
   };
@@ -437,7 +442,7 @@ export function PanelPartidaStoryModeChat({
     };
 
     if (sendChatMessage) {
-      sendChatMessage({ autor: msg.autor, colorAutor: msg.colorAutor, texto: JSON.stringify(msg.tirada), tipo: 'tirada' });
+      sendChatMessage({ autor: msg.autor, colorAutor: msg.colorAutor, texto: JSON.stringify(msg.tirada), tipo: 'tirada', tirada: msg.tirada });
     } else if (stompRef.current?.connected && campanaId) {
       stompRef.current.publish({ destination: `/app/campana/${campanaId}/chat.enviar`, body: JSON.stringify({ ...msg, personajeId, usuarioId }) });
     } else {
@@ -471,7 +476,7 @@ export function PanelPartidaStoryModeChat({
       tirada: { dado, resultado: 0, modificador: 0, total: 0, imagenes: imagenesResultado },
     };
     if (sendChatMessage) {
-      sendChatMessage({ autor: msg.autor, colorAutor: msg.colorAutor, texto: JSON.stringify(msg.tirada || {}), tipo: 'tirada' });
+      sendChatMessage({ autor: msg.autor, colorAutor: msg.colorAutor, texto: JSON.stringify(msg.tirada || {}), tipo: 'tirada', tirada: msg.tirada });
     } else if (stompRef.current?.connected && campanaId) {
       stompRef.current.publish({ destination: `/app/campana/${campanaId}/chat.enviar`, body: JSON.stringify({ ...msg, personajeId, usuarioId }) });
     } else {
