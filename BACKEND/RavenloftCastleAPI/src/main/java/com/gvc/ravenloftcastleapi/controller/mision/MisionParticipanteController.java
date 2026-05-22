@@ -65,6 +65,13 @@ public class MisionParticipanteController {
         return ResponseEntity.ok(java.util.Map.of("tieneMaster", tieneMaster));
     }
 
+    @GetMapping("/master-info")
+    public ResponseEntity<java.util.Map<String, String>> getMasterInfo(@PathVariable Long misionId) {
+        return misionParticipanteService.getNombreMaster(misionId)
+                .map(nombre -> ResponseEntity.ok(java.util.Map.of("nombreUsuario", nombre)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/{participanteId}")
     public ResponseEntity<MisionParticipanteResponseDTO> getById(
             @PathVariable Long misionId,

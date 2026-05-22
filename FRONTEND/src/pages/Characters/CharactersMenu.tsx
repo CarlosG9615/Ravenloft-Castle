@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Characters.css';
 import { BackButton } from '../../components/BackButton/BackButton';
-import { User, UserPlus } from 'pixelarticons/react';
+import { User } from 'pixelarticons/react';
 
 export function CharactersMenu() {
   const navigate = useNavigate();

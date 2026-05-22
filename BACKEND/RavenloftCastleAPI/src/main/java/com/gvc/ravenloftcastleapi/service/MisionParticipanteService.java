@@ -47,6 +47,7 @@ public class MisionParticipanteService {
     private final ModoHistoriaPersonajeRepository modoHistoriaPersonajeRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final com.gvc.ravenloftcastleapi.repository.MensajeChatRepository mensajeChatRepository;
+    private final MisionService misionService;
 
     // Posiciones de spawn iniciales para jugadores, fijas según ordenUnion
     private static final int[][] SPAWN_POSITIONS = {
@@ -254,6 +255,13 @@ public class MisionParticipanteService {
             System.err.println("[MasterAbort] Error limpiando chat: " + e.getMessage());
         }
 
+        // Limpiar configPartida cuando se termina la partida
+        try {
+            misionService.limpiarConfigPartida(misionId);
+        } catch (Exception e) {
+            System.err.println("[MasterAbort] Error limpiando configPartida: " + e.getMessage());
+        }
+
         messagingTemplate.convertAndSend("/topic/mision/" + misionId + "/jugadores", java.util.Collections.emptyList());
     }
 
@@ -312,6 +320,11 @@ public class MisionParticipanteService {
     @Transactional(readOnly = true)
     public boolean tieneMaster(Long misionId) {
         return participanteRepository.existsByMisionIdAndRol(misionId, RolParticipante.MASTER);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.Optional<String> getNombreMaster(Long misionId) {
+        return participanteRepository.findNombreMasterByMisionId(misionId);
     }
 
     @Transactional(readOnly = true)

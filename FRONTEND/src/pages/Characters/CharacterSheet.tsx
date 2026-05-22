@@ -27,6 +27,7 @@ export interface AttackSpellEntry {
   bonificador: string;
   dano: string;
   tipo: EntryTipo;
+  rangoCasillas?: number;
 }
 
 interface CharacterSheetProps {
@@ -124,6 +125,13 @@ const createEntryId = () => `${Date.now()}-${Math.random().toString(36).slice(2,
 
 const formatBonus = (value: number) => (value >= 0 ? `+${value}` : `${value}`);
 
+const defaultRango = (tipo: EntryTipo) => (tipo === 'conjuro' ? 6 : 1);
+
+const normalizeEntry = (entry: AttackSpellEntry): AttackSpellEntry => ({
+  ...entry,
+  rangoCasillas: typeof entry.rangoCasillas === 'number' ? entry.rangoCasillas : defaultRango(entry.tipo),
+});
+
 const buildDefaultEntries = (clase: string, stats: Stats, bonifComp: number): AttackSpellEntry[] => {
   const modFuerza = Math.floor((stats.fuerza - 10) / 2);
   const modDestreza = Math.floor((stats.destreza - 10) / 2);
@@ -137,6 +145,7 @@ const buildDefaultEntries = (clase: string, stats: Stats, bonifComp: number): At
     bonificador: formatBonus(bonus),
     dano,
     tipo: 'ataque',
+    rangoCasillas: defaultRango('ataque'),
   });
 
   const conjuro = (nombre: string, bonus: number, dano: string): AttackSpellEntry => ({
@@ -145,6 +154,7 @@ const buildDefaultEntries = (clase: string, stats: Stats, bonifComp: number): At
     bonificador: formatBonus(bonus),
     dano,
     tipo: 'conjuro',
+    rangoCasillas: defaultRango('conjuro'),
   });
 
   switch (clase) {
@@ -261,6 +271,7 @@ export function CharacterSheet({
   const [entryNombre, setEntryNombre] = useState('');
   const [entryBonificador, setEntryBonificador] = useState('');
   const [entryDano, setEntryDano] = useState('');
+  const [entryRango, setEntryRango] = useState<number>(defaultRango('ataque'));
   const allowEdits = mostrarFormularioAtaques;
 
   useEffect(() => {
@@ -328,9 +339,14 @@ export function CharacterSheet({
   }, [modo, personaje?.id, nombreFinal]);
 
   useEffect(() => {
+    setEntryRango(defaultRango(entryTipo));
+  }, [entryTipo]);
+
+  useEffect(() => {
     if (!entradasAtaquesConjuros || entradasAtaquesConjuros.length === 0) return;
-    setAttacks(entradasAtaquesConjuros.filter(entry => entry.tipo === 'ataque'));
-    setSpells(entradasAtaquesConjuros.filter(entry => entry.tipo === 'conjuro'));
+    const normalized = entradasAtaquesConjuros.map(normalizeEntry);
+    setAttacks(normalized.filter(entry => entry.tipo === 'ataque'));
+    setSpells(normalized.filter(entry => entry.tipo === 'conjuro'));
   }, [entradasAtaquesConjuros]);
 
   useEffect(() => {
@@ -342,8 +358,9 @@ export function CharacterSheet({
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as AttackSpellEntry[];
-        setAttacks(parsed.filter(entry => entry.tipo === 'ataque'));
-        setSpells(parsed.filter(entry => entry.tipo === 'conjuro'));
+        const normalized = parsed.map(normalizeEntry);
+        setAttacks(normalized.filter(entry => entry.tipo === 'ataque'));
+        setSpells(normalized.filter(entry => entry.tipo === 'conjuro'));
         return;
       } catch {
         // Si hay datos corruptos, los regeneramos por defecto.
@@ -351,8 +368,9 @@ export function CharacterSheet({
     }
 
     const defaults = buildDefaultEntries(claseFinal, statsFinales, bonifComp);
-    setAttacks(defaults.filter(entry => entry.tipo === 'ataque'));
-    setSpells(defaults.filter(entry => entry.tipo === 'conjuro'));
+    const normalized = defaults.map(normalizeEntry);
+    setAttacks(normalized.filter(entry => entry.tipo === 'ataque'));
+    setSpells(normalized.filter(entry => entry.tipo === 'conjuro'));
   }, [entriesKey, claseFinal, statsFinales, bonifComp, modo, entradasAtaquesConjuros]);
 
   useEffect(() => {
@@ -374,6 +392,7 @@ export function CharacterSheet({
       bonificador: bonifLimpio,
       dano: danoLimpio,
       tipo: entryTipo,
+      rangoCasillas: Number.isFinite(entryRango) ? entryRango : defaultRango(entryTipo),
     };
 
     if (entryTipo === 'ataque') {
@@ -385,6 +404,7 @@ export function CharacterSheet({
     setEntryNombre('');
     setEntryBonificador('');
     setEntryDano('');
+    setEntryRango(defaultRango(entryTipo));
   };
 
   const removeEntry = (id: string, tipo: EntryTipo) => {
@@ -412,7 +432,7 @@ export function CharacterSheet({
       >
         <span>{entry.tipo === 'conjuro' ? `Conjuro: ${entry.nombre}` : entry.nombre}</span>
         <span>{entry.bonificador}</span>
-        <span>
+        <span className="sf-ataques-dano">
           {entry.dano}
           {allowEdits && (
             <button
@@ -425,6 +445,7 @@ export function CharacterSheet({
             </button>
           )}
         </span>
+        <span>{entry.rangoCasillas ?? defaultRango(entry.tipo)} casillas</span>
       </div>
     ));
   };
@@ -622,7 +643,7 @@ export function CharacterSheet({
               <h3 className="sf-titulo-seccion sf-mt">Ataques y Conjuros</h3>
               <div className="sf-ataques-tabla">
                 <div className="sf-ataques-header">
-                  <span>Nombre</span><span>Bonif.</span><span>Daño</span>
+                  <span>Nombre</span><span>Bonif.</span><span>Daño</span><span>Rango</span>
                 </div>
                 {renderAttacksAndSpells()}
               </div>
@@ -671,6 +692,17 @@ export function CharacterSheet({
                       placeholder="Ej: 1d8 + Fue"
                     />
                   </div>
+                    <div className="sf-ataques-form-row">
+                      <label className="sf-ataques-label">Rango</label>
+                      <input
+                        className="sf-ataques-input"
+                        type="number"
+                        min={1}
+                        value={entryRango}
+                        onChange={(e) => setEntryRango(Number(e.target.value))}
+                        placeholder="Casillas"
+                      />
+                    </div>
                   <div className="sf-ataques-form-actions">
                     <button type="button" className="sf-btn" onClick={addEntry}>
                       Agregar
