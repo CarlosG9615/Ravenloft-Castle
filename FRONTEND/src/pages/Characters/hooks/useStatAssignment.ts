@@ -36,6 +36,7 @@ export function useStatAssignment(
   const [isRolling, setIsRolling] = useState(false);
   const rollRegistradoRef = useRef(false);
   const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const MIN_D20_CREACION = 8;
 
   // Derived values
   const statsBase: Record<StatKey, number> = STATS.reduce((acc, stat) => {
@@ -116,11 +117,12 @@ export function useStatAssignment(
   const registrarTirada = (valor: number) => {
     if (rollRegistradoRef.current) return;
     rollRegistradoRef.current = true;
+    const valorNormalizado = Math.max(MIN_D20_CREACION, valor);
     if (fallbackTimerRef.current) {
       clearTimeout(fallbackTimerRef.current);
       fallbackTimerRef.current = null;
     }
-    setTiradas(prev => [...prev, { id: prev.length, valor }]);
+    setTiradas(prev => [...prev, { id: prev.length, valor: valorNormalizado }]);
     setD20Dado(null);
     setD20Resultado(null);
     setIsRolling(false);
@@ -139,7 +141,7 @@ export function useStatAssignment(
   };
 
   const handleD20AnimacionFin = (resultadoReal: number) => {
-    registrarTirada(resultadoReal);
+    registrarTirada(Math.max(MIN_D20_CREACION, resultadoReal));
   };
 
   return {

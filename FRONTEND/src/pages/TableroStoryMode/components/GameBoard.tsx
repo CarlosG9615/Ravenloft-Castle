@@ -476,6 +476,9 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   const setDismissedConflict = (key: string) => { dismissedConflictKeyRef.current = key; sessionStorage.setItem('gb_dismissed_conflict', key); };
   const clearDismissedConflict = () => { dismissedConflictKeyRef.current = ''; sessionStorage.removeItem('gb_dismissed_conflict'); };
   const lastMoveInitiatorRef = useRef<{ type: 'personaje' | 'enemigo'; id: string } | null>(null);
+  const prevTokenCellsRef = useRef<Record<string, CellPosition>>({});
+  const prevEnemyTokenCellsRef = useRef<Record<string, CellPosition>>({});
+  const movementSnapshotReadyRef = useRef(false);
   const isCellBlocked = useCallback((col: number, row: number): boolean => {
     if (blockedCells.has(`${col},${row}`)) return true; // derrumbamiento
     if (ALWAYS_WALKABLE.has(`${col},${row}`)) return false;
@@ -738,6 +741,38 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     for (const token of tokens) next[token.id] = { col: token.col, row: token.row };
     setTokenCells(next);
   }, [tokens]);
+
+  // Infer the latest movement source from synced board positions.
+  // This keeps conflict attacker/defender labels correct across clients.
+  useEffect(() => {
+    if (!movementSnapshotReadyRef.current) {
+      movementSnapshotReadyRef.current = true;
+      prevTokenCellsRef.current = { ...tokenCells };
+      prevEnemyTokenCellsRef.current = { ...enemyTokenCells };
+      return;
+    }
+
+    const changedTokenIds = Object.keys(tokenCells).filter((id) => {
+      const prev = prevTokenCellsRef.current[id];
+      const next = tokenCells[id];
+      return !!prev && !!next && (prev.col !== next.col || prev.row !== next.row);
+    });
+
+    const changedEnemyIds = Object.keys(enemyTokenCells).filter((id) => {
+      const prev = prevEnemyTokenCellsRef.current[id];
+      const next = enemyTokenCells[id];
+      return !!prev && !!next && (prev.col !== next.col || prev.row !== next.row);
+    });
+
+    if (changedEnemyIds.length === 1 && changedTokenIds.length === 0) {
+      lastMoveInitiatorRef.current = { type: 'enemigo', id: changedEnemyIds[0] };
+    } else if (changedTokenIds.length === 1 && changedEnemyIds.length === 0) {
+      lastMoveInitiatorRef.current = { type: 'personaje', id: changedTokenIds[0] };
+    }
+
+    prevTokenCellsRef.current = { ...tokenCells };
+    prevEnemyTokenCellsRef.current = { ...enemyTokenCells };
+  }, [tokenCells, enemyTokenCells]);
 
   const tokensActivos = useMemo(() => {
     return tokens.filter((token) => {
@@ -1128,8 +1163,8 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
       let attackerSide: 'personaje' | 'enemigo' = activeTurn === 'master' ? 'enemigo' : 'personaje';
       const last = lastMoveInitiatorRef.current;
       if (last) {
-        if (last.type === 'enemigo' && last.id === enemy.enemy.instanciaId) attackerSide = 'enemigo';
-        else if (last.type === 'personaje' && last.id === token.id) attackerSide = 'personaje';
+        if (last.type === 'enemigo' && last.id.toString() === enemy.enemy.instanciaId.toString()) attackerSide = 'enemigo';
+        else if (last.type === 'personaje' && last.id.toString() === token.id.toString()) attackerSide = 'personaje';
       }
 
       detected = {
