@@ -6,32 +6,16 @@ import { BackButton } from '../../components/BackButton/BackButton';
 import { getPersonaje, deletePersonaje } from '../../services/personajeService';
 import { getCartaUrl } from '../../utils/imageUtils';
 import { BookOpen, Sword } from 'pixelarticons/react';
+import { STAT_LABELS, TRASFONDOS_MAP, HABILIDADES, DEFAULT_STATS } from './constants';
+import { calcMod, isAbsoluteUrl, isDataUrl } from './utils';
+import { useCharacterAttacks } from './hooks/useCharacterAttacks';
+import { DiarioCampana } from './components/DiarioCampana';
+import type { Stats, AttackSpellEntry, PersonajeResponseDTO } from './types';
 
-// ── INTERFACES ───────────────────────────────────────────
-interface Stats {
-  fuerza: number;
-  destreza: number;
-  constitucion: number;
-  inteligencia: number;
-  sabiduria: number;
-  carisma: number;
-}
-
-type StatKey = keyof Stats;
-
-export type EntryTipo = 'ataque' | 'conjuro';
-
-export interface AttackSpellEntry {
-  id: string;
-  nombre: string;
-  bonificador: string;
-  dano: string;
-  tipo: EntryTipo;
-  rangoCasillas?: number;
-}
+export type { AttackSpellEntry };
+export type { EntryTipo } from './types';
 
 interface CharacterSheetProps {
-  // Props opcionales — si no vienen, la ficha muestra inputs vacíos
   nombre?: string;
   raza?: string;
   clase?: string;
@@ -42,207 +26,11 @@ interface CharacterSheetProps {
   puntosGolpeMax?: number;
   entradasAtaquesConjuros?: AttackSpellEntry[];
   mostrarFormularioAtaques?: boolean;
-  // Callbacks para el wizard (paso 4)
   onVolver?: () => void;
   onConfirmar?: () => void;
-  // Modo: 'wizard' = paso 4 creación | 'view' = ver personaje guardado
   modo?: 'wizard' | 'view';
 }
 
-interface PersonajeResponseDTO {
-  id: number;
-  nombre: string;
-  clase: string;
-  raza: string;
-  nivel: number;
-  fuerza: number;
-  destreza: number;
-  constitucion: number;
-  inteligencia: number;
-  sabiduria: number;
-  carisma: number;
-  puntosGolpeMax?: number;
-  claseArmadura?: number;
-  iniciativa?: number;
-  velocidad?: number;
-  bonificacionCompetencia?: number;
-  avatar?: string | null;
-  alineamiento?: string | null;
-}
-
-// ── DATOS D&D ─────────────────────────────────────────────
-const STAT_LABELS: Record<string, string> = {
-  fuerza: 'Fuerza', destreza: 'Destreza', constitucion: 'Constitución',
-  inteligencia: 'Inteligencia', sabiduria: 'Sabiduría', carisma: 'Carisma',
-};
-
-const TRASFONDOS: Record<string, { descripcion: string; competencias: string[] }> = {
-  'Acólito':          { descripcion: 'Has pasado tu vida al servicio de un templo.',              competencias: ['Perspicacia', 'Religión'] },
-  'Artesano Gremial': { descripcion: 'Eres miembro de un gremio artesanal.',                     competencias: ['Perspicacia', 'Persuasión'] },
-  'Charlatán':        { descripcion: 'Siempre has tenido don de gentes para engañar.',            competencias: ['Engañar', 'Juego de Manos'] },
-  'Criminal':         { descripcion: 'Eres un criminal con experiencia en el lado oscuro.',       competencias: ['Engañar', 'Sigilo'] },
-  'Entretenido':      { descripcion: 'Te has formado para actuar ante el público.',               competencias: ['Acrobacias', 'Interpretación'] },
-  'Ermitaño':         { descripcion: 'Viviste en reclusión, lejos de la sociedad.',               competencias: ['Medicina', 'Religión'] },
-  'Forastero':        { descripcion: 'Creciste en tierras salvajes, lejos de la civilización.',   competencias: ['Atletismo', 'Supervivencia'] },
-  'Héroe Popular':    { descripcion: 'Vienes de un humilde origen pero estás destinado a algo grande.', competencias: ['Trato con Animales', 'Supervivencia'] },
-  'Noble':            { descripcion: 'Entiendes la riqueza, el poder y los privilegios.',         competencias: ['Historia', 'Persuasión'] },
-  'Marinero':         { descripcion: 'Has navegado en un barco durante años.',                    competencias: ['Atletismo', 'Percepción'] },
-  'Sabio':            { descripcion: 'Pasaste años aprendiendo los secretos del mundo.',          competencias: ['Arcanos', 'Historia'] },
-  'Soldado':          { descripcion: 'Eres un veterano de guerra con experiencia en combate.',    competencias: ['Atletismo', 'Intimidar'] },
-  'Urchin':           { descripcion: 'Creciste en las calles de una gran ciudad.',                competencias: ['Juego de Manos', 'Sigilo'] },
-};
-
-const HABILIDADES: { nombre: string; stat: StatKey }[] = [
-  { nombre: 'Acrobacias',         stat: 'destreza' },
-  { nombre: 'Arcanos',            stat: 'inteligencia' },
-  { nombre: 'Atletismo',          stat: 'fuerza' },
-  { nombre: 'Engañar',            stat: 'carisma' },
-  { nombre: 'Historia',           stat: 'inteligencia' },
-  { nombre: 'Intimidar',          stat: 'carisma' },
-  { nombre: 'Juego de Manos',     stat: 'destreza' },
-  { nombre: 'Medicina',           stat: 'sabiduria' },
-  { nombre: 'Naturaleza',         stat: 'inteligencia' },
-  { nombre: 'Percepción',         stat: 'sabiduria' },
-  { nombre: 'Perspicacia',        stat: 'sabiduria' },
-  { nombre: 'Persuasión',         stat: 'carisma' },
-  { nombre: 'Religión',           stat: 'inteligencia' },
-  { nombre: 'Sigilo',             stat: 'destreza' },
-  { nombre: 'Supervivencia',      stat: 'sabiduria' },
-  { nombre: 'Trato con Animales', stat: 'sabiduria' },
-];
-
-const calcMod = (val: number) => {
-  const mod = Math.floor((val - 10) / 2);
-  return mod >= 0 ? `+${mod}` : `${mod}`;
-};
-
-const DEFAULT_STATS: Stats = {
-  fuerza: 10, destreza: 10, constitucion: 10,
-  inteligencia: 10, sabiduria: 10, carisma: 10,
-};
-
-const createEntryId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-
-const formatBonus = (value: number) => (value >= 0 ? `+${value}` : `${value}`);
-
-const defaultRango = (tipo: EntryTipo) => (tipo === 'conjuro' ? 6 : 1);
-
-const normalizeEntry = (entry: AttackSpellEntry): AttackSpellEntry => ({
-  ...entry,
-  rangoCasillas: typeof entry.rangoCasillas === 'number' ? entry.rangoCasillas : defaultRango(entry.tipo),
-});
-
-const buildDefaultEntries = (clase: string, stats: Stats, bonifComp: number): AttackSpellEntry[] => {
-  const modFuerza = Math.floor((stats.fuerza - 10) / 2);
-  const modDestreza = Math.floor((stats.destreza - 10) / 2);
-  const modInt = Math.floor((stats.inteligencia - 10) / 2);
-  const modSab = Math.floor((stats.sabiduria - 10) / 2);
-  const modCar = Math.floor((stats.carisma - 10) / 2);
-
-  const ataque = (nombre: string, bonus: number, dano: string): AttackSpellEntry => ({
-    id: createEntryId(),
-    nombre,
-    bonificador: formatBonus(bonus),
-    dano,
-    tipo: 'ataque',
-    rangoCasillas: defaultRango('ataque'),
-  });
-
-  const conjuro = (nombre: string, bonus: number, dano: string): AttackSpellEntry => ({
-    id: createEntryId(),
-    nombre,
-    bonificador: formatBonus(bonus),
-    dano,
-    tipo: 'conjuro',
-    rangoCasillas: defaultRango('conjuro'),
-  });
-
-  switch (clase) {
-    case 'Bárbaro':
-      return [ataque('Hacha grande', modFuerza + bonifComp, '1d12 + Fue')];
-    case 'Guerrero':
-      return [ataque('Espada larga', modFuerza + bonifComp, '1d8 + Fue')];
-    case 'Pícaro':
-      return [ataque('Daga', modDestreza + bonifComp, '1d4 + Des')];
-    case 'Mago':
-      return [conjuro('Rayo de fuego', modInt + bonifComp, '1d10 fuego')];
-    case 'Clérigo':
-      return [conjuro('Llama sagrada', modSab + bonifComp, '1d8 radiante')];
-    case 'Bardo':
-      return [conjuro('Burla viciosa', modCar + bonifComp, '1d4 psíquico')];
-    default:
-      return [ataque('Ataque básico', modFuerza + bonifComp, '1d6 + Fue')];
-  }
-};
-
-// ── DIARIO ────────────────────────────────────────────────
-function DiarioCampana({ nombre }: { nombre: string }) {
-  return (
-    <div className="sf-pergamino sf-diario">
-      <img src="/images/ravenloft-ficha-logo.png" alt="" className="sf-corner sf-corner--tl" />
-      <img src="/images/ravenloft-ficha-logo.png" alt="" className="sf-corner sf-corner--tr" />
-     
-
-      <div className="sf-cabecera">
-        <div className="sf-cabecera-linea" />
-        <div className="sf-cabecera-centro">
-          <p className="sf-ficha-label">Registro de Aventurero</p>
-          <h1 className="sf-nombre" style={{ fontSize: '26px' }}>Diario de Campaña</h1>
-          <p className="sf-raza-clase">{nombre || 'Aventurero'}</p>
-        </div>
-        <div className="sf-cabecera-linea" />
-      </div>
-
-      <div className="sf-diario-campos">
-        <div className="sf-diario-campo">
-          <span className="sf-diario-campo-label">✦ Fecha de Sesión</span>
-          <div className="sf-diario-linea-larga" />
-        </div>
-        <div className="sf-diario-campo">
-          <span className="sf-diario-campo-label">✦ Lugar</span>
-          <div className="sf-diario-linea-larga" />
-        </div>
-      </div>
-
-      <div className="sf-diario-sep">
-        <div className="sf-sep-linea" />
-        <span className="sf-sep-texto">Eventos Clave y Notas</span>
-        <div className="sf-sep-linea" />
-      </div>
-
-      <div className="sf-diario-notas">
-        {Array.from({ length: 18 }).map((_, i) => (
-          <div key={i} className="sf-diario-nota-linea">
-            <span className="sf-nota-dot">✦</span>
-            <div className="sf-nota-linea" />
-          </div>
-        ))}
-      </div>
-
-      <div className="sf-diario-ornamento">
-        <svg viewBox="0 0 120 20" className="sf-orn-svg">
-          <line x1="0" y1="10" x2="45" y2="10" stroke="rgba(120,80,30,0.4)" strokeWidth="1"/>
-          <path d="M50 10 Q55 4 60 10 Q65 16 70 10" stroke="rgba(120,80,30,0.5)" strokeWidth="1.2" fill="none"/>
-          <line x1="75" y1="10" x2="120" y2="10" stroke="rgba(120,80,30,0.4)" strokeWidth="1"/>
-          <circle cx="60" cy="10" r="2" fill="rgba(139,0,0,0.5)"/>
-        </svg>
-      </div>
-
-      <div className="sf-diario-notas">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="sf-diario-nota-linea">
-            <span className="sf-nota-dot">✦</span>
-            <div className="sf-nota-linea" />
-          </div>
-        ))}
-      </div>
-      <img src="/images/diario-pocion.png" alt="" className="sf-corner-deco sf-corner-deco--bl" />
-      <img src="/images/diario-mano.png"   alt="" className="sf-corner-deco sf-corner-deco--br" />
-    </div>
-  );
-}
-
-// ── COMPONENTE PRINCIPAL ──────────────────────────────────
 export function CharacterSheet({
   nombre = '',
   raza = '',
@@ -264,25 +52,13 @@ export function CharacterSheet({
   const [personaje, setPersonaje] = useState<PersonajeResponseDTO | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [attacks, setAttacks] = useState<AttackSpellEntry[]>([]);
-  const [spells, setSpells] = useState<AttackSpellEntry[]>([]);
   const [entriesKey, setEntriesKey] = useState<string | null>(null);
-  const [entryTipo, setEntryTipo] = useState<EntryTipo>('ataque');
-  const [entryNombre, setEntryNombre] = useState('');
-  const [entryBonificador, setEntryBonificador] = useState('');
-  const [entryDano, setEntryDano] = useState('');
-  const [entryRango, setEntryRango] = useState<number>(defaultRango('ataque'));
-  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-  const [editingEntryTipo, setEditingEntryTipo] = useState<EntryTipo | null>(null);
-  const [editingNombre, setEditingNombre] = useState('');
-  const [editingBonificador, setEditingBonificador] = useState('');
-  const [editingDano, setEditingDano] = useState('');
+
   const allowEdits = mostrarFormularioAtaques;
 
   useEffect(() => {
     if (modo !== 'view' || !id) return;
-
-    const loadPersonaje = async () => {
+    const load = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -295,12 +71,8 @@ export function CharacterSheet({
         setLoading(false);
       }
     };
-
-    loadPersonaje();
+    load();
   }, [id, modo]);
-
-  const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
-  const isDataUrl = (value: string) => /^data:/i.test(value);
 
   const resolveCartaUrl = (avatarValue?: string | null) => {
     if (!avatarValue) return null;
@@ -309,246 +81,48 @@ export function CharacterSheet({
   };
 
   const nombreFinal = personaje?.nombre ?? nombre;
-  const razaFinal = personaje?.raza ?? raza;
-  const claseFinal = personaje?.clase ?? clase;
-  const trasfondoFinal = trasfondo;
-  const historiaFinal = historia;
+  const razaFinal   = personaje?.raza ?? raza;
+  const claseFinal  = personaje?.clase ?? clase;
   const alineamientoFinal = personaje?.alineamiento ?? '—';
   const imagenFinal = modo === 'view' ? resolveCartaUrl(personaje?.avatar) : imagen;
 
   const statsFinales = useMemo<Stats>(() => (
     personaje
-      ? {
-          fuerza: personaje.fuerza,
-          destreza: personaje.destreza,
-          constitucion: personaje.constitucion,
-          inteligencia: personaje.inteligencia,
-          sabiduria: personaje.sabiduria,
-          carisma: personaje.carisma,
-        }
+      ? { fuerza: personaje.fuerza, destreza: personaje.destreza, constitucion: personaje.constitucion,
+          inteligencia: personaje.inteligencia, sabiduria: personaje.sabiduria, carisma: personaje.carisma }
       : stats
   ), [personaje, stats]);
 
-  const trasfondoData = TRASFONDOS[trasfondoFinal];
+  const trasfondoData = TRASFONDOS_MAP[trasfondo];
   const competencias = trasfondoData?.competencias ?? [];
-
   const bonifComp = personaje?.bonificacionCompetencia ?? 2;
 
   useEffect(() => {
-    if (modo !== 'view') {
-      setEntriesKey(null);
-      return;
-    }
+    if (modo !== 'view') { setEntriesKey(null); return; }
     const keyBase = personaje?.id ?? nombreFinal;
     setEntriesKey(keyBase ? `rc:attacks-spells:${keyBase}` : null);
   }, [modo, personaje?.id, nombreFinal]);
 
-  useEffect(() => {
-    setEntryRango(defaultRango(entryTipo));
-  }, [entryTipo]);
+  const attacksHook = useCharacterAttacks(
+    modo, entriesKey, claseFinal, statsFinales, bonifComp, entradasAtaquesConjuros
+  );
 
-  useEffect(() => {
-    if (!entradasAtaquesConjuros || entradasAtaquesConjuros.length === 0) return;
-    const normalized = entradasAtaquesConjuros.map(normalizeEntry);
-    setAttacks(normalized.filter(entry => entry.tipo === 'ataque'));
-    setSpells(normalized.filter(entry => entry.tipo === 'conjuro'));
-  }, [entradasAtaquesConjuros]);
-
-  useEffect(() => {
-    if (modo !== 'view') return;
-    if (!entriesKey) return;
-    if (entradasAtaquesConjuros && entradasAtaquesConjuros.length > 0) return;
-
-    const raw = localStorage.getItem(entriesKey);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as AttackSpellEntry[];
-        if (parsed.length > 0) {
-          const normalized = parsed.map(normalizeEntry);
-          setAttacks(normalized.filter(entry => entry.tipo === 'ataque'));
-          setSpells(normalized.filter(entry => entry.tipo === 'conjuro'));
-          return;
-        }
-      } catch {
-        // Si hay datos corruptos, los regeneramos por defecto.
-      }
-    }
-
-    const defaults = buildDefaultEntries(claseFinal, statsFinales, bonifComp);
-    const normalized = defaults.map(normalizeEntry);
-    setAttacks(normalized.filter(entry => entry.tipo === 'ataque'));
-    setSpells(normalized.filter(entry => entry.tipo === 'conjuro'));
-  }, [entriesKey, claseFinal, statsFinales, bonifComp, modo, entradasAtaquesConjuros]);
-
-  useEffect(() => {
-    if (modo !== 'view') return;
-    if (!entriesKey) return;
-    const payload = JSON.stringify([...attacks, ...spells]);
-    localStorage.setItem(entriesKey, payload);
-  }, [entriesKey, attacks, spells, modo]);
-
-  const addEntry = () => {
-    const nombreLimpio = entryNombre.trim();
-    const bonifLimpio = entryBonificador.trim();
-    const danoLimpio = entryDano.trim();
-    if (!nombreLimpio || !bonifLimpio || !danoLimpio) return;
-
-    const nuevo: AttackSpellEntry = {
-      id: createEntryId(),
-      nombre: nombreLimpio,
-      bonificador: bonifLimpio,
-      dano: danoLimpio,
-      tipo: entryTipo,
-      rangoCasillas: Number.isFinite(entryRango) ? entryRango : defaultRango(entryTipo),
-    };
-
-    if (entryTipo === 'ataque') {
-      setAttacks(prev => [...prev, nuevo]);
-    } else {
-      setSpells(prev => [...prev, nuevo]);
-    }
-
-    setEntryNombre('');
-    setEntryBonificador('');
-    setEntryDano('');
-    setEntryRango(defaultRango(entryTipo));
-  };
-
-  const resetEntriesToDefault = () => {
-    const defaults = buildDefaultEntries(claseFinal, statsFinales, bonifComp);
-    const normalized = defaults.map(normalizeEntry);
-    setAttacks(normalized.filter(entry => entry.tipo === 'ataque'));
-    setSpells(normalized.filter(entry => entry.tipo === 'conjuro'));
-    setEditingEntryId(null);
-    setEditingEntryTipo(null);
-  };
-
-  const startEditEntry = (entry: AttackSpellEntry) => {
-    setEditingEntryId(entry.id);
-    setEditingEntryTipo(entry.tipo);
-    setEditingNombre(entry.nombre);
-    setEditingBonificador(entry.bonificador);
-    setEditingDano(entry.dano);
-  };
-
-  const saveEditEntry = () => {
-    if (!editingEntryId || !editingEntryTipo) return;
-
-    const nombreLimpio = editingNombre.trim();
-    const bonifLimpio = editingBonificador.trim();
-    const danoLimpio = editingDano.trim();
-
-    if (!nombreLimpio && !bonifLimpio && !danoLimpio) {
-      resetEntriesToDefault();
-      return;
-    }
-
-    if (!nombreLimpio || !bonifLimpio || !danoLimpio) return;
-
-    if (editingEntryTipo === 'ataque') {
-      setAttacks(prev => prev.map(item => (
-        item.id === editingEntryId
-          ? { ...item, nombre: nombreLimpio, bonificador: bonifLimpio, dano: danoLimpio }
-          : item
-      )));
-    } else {
-      setSpells(prev => prev.map(item => (
-        item.id === editingEntryId
-          ? { ...item, nombre: nombreLimpio, bonificador: bonifLimpio, dano: danoLimpio }
-          : item
-      )));
-    }
-
-    setEditingEntryId(null);
-    setEditingEntryTipo(null);
-  };
-
-  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      saveEditEntry();
-      return;
-    }
-    if (e.key === 'Escape') {
-      setEditingEntryId(null);
-      setEditingEntryTipo(null);
-    }
-  };
-
-  const renderAttacksAndSpells = () => {
-    const rows = [...attacks, ...spells];
-    if (rows.length === 0) {
-      return [1, 2, 3, 4].map((i) => (
-        <div key={`empty-${i}`} className="sf-ataques-row">
-          <span>—</span><span>—</span><span>—</span>
-        </div>
-      ));
-    }
-
-    return rows.map((entry) => (
-      <div
-        key={entry.id}
-        className={`sf-ataques-row ${entry.tipo === 'conjuro' ? 'sf-ataques-row--spell' : ''}`}
-      >
-        <span>
-          {allowEdits && editingEntryId === entry.id ? (
-            <input
-              className="sf-ataques-inline-input"
-              type="text"
-              value={editingNombre}
-              onChange={(e) => setEditingNombre(e.target.value)}
-              onKeyDown={handleEditKeyDown}
-            />
-          ) : (entry.tipo === 'conjuro' ? `Conjuro: ${entry.nombre}` : entry.nombre)}
-        </span>
-        <span>
-          {allowEdits && editingEntryId === entry.id ? (
-            <input
-              className="sf-ataques-inline-input"
-              type="text"
-              value={editingBonificador}
-              onChange={(e) => setEditingBonificador(e.target.value)}
-              onKeyDown={handleEditKeyDown}
-            />
-          ) : entry.bonificador}
-        </span>
-        <span className="sf-ataques-dano">
-          {allowEdits && editingEntryId === entry.id ? (
-            <input
-              className="sf-ataques-inline-input"
-              type="text"
-              value={editingDano}
-              onChange={(e) => setEditingDano(e.target.value)}
-              onKeyDown={handleEditKeyDown}
-            />
-          ) : entry.dano}
-          {allowEdits && (
-            <button
-              type="button"
-              className="sf-ataques-edit-btn"
-              onClick={() => (editingEntryId === entry.id ? saveEditEntry() : startEditEntry(entry))}
-              aria-label={editingEntryId === entry.id ? `Guardar ${entry.nombre}` : `Editar ${entry.nombre}`}
-              title={editingEntryId === entry.id ? 'Guardar cambios' : 'Editar'}
-            >
-              <i className={`bi ${editingEntryId === entry.id ? 'bi-check2' : 'bi-pencil'}`} />
-            </button>
-          )}
-        </span>
-      </div>
-    ));
-  };
+  const {
+    attacks, spells,
+    entryTipo, entryNombre, entryBonificador, entryDano,
+    setEntryTipo, setEntryNombre, setEntryBonificador, setEntryDano,
+    editingEntryId, editingNombre, editingBonificador, editingDano,
+    setEditingNombre, setEditingBonificador, setEditingDano,
+    addEntry, startEditEntry, saveEditEntry, handleEditKeyDown,
+  } = attacksHook;
 
   const combate = [
-    {
-      label: 'Puntos de Golpe',
-      valor: personaje?.puntosGolpeMax?.toString()
-        ?? (typeof puntosGolpeMax === 'number' ? puntosGolpeMax.toString() : '—'),
-    },
-    { label: 'Iniciativa',      valor: personaje?.iniciativa?.toString() ?? calcMod(statsFinales.destreza) },
-    { label: 'Nivel',           valor: personaje?.nivel?.toString() ?? '1' },
-    { label: 'Velocidad',       valor: personaje?.velocidad ? `${personaje.velocidad} pies` : '30 pies' },
-    { label: 'Clase Armadura',  valor: personaje?.claseArmadura?.toString() ?? '10' },
-    { label: 'Bonif. Comp.',    valor: personaje?.bonificacionCompetencia ? `+${personaje.bonificacionCompetencia}` : '+2' },
+    { label: 'Puntos de Golpe', valor: personaje?.puntosGolpeMax?.toString() ?? (typeof puntosGolpeMax === 'number' ? puntosGolpeMax.toString() : '—') },
+    { label: 'Iniciativa',     valor: personaje?.iniciativa?.toString() ?? calcMod(statsFinales.destreza) },
+    { label: 'Nivel',          valor: personaje?.nivel?.toString() ?? '1' },
+    { label: 'Velocidad',      valor: personaje?.velocidad ? `${personaje.velocidad} pies` : '30 pies' },
+    { label: 'Clase Armadura', valor: personaje?.claseArmadura?.toString() ?? '10' },
+    { label: 'Bonif. Comp.',   valor: personaje?.bonificacionCompetencia ? `+${personaje.bonificacionCompetencia}` : '+2' },
   ];
 
   const handlePrint = () => {
@@ -570,22 +144,60 @@ export function CharacterSheet({
     if (!window.confirm('¿Estás seguro de que deseas eliminar este personaje? Esta acción es irreversible.')) return;
     try {
       await deletePersonaje(Number(id));
-      navigate('/characters/list');
+      navigate('/mis-personajes');
     } catch (err) {
       console.error('Error al eliminar personaje:', err);
       alert('Hubo un error al eliminar el personaje.');
     }
   };
 
+  const renderAttacksAndSpells = () => {
+    const rows = [...attacks, ...spells];
+    if (rows.length === 0) {
+      return [1, 2, 3, 4].map(i => (
+        <div key={`empty-${i}`} className="sf-ataques-row">
+          <span>—</span><span>—</span><span>—</span>
+        </div>
+      ));
+    }
+    return rows.map(entry => (
+      <div key={entry.id} className={`sf-ataques-row ${entry.tipo === 'conjuro' ? 'sf-ataques-row--spell' : ''}`}>
+        <span>
+          {allowEdits && editingEntryId === entry.id
+            ? <input className="sf-ataques-inline-input" type="text" value={editingNombre}
+                onChange={e => setEditingNombre(e.target.value)} onKeyDown={handleEditKeyDown} />
+            : (entry.tipo === 'conjuro' ? `Conjuro: ${entry.nombre}` : entry.nombre)}
+        </span>
+        <span>
+          {allowEdits && editingEntryId === entry.id
+            ? <input className="sf-ataques-inline-input" type="text" value={editingBonificador}
+                onChange={e => setEditingBonificador(e.target.value)} onKeyDown={handleEditKeyDown} />
+            : entry.bonificador}
+        </span>
+        <span className="sf-ataques-dano">
+          {allowEdits && editingEntryId === entry.id
+            ? <input className="sf-ataques-inline-input" type="text" value={editingDano}
+                onChange={e => setEditingDano(e.target.value)} onKeyDown={handleEditKeyDown} />
+            : entry.dano}
+          {allowEdits && (
+            <button type="button" className="sf-ataques-edit-btn"
+              onClick={() => (editingEntryId === entry.id ? saveEditEntry() : startEditEntry(entry))}
+              aria-label={editingEntryId === entry.id ? `Guardar ${entry.nombre}` : `Editar ${entry.nombre}`}
+              title={editingEntryId === entry.id ? 'Guardar cambios' : 'Editar'}
+            >
+              <i className={`bi ${editingEntryId === entry.id ? 'bi-check2' : 'bi-pencil'}`} />
+            </button>
+          )}
+        </span>
+      </div>
+    ));
+  };
+
   if (modo === 'view' && loading) {
     return (
       <div className="sf-page">
-        <div className="sf-actions no-print">
-          <BackButton />
-        </div>
-        <div className="container py-5 text-center text-light">
-          Cargando personaje...
-        </div>
+        <div className="sf-actions no-print"><BackButton /></div>
+        <div className="container py-5 text-center text-light">Cargando personaje...</div>
       </div>
     );
   }
@@ -593,19 +205,14 @@ export function CharacterSheet({
   if (modo === 'view' && error) {
     return (
       <div className="sf-page">
-        <div className="sf-actions no-print">
-          <BackButton />
-        </div>
-        <div className="container py-5 text-center text-light">
-          {error}
-        </div>
+        <div className="sf-actions no-print"><BackButton /></div>
+        <div className="container py-5 text-center text-light">{error}</div>
       </div>
     );
   }
 
   return (
     <div className="sf-page">
-
       {/* BARRA ACCIONES */}
       <div className="sf-actions no-print">
         {modo === 'wizard' && onVolver && (
@@ -635,13 +242,8 @@ export function CharacterSheet({
         <div className="sf-pergamino">
           <img src="/images/ravenloft-ficha-logo.png" alt="" className="sf-corner sf-corner--tl" />
           <img src="/images/ravenloft-ficha-logo.png" alt="" className="sf-corner sf-corner--tr" />
-
-
-          {/* MARCO ÉLFICO */}
-
           <div className="sf-marco-elfico" />
 
-          {/* CABECERA */}
           <div className="sf-cabecera">
             <div className="sf-cabecera-linea" />
             <div className="sf-cabecera-centro">
@@ -654,15 +256,13 @@ export function CharacterSheet({
             <div className="sf-cabecera-linea" />
           </div>
 
-          {/* CUERPO */}
           <div className="sf-cuerpo">
-
             {/* COLUMNA IZQ */}
             <div className="sf-col-izq">
               <h3 className="sf-titulo-seccion">Características</h3>
               {Object.entries(statsFinales).map(([stat, valor]) => (
                 <div key={stat} className="sf-stat-row">
-                  <span className="sf-stat-nombre">{STAT_LABELS[stat]}</span>
+                  <span className="sf-stat-nombre">{STAT_LABELS[stat as keyof typeof STAT_LABELS]}</span>
                   <span className="sf-stat-valor">{valor}</span>
                   <span className="sf-stat-mod">{calcMod(valor)}</span>
                 </div>
@@ -691,7 +291,6 @@ export function CharacterSheet({
                   : <div className="sf-foto-vacia">?</div>
                 }
               </div>
-
               <div className="sf-combate-grid">
                 {combate.map(item => (
                   <div key={item.label} className="sf-combate-box">
@@ -700,13 +299,9 @@ export function CharacterSheet({
                   </div>
                 ))}
               </div>
-
               {modo === 'view' && (
-                <button
-                  className="sf-btn sf-btn-delete no-print w-100"
-                  onClick={handleDelete}
-                  style={{ marginTop: 'auto', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                >
+                <button className="sf-btn sf-btn-delete no-print w-100" onClick={handleDelete}
+                  style={{ marginTop: 'auto', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                   <i className="bi bi-trash"></i> Eliminar Personaje
                 </button>
               )}
@@ -719,7 +314,7 @@ export function CharacterSheet({
                 { label: 'Nombre',       valor: nombreFinal || '—' },
                 { label: 'Raza',         valor: razaFinal || '—' },
                 { label: 'Clase',        valor: claseFinal || '—' },
-                { label: 'Trasfondo',    valor: trasfondoFinal || '—' },
+                { label: 'Trasfondo',    valor: trasfondo || '—' },
                 { label: 'Nivel',        valor: personaje?.nivel?.toString() ?? '1' },
                 { label: 'Alineamiento', valor: alineamientoFinal },
               ].map(d => (
@@ -733,9 +328,7 @@ export function CharacterSheet({
                 <>
                   <h3 className="sf-titulo-seccion sf-mt">Competencias</h3>
                   <div className="sf-competencias">
-                    {competencias.map(c => (
-                      <span key={c} className="sf-comp-tag">{c}</span>
-                    ))}
+                    {competencias.map(c => <span key={c} className="sf-comp-tag">{c}</span>)}
                   </div>
                 </>
               )}
@@ -748,62 +341,41 @@ export function CharacterSheet({
                 {renderAttacksAndSpells()}
               </div>
 
-              {/* Alta rapida de ataques/conjuros */}
               {allowEdits && (
                 <div className="sf-ataques-form">
                   <div className="sf-ataques-form-row">
                     <label className="sf-ataques-label">Tipo</label>
-                    <select
-                      className="sf-ataques-input"
-                      value={entryTipo}
-                      onChange={(e) => setEntryTipo(e.target.value as EntryTipo)}
-                    >
+                    <select className="sf-ataques-input" value={entryTipo}
+                      onChange={e => setEntryTipo(e.target.value as typeof entryTipo)}>
                       <option value="ataque">Ataque</option>
                       <option value="conjuro">Conjuro</option>
                     </select>
                   </div>
                   <div className="sf-ataques-form-row">
                     <label className="sf-ataques-label">Nombre</label>
-                    <input
-                      className="sf-ataques-input"
-                      type="text"
-                      value={entryNombre}
-                      onChange={(e) => setEntryNombre(e.target.value)}
-                      placeholder="Ej: Espada larga"
-                    />
+                    <input className="sf-ataques-input" type="text" value={entryNombre}
+                      onChange={e => setEntryNombre(e.target.value)} placeholder="Ej: Espada larga" />
                   </div>
                   <div className="sf-ataques-form-row">
                     <label className="sf-ataques-label">Bonificador</label>
-                    <input
-                      className="sf-ataques-input"
-                      type="text"
-                      value={entryBonificador}
-                      onChange={(e) => setEntryBonificador(e.target.value)}
-                      placeholder="Ej: +5"
-                    />
+                    <input className="sf-ataques-input" type="text" value={entryBonificador}
+                      onChange={e => setEntryBonificador(e.target.value)} placeholder="Ej: +5" />
                   </div>
                   <div className="sf-ataques-form-row">
                     <label className="sf-ataques-label">Daño</label>
-                    <input
-                      className="sf-ataques-input"
-                      type="text"
-                      value={entryDano}
-                      onChange={(e) => setEntryDano(e.target.value)}
-                      placeholder="Ej: 1d8 + Fue"
-                    />
+                    <input className="sf-ataques-input" type="text" value={entryDano}
+                      onChange={e => setEntryDano(e.target.value)} placeholder="Ej: 1d8 + Fue" />
                   </div>
                   <div className="sf-ataques-form-actions">
-                    <button type="button" className="sf-btn" onClick={addEntry}>
-                      Agregar
-                    </button>
+                    <button type="button" className="sf-btn" onClick={addEntry}>Agregar</button>
                   </div>
                 </div>
               )}
 
-              {historiaFinal && (
+              {historia && (
                 <>
                   <h3 className="sf-titulo-seccion sf-mt">Historia</h3>
-                  <p className="sf-historia">{historiaFinal}</p>
+                  <p className="sf-historia">{historia}</p>
                 </>
               )}
 
@@ -818,10 +390,7 @@ export function CharacterSheet({
         </div>
       )}
 
-      {/* ── DIARIO ── */}
       {tab === 'diario' && <DiarioCampana nombre={nombreFinal} />}
-
     </div>
   );
 }
-

@@ -1,40 +1,94 @@
 .mc-page {
+  position: relative;
   min-height: 100vh;
   background: #0a0203;
-  padding: 40px 32px;
+  padding-top: 80px;
   color: #e8d5b7;
+  overflow-x: hidden;
 }
 
-.mc-header {
+.mc-contenido {
+  position: relative;
+  z-index: 3;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 40px 40px 80px;
+}
+
+/* ── TÍTULO DE SECCIÓN CON LÍNEA ROJA ── */
+.mc-seccion-titulo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 10px;
+  margin: 8px 0 36px;
+}
+
+.mc-seccion-titulo-top {
+  position: relative;
+  width: 100%;
+  min-height: 42px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 32px;
+  justify-content: center;
 }
 
-.mc-titulo {
+.mc-seccion-titulo {
   font-family: 'Metal Mania', cursive;
-  font-size: 28px;
+  font-size: clamp(28px, 3vw, 42px);
+  line-height: 1;
   color: white;
-  letter-spacing: 2px;
-  margin: 0;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 24px rgba(139,0,0,0.35),
+    2px 2px 0 rgba(0,0,0,0.8);
 }
 
-.mc-btn-crear {
-  background: rgba(139, 0, 0, 0.6);
-  border: 1px solid rgba(139, 0, 0, 0.8);
+.mc-seccion-titulo-linea {
+  width: 100%;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent 0%, rgba(200,50,30,0.95) 15%, rgba(200,50,30,0.95) 85%, transparent 100%);
+}
+
+/* ── BOTÓN NUEVA CAMPAÑA ── */
+.mc-btn-nueva {
+  position: absolute;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 148px;
+  padding: 9px 18px;
+  background: linear-gradient(180deg, rgba(48,12,14,0.97), rgba(22,6,8,0.97));
+  border: 1px solid rgba(139,0,0,0.45);
   border-radius: 8px;
   color: #e8d5b7;
-  font-size: 13px;
-  padding: 10px 20px;
-  cursor: pointer;
-  transition: all 0.2s;
   font-family: 'Metal Mania', cursive;
+  font-size: 13px;
   letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
 }
 
-.mc-btn-crear:hover {
-  background: rgba(139, 0, 0, 0.9);
+.mc-btn-nueva:hover {
+  transform: translateY(-2px);
+  border-color: rgba(200,50,30,0.65);
+  box-shadow:
+    0 14px 34px rgba(0,0,0,0.45),
+    0 0 0 1px rgba(200,50,30,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+@media (max-width: 768px) {
+  .mc-contenido { padding: 24px 20px 60px; }
+  .mc-seccion-titulo-top { justify-content: flex-start; gap: 10px; min-height: auto; }
+  .mc-seccion-titulo { text-align: left; font-size: 26px; }
+  .mc-btn-nueva { position: static; margin-left: auto; }
 }
 
 .mc-cargando {
@@ -101,17 +155,20 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  padding: 4px 10px;
+  padding: 3px 10px;
   border-radius: 20px;
-  font-size: 10px;
-  font-weight: bold;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  letter-spacing: 1px;
 }
 
-.mc-card-estado--activa { background: rgba(46, 204, 113, 0.3); color: #2ecc71; border: 1px solid #2ecc71; }
-.mc-card-estado--inactiva { background: rgba(149, 165, 166, 0.3); color: #95a5a6; border: 1px solid #95a5a6; }
-.mc-card-estado--pausada { background: rgba(243, 156, 18, 0.3); color: #f39c12; border: 1px solid #f39c12; }
+.mc-card-estado--abierta  { background: rgba(46, 204, 113, 0.75); }
+.mc-card-estado--activa   { background: rgba(46, 204, 113, 0.75); }
+.mc-card-estado--inactiva { background: rgba(100, 100, 110, 0.75); }
+.mc-card-estado--pausada  { background: rgba(220, 140, 20, 0.85); }
+.mc-card-estado--cerrada  { background: rgba(180, 30, 30, 0.8); }
 
 .mc-card-info {
   padding: 16px;
@@ -143,6 +200,49 @@
   color: rgba(232, 213, 183, 0.5);
   font-size: 11px;
 }
+
+/* ── PAGINACIÓN ── */
+.mc-paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 32px;
+}
+
+.mc-pag-btn {
+  padding: 11px 28px;
+  border: 1px solid rgba(139,0,0,0.4);
+  border-radius: 8px;
+  background: rgba(139,0,0,0.12);
+  color: rgba(255,255,255,0.8);
+  font-family: 'Metal Mania', cursive;
+  font-size: 14px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mc-pag-btn:hover:not(:disabled) {
+  background: rgba(139,0,0,0.3);
+  border-color: rgba(200,50,30,0.7);
+  color: #fff;
+}
+
+.mc-pag-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.mc-pag-info {
+  font-family: 'Metal Mania', cursive;
+  font-size: 15px;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 1px;
+  min-width: 120px;
+  text-align: center;
+}
+
 /* ── MODAL DETALLE CAMPAÑA ── */
 .mc-modal-overlay {
   position: fixed;
@@ -345,4 +445,108 @@
 .mc-btn-editar:hover {
   border-color: rgba(255,255,255,0.2);
   color: rgba(232, 213, 183, 0.8);
+}
+
+.mc-btn-borrar {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid rgba(180, 30, 30, 0.35);
+  border-radius: 10px;
+  color: rgba(255, 120, 120, 0.6);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mc-btn-borrar:hover {
+  border-color: rgba(220, 50, 50, 0.7);
+  background: rgba(139, 0, 0, 0.18);
+  color: rgba(255, 140, 140, 0.95);
+}
+
+/* ── MODAL CONFIRMACIÓN BORRADO ── */
+.mc-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  backdrop-filter: blur(6px);
+}
+
+.mc-confirm {
+  background: rgba(10, 3, 4, 0.98);
+  border: 1px solid rgba(180, 30, 30, 0.5);
+  border-radius: 14px;
+  padding: 32px 28px 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(139, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mc-confirm-titulo {
+  font-family: 'Metal Mania', cursive;
+  font-size: 22px;
+  color: #fff;
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.mc-confirm-texto {
+  font-size: 14px;
+  color: rgba(232, 213, 183, 0.7);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.mc-confirm-texto strong {
+  color: rgba(232, 213, 183, 0.95);
+}
+
+.mc-confirm-acciones {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.mc-confirm-btn-cancelar {
+  flex: 1;
+  padding: 11px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(232, 213, 183, 0.6);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mc-confirm-btn-cancelar:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(232, 213, 183, 0.9);
+}
+
+.mc-confirm-btn-borrar {
+  flex: 1;
+  padding: 11px;
+  background: rgba(139, 0, 0, 0.5);
+  border: 1px solid rgba(200, 30, 30, 0.6);
+  border-radius: 8px;
+  color: #fff;
+  font-family: 'Metal Mania', cursive;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mc-confirm-btn-borrar:hover {
+  background: rgba(180, 0, 0, 0.75);
+  border-color: rgba(220, 50, 50, 0.8);
 }
