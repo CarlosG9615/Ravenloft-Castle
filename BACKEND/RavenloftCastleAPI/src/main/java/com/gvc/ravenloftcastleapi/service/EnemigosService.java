@@ -25,6 +25,8 @@ public class EnemigosService {
                         e.getCr().doubleValue(),
                         e.getSalud(),
                         e.getCa(),
+                        e.getVelocidad(),
+                        e.getIniciativa(),
                         new com.gvc.ravenloftcastleapi.dto.personaje.StatsDTO(
                                 e.getStr(),
                                 e.getDex(),
@@ -50,6 +52,8 @@ public class EnemigosService {
                 e.getCr().doubleValue(),
                 e.getSalud(),
                 e.getCa(),
+                e.getVelocidad(),
+                e.getIniciativa(),
                 new com.gvc.ravenloftcastleapi.dto.personaje.StatsDTO(
                         e.getStr(),
                         e.getDex(),
@@ -71,20 +75,22 @@ public class EnemigosService {
         e.setCr(dto.cr());
         e.setSalud(dto.salud());
         e.setCa(dto.ca());
-        
+        e.setVelocidad(dto.velocidad() != null ? dto.velocidad() : 30);
+        e.setIniciativa(dto.iniciativa() != null ? dto.iniciativa() : 0);
+
         e.setStr(dto.stats().fuerza());
         e.setDex(dto.stats().destreza());
         e.setCon(dto.stats().constitucion());
         e.setIng(dto.stats().inteligencia());
         e.setWis(dto.stats().sabiduria());
         e.setCha(dto.stats().carisma());
-        
+
         e.setFuerzaAtaque(dto.fuerzaAtaque());
         e.setDanoAtaque(dto.danoAtaque());
         e.setDescripcion(dto.descripcion());
-        
+
         Enemigo saved = enemigoRepository.save(e);
-        
+
         return new EnemigoDetalleDTO(
                 saved.getId(),
                 saved.getNombre(),
@@ -92,6 +98,8 @@ public class EnemigosService {
                 saved.getCr().doubleValue(),
                 saved.getSalud(),
                 saved.getCa(),
+                saved.getVelocidad(),
+                saved.getIniciativa(),
                 new com.gvc.ravenloftcastleapi.dto.personaje.StatsDTO(
                         saved.getStr(),
                         saved.getDex(),
@@ -126,6 +134,8 @@ public class EnemigosService {
                 saved.getCr().doubleValue(),
                 saved.getSalud(),
                 saved.getCa(),
+                saved.getVelocidad(),
+                saved.getIniciativa(),
                 new com.gvc.ravenloftcastleapi.dto.personaje.StatsDTO(
                         saved.getStr(),
                         saved.getDex(),

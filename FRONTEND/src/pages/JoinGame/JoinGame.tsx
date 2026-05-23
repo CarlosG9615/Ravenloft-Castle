@@ -268,9 +268,13 @@ export function JoinGame() {
 
   const campanasFiltradas = campanas.filter(c => {
     const coincideBusqueda = c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      c.master.toLowerCase().includes(busqueda.toLowerCase());
-    const coincideFiltro = filtro === 'todas' || normalizarDificultad(c.dificultad) === normalizarDificultad(filtro);
-    return coincideBusqueda && coincideFiltro;
+    c.master.toLowerCase().includes(busqueda.toLowerCase());
+  const coincideFiltro = filtro === 'todas' || normalizarDificultad(c.dificultad) === normalizarDificultad(filtro);
+
+  
+  // Excluir campañas donde soy master
+  const noSoyMaster = c.masterId !== user?.id;
+  return coincideBusqueda && coincideFiltro && noSoyMaster;
   });
 
   const abrirSeleccionPersonaje = (campana: Campana) => {
