@@ -53,7 +53,7 @@
   background: linear-gradient(90deg, transparent 0%, rgba(200,50,30,0.95) 15%, rgba(200,50,30,0.95) 85%, transparent 100%);
 }
 
-/* ── BOTÓN NUEVA CAMPAÑA (posición igual que "Campañas" en StoryMode) ── */
+/* ── BOTÓN NUEVA CAMPAÑA ── */
 .mc-btn-nueva {
   position: absolute;
   right: 0;
@@ -241,4 +241,208 @@
   letter-spacing: 1px;
   min-width: 120px;
   text-align: center;
+}
+
+/* ── MODAL DETALLE CAMPAÑA ── */
+.mc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.mc-modal {
+  background: rgba(10, 5, 2, 0.98);
+  border: 1px solid rgba(139, 0, 0, 0.5);
+  border-radius: 16px;
+  overflow: hidden;
+  width: 90%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(139, 0, 0, 0.3);
+}
+
+.mc-modal-hero {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+}
+
+.mc-modal-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mc-modal-hero-placeholder {
+  width: 100%;
+  height: 100%;
+  background: rgba(139, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+}
+
+.mc-modal-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(10,5,2,0.95) 0%, transparent 60%);
+}
+
+.mc-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 50%;
+  color: white;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.mc-modal-hero-info {
+  position: absolute;
+  bottom: 16px;
+  left: 20px;
+  z-index: 2;
+}
+
+.mc-modal-dificultad {
+  background: rgba(139, 0, 0, 0.8);
+  color: #e8d5b7;
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.mc-modal-titulo {
+  font-family: 'Metal Mania', cursive;
+  color: white;
+  font-size: 22px;
+  margin: 0 0 4px;
+  letter-spacing: 1px;
+}
+
+.mc-modal-sistema {
+  color: rgba(232, 213, 183, 0.6);
+  font-size: 12px;
+  margin: 0;
+}
+
+.mc-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mc-modal-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.mc-modal-stat {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mc-modal-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(232, 213, 183, 0.4);
+}
+
+.mc-modal-stat-valor {
+  font-size: 13px;
+  color: #e8d5b7;
+  font-weight: 600;
+}
+
+.mc-estado-abierta { color: #2ecc71; }
+
+.mc-modal-seccion {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 12px;
+}
+
+.mc-modal-seccion-titulo {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(139, 0, 0, 0.9);
+  margin: 0 0 8px;
+}
+
+.mc-modal-texto {
+  color: rgba(232, 213, 183, 0.65);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.mc-modal-acciones {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.mc-btn-liderar {
+  width: 100%;
+  padding: 14px;
+  background: rgba(139, 0, 0, 0.8);
+  border: 1px solid rgba(139, 0, 0, 0.9);
+  border-radius: 10px;
+  color: #e8d5b7;
+  font-family: 'Metal Mania', cursive;
+  font-size: 15px;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mc-btn-liderar:hover {
+  background: rgba(180, 0, 0, 0.9);
+  transform: translateY(-1px);
+}
+
+.mc-btn-editar {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  color: rgba(232, 213, 183, 0.5);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mc-btn-editar:hover {
+  border-color: rgba(255,255,255,0.2);
+  color: rgba(232, 213, 183, 0.8);
 }

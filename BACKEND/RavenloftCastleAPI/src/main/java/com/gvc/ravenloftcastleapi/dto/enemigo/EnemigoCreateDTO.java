@@ -11,6 +11,8 @@ public record EnemigoCreateDTO(
         @NotNull BigDecimal cr,
         @NotNull Integer salud,
         @NotNull Integer ca,
+        Integer velocidad,
+        Integer iniciativa,
         @NotNull StatsDTO stats,
         @NotNull Integer fuerzaAtaque,
         @NotBlank String danoAtaque,

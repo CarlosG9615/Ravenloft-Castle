@@ -52,6 +52,12 @@ public class Enemigo {
     @Column(nullable = false)
     private int cha;
 
+    @Column(nullable = false)
+    private int velocidad;
+
+    @Column(nullable = false)
+    private int iniciativa;
+
     @Column(name = "fuerza_ataque", nullable = false)
     private int fuerzaAtaque;
 
