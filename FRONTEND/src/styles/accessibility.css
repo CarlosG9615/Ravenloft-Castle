@@ -245,7 +245,7 @@ body.accessibility-enabled .text-muted {
   color: rgba(255,255,255,0.45) !important;
 }
 
-body.accessibility-enabled .create-section-title {
+body.accessibility-enabled .create-section-title:not(h4) {
   color: #ffffff !important;
 }
 
@@ -494,6 +494,10 @@ body.accessibility-enabled .plan-icon {
   margin-bottom: 1.2rem !important;
 }
 
+body.accessibility-enabled .subscription-title {
+  font-size: 72px !important;
+}
+
 /* Título del plan (ej: "Héroe") */
 body.accessibility-enabled .plan-header h2 {
   font-size: 2.4rem !important;
@@ -554,4 +558,121 @@ body.accessibility-enabled .plan-overlay p {
   body.accessibility-enabled .plans-grid {
     grid-template-columns: 1fr !important;
   }
+}
+
+/* ── MIS PERSONAJES ── */
+
+body.accessibility-enabled .mp-seccion-titulo {
+  font-size: clamp(38px, 4vw, 58px) !important;
+}
+
+body.accessibility-enabled .mp-grid {
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 32px !important;
+}
+
+
+body.accessibility-enabled .mp-grid .mp-card-info {
+  padding: 22px 24px 20px !important;
+}
+
+body.accessibility-enabled .mp-grid .mp-card-nombre {
+  font-size: 24px !important;
+  margin-bottom: 10px !important;
+}
+
+body.accessibility-enabled .mp-grid .mp-card-sub {
+  font-size: 17px !important;
+}
+
+body.accessibility-enabled .mp-pag-btn {
+  font-size: 16px !important;
+  padding: 13px 32px !important;
+}
+
+body.accessibility-enabled .mp-pag-info {
+  font-size: 17px !important;
+  color: rgba(255,255,255,0.75) !important;
+}
+
+/* ── MIS CAMPAÑAS ── */
+
+body.accessibility-enabled .mc-seccion-titulo {
+  font-size: clamp(38px, 4vw, 58px) !important;
+}
+
+/* ── MIS CAMPAÑAS — PAGINACIÓN ACCESIBILIDAD ── */
+
+body.accessibility-enabled .mc-grid {
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 32px !important;
+}
+
+body.accessibility-enabled .mc-card-imagen {
+  aspect-ratio: 16 / 9 !important;
+  height: auto !important;
+}
+
+body.accessibility-enabled .mc-card-info {
+  padding: 22px 24px 20px !important;
+}
+
+body.accessibility-enabled .mc-card-nombre {
+  font-size: 24px !important;
+  margin-bottom: 14px !important;
+}
+
+body.accessibility-enabled .mc-card-desc {
+  font-size: 16px !important;
+  line-height: 1.75 !important;
+  -webkit-line-clamp: 5 !important;
+  line-clamp: 5 !important;
+  margin-bottom: 18px !important;
+}
+
+body.accessibility-enabled .mc-card-meta {
+  font-size: 16px !important;
+  gap: 16px !important;
+}
+
+body.accessibility-enabled .mc-card-meta span {
+  font-size: 16px !important;
+}
+
+body.accessibility-enabled .mc-card-estado {
+  font-size: 14px !important;
+  padding: 5px 13px !important;
+}
+
+body.accessibility-enabled .mc-pag-btn {
+  font-size: 16px !important;
+  padding: 13px 32px !important;
+}
+
+body.accessibility-enabled .mc-pag-info {
+  font-size: 17px !important;
+  color: rgba(255,255,255,0.75) !important;
+}
+
+/* ── HOME — ABOUT TEXT ── */
+body.accessibility-enabled .about-text {
+  font-size: 28px !important;
+  line-height: 1.75 !important;
+}
+
+/* ── HOME — HERO CTA ── */
+body.accessibility-enabled .hero-cta {
+  font-size: 26px !important;
+  padding: 22px 64px !important;
+  letter-spacing: 4px !important;
+}
+
+/* ── HOME — FEATURE CARDS ── */
+body.accessibility-enabled .feature-title {
+  font-size: 36px !important;
+}
+
+body.accessibility-enabled .feature-desc {
+  font-size: 24px !important;
+  line-height: 1.6 !important;
 }

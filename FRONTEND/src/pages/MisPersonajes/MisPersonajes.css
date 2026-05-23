@@ -1,4 +1,4 @@
-.mc-page {
+.mp-page {
   position: relative;
   min-height: 100vh;
   background: #0a0203;
@@ -7,7 +7,7 @@
   overflow-x: hidden;
 }
 
-.mc-contenido {
+.mp-contenido {
   position: relative;
   z-index: 3;
   max-width: 1300px;
@@ -16,7 +16,7 @@
 }
 
 /* ── TÍTULO DE SECCIÓN CON LÍNEA ROJA ── */
-.mc-seccion-titulo-wrap {
+.mp-seccion-titulo-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -25,7 +25,7 @@
   margin: 8px 0 36px;
 }
 
-.mc-seccion-titulo-top {
+.mp-seccion-titulo-top {
   position: relative;
   width: 100%;
   min-height: 42px;
@@ -34,7 +34,7 @@
   justify-content: center;
 }
 
-.mc-seccion-titulo {
+.mp-seccion-titulo {
   font-family: 'Metal Mania', cursive;
   font-size: clamp(28px, 3vw, 42px);
   line-height: 1;
@@ -46,21 +46,21 @@
     2px 2px 0 rgba(0,0,0,0.8);
 }
 
-.mc-seccion-titulo-linea {
+.mp-seccion-titulo-linea {
   width: 100%;
   height: 3px;
   border-radius: 999px;
   background: linear-gradient(90deg, transparent 0%, rgba(200,50,30,0.95) 15%, rgba(200,50,30,0.95) 85%, transparent 100%);
 }
 
-/* ── BOTÓN NUEVA CAMPAÑA (posición igual que "Campañas" en StoryMode) ── */
-.mc-btn-nueva {
+/* ── BOTÓN NUEVO PERSONAJE ── */
+.mp-btn-nueva {
   position: absolute;
   right: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 148px;
+  min-width: 160px;
   padding: 9px 18px;
   background: linear-gradient(180deg, rgba(48,12,14,0.97), rgba(22,6,8,0.97));
   border: 1px solid rgba(139,0,0,0.45);
@@ -75,7 +75,7 @@
   box-shadow: 0 6px 16px rgba(0,0,0,0.35);
 }
 
-.mc-btn-nueva:hover {
+.mp-btn-nueva:hover {
   transform: translateY(-2px);
   border-color: rgba(200,50,30,0.65);
   box-shadow:
@@ -84,21 +84,15 @@
     inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
-@media (max-width: 768px) {
-  .mc-contenido { padding: 24px 20px 60px; }
-  .mc-seccion-titulo-top { justify-content: flex-start; gap: 10px; min-height: auto; }
-  .mc-seccion-titulo { text-align: left; font-size: 26px; }
-  .mc-btn-nueva { position: static; margin-left: auto; }
-}
-
-.mc-cargando {
+/* ── ESTADOS ── */
+.mp-cargando {
   text-align: center;
   color: rgba(232, 213, 183, 0.5);
   font-size: 14px;
   margin-top: 40px;
 }
 
-.mc-vacio {
+.mp-vacio {
   text-align: center;
   margin-top: 80px;
   display: flex;
@@ -108,101 +102,66 @@
   color: rgba(232, 213, 183, 0.5);
 }
 
-.mc-grid {
+/* ── GRID ── */
+.mp-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 24px;
 }
 
-.mc-card {
-  background: rgba(15, 8, 3, 0.8);
-  border: 1px solid rgba(139, 0, 0, 0.3);
+/* ── CARD ── */
+.mp-card {
+  background: #000;
+  border: 1px solid rgba(139, 0, 0, 0.25);
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.2s;
-}
-
-.mc-card:hover {
-  border-color: rgba(139, 0, 0, 0.7);
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(139, 0, 0, 0.2);
-}
-
-.mc-card-imagen {
-  position: relative;
-  height: 180px;
-  overflow: hidden;
-}
-
-.mc-card-imagen img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.mc-card-imagen-placeholder {
-  width: 100%;
-  height: 100%;
-  background: rgba(139, 0, 0, 0.15);
+  transition: all 0.3s;
+  aspect-ratio: 3 / 4;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 48px;
+  flex-direction: column;
 }
 
-.mc-card-estado {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  color: white;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+.mp-card:hover {
+  border-color: rgba(139, 0, 0, 0.6);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(139, 0, 0, 0.2);
 }
 
-.mc-card-estado--abierta  { background: rgba(46, 204, 113, 0.75); }
-.mc-card-estado--activa   { background: rgba(46, 204, 113, 0.75); }
-.mc-card-estado--inactiva { background: rgba(100, 100, 110, 0.75); }
-.mc-card-estado--pausada  { background: rgba(220, 140, 20, 0.85); }
-.mc-card-estado--cerrada  { background: rgba(180, 30, 30, 0.8); }
-
-.mc-card-info {
-  padding: 16px;
+.mp-card-img {
+  width: 100%;
+  flex: 1;
+  object-fit: contain;
+  object-position: center top;
+  min-height: 0;
+  display: block;
+  transform: scale(1.18) translateY(-22%);
+  transform-origin: center top;
 }
 
-.mc-card-nombre {
+.mp-card-info {
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.75);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.mp-card-nombre {
   font-family: 'Metal Mania', cursive;
-  font-size: 16px;
+  font-size: 15px;
   color: white;
-  margin: 0 0 8px;
+  margin: 0 0 4px;
   letter-spacing: 1px;
 }
 
-.mc-card-desc {
-  color: rgba(232, 213, 183, 0.6);
-  font-size: 12px;
-  margin: 0 0 12px;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.mc-card-meta {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  color: rgba(232, 213, 183, 0.5);
+.mp-card-sub {
   font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
 }
 
 /* ── PAGINACIÓN ── */
-.mc-paginacion {
+.mp-paginacion {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -210,7 +169,7 @@
   margin-top: 32px;
 }
 
-.mc-pag-btn {
+.mp-pag-btn {
   padding: 11px 28px;
   border: 1px solid rgba(139,0,0,0.4);
   border-radius: 8px;
@@ -223,22 +182,30 @@
   transition: all 0.2s ease;
 }
 
-.mc-pag-btn:hover:not(:disabled) {
+.mp-pag-btn:hover:not(:disabled) {
   background: rgba(139,0,0,0.3);
   border-color: rgba(200,50,30,0.7);
   color: #fff;
 }
 
-.mc-pag-btn:disabled {
+.mp-pag-btn:disabled {
   opacity: 0.3;
   cursor: default;
 }
 
-.mc-pag-info {
+.mp-pag-info {
   font-family: 'Metal Mania', cursive;
   font-size: 15px;
   color: rgba(255,255,255,0.55);
   letter-spacing: 1px;
   min-width: 120px;
   text-align: center;
+}
+
+@media (max-width: 768px) {
+  .mp-contenido { padding: 24px 20px 60px; }
+  .mp-seccion-titulo-top { justify-content: flex-start; gap: 10px; min-height: auto; }
+  .mp-seccion-titulo { text-align: left; font-size: 26px; }
+  .mp-btn-nueva { position: static; margin-left: auto; }
+  .mp-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
 }

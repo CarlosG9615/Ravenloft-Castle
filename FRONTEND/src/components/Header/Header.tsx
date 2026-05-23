@@ -29,6 +29,8 @@ export function Header() {
 
   const [campañasOpen, setCampañasOpen] = useState(false);
   const campañasRef = useRef<HTMLDivElement>(null);
+  const [personajesOpen, setPersonajesOpen] = useState(false);
+  const personajesRef = useRef<HTMLDivElement>(null);
 
   const noLeidas = notificaciones.filter(n => !n.leida).length;
   const privateRoutes = ['/characters', '/join', '/join/story-mode', '/create', '/tools'];
@@ -54,6 +56,9 @@ export function Header() {
       }
       if (campañasRef.current && !campañasRef.current.contains(e.target as Node)) {
         setCampañasOpen(false);
+      }
+      if (personajesRef.current && !personajesRef.current.contains(e.target as Node)) {
+        setPersonajesOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -145,6 +150,7 @@ export function Header() {
     setDropdownOpen(false);
     setNotifOpen(false);
     setCampañasOpen(false);
+    setPersonajesOpen(false);
   };
 
   return (
@@ -167,7 +173,13 @@ export function Header() {
         {mobileMenuOpen && (
           <div className="mobile-menu">
             <a className={'mobile-nav-link' + (isActive('/home') ? ' active' : '')} onClick={() => handleNavClick('/home')}>Inicio</a>
-            <a className={'mobile-nav-link' + (isActive('/characters') ? ' active' : '')} onClick={() => handleNavClick('/characters')}>Personajes</a>
+            <div className="mobile-nav-group">
+              <div className="mobile-nav-group-title">Personajes</div>
+              <a className="mobile-nav-link mobile-nav-link--sub" onClick={() => handleNavClick('/characters/new')}>Crear Personaje</a>
+              {isLoggedIn && (
+                <a className="mobile-nav-link mobile-nav-link--sub" onClick={() => handleNavClick('/mis-personajes')}>Mis Personajes</a>
+              )}
+            </div>
 
             <div className="mobile-nav-group">
               <div className="mobile-nav-group-title">Campañas</div>
@@ -198,12 +210,26 @@ export function Header() {
         >
           Inicio
         </a>
-        <a className={'nav-link' + (isActive('/characters') ? ' active' : '')}
-        onClick={() => handleNavClick('/characters')}
-        >
-        Personajes
-        </a>
-
+        {/* ── DESPLEGABLE PERSONAJES ── */}
+        <div className="nav-dropdown-wrap" ref={personajesRef}>
+          <a className={`nav-link ${personajesOpen ? 'active' : ''}`}
+            onClick={() => setPersonajesOpen(!personajesOpen)}
+          >
+            Personajes ▾
+          </a>
+          {personajesOpen && (
+            <div className="nav-dropdown">
+              <a className="nav-dropdown-item" onClick={() => { handleNavClick('/characters/new'); setPersonajesOpen(false); }}>
+                Crear Personaje
+              </a>
+              {isLoggedIn && (
+                <a className="nav-dropdown-item" onClick={() => { handleNavClick('/mis-personajes'); setPersonajesOpen(false); }}>
+                  Mis Personajes
+                </a>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* ── DESPLEGABLE CAMPAÑAS ── */}
   <div className="nav-dropdown-wrap" ref={campañasRef}>
