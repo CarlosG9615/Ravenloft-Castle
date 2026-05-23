@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './CharacterCreate.css';
@@ -6,8 +6,9 @@ import { BackButton } from '../../components/BackButton/BackButton';
 import { CharacterSheet, type AttackSpellEntry, type EntryTipo } from './CharacterSheet';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import { createPersonaje, type PersonajeCreatePayload } from '../../services/personajeService';
-import { FileText, Clipboard, ColorsSwatch, Folder  } from 'pixelarticons/react';
+import { FileText, Clipboard, ColorsSwatch } from 'pixelarticons/react';
 import { Dices } from 'lucide-react';
+import { DiceRoller } from '../Tablero/DiceRoller';
 
 
 // ── DATOS D&D 5e ──────────────────────────────────────────
@@ -85,10 +86,15 @@ const calcularModificador = (val: number) => {
   return mod >= 0 ? `+${mod}` : `${mod}`;
 };
 
-const calcularTirada = () => {
-  const dados = Array.from({ length: 4 }, () => Math.floor(Math.random() * 6) + 1);
-  dados.sort((a, b) => a - b);
-  return dados.slice(1).reduce((a, b) => a + b, 0);
+// d20 con mínimo 8 — protección exclusiva para creación de personaje
+const tirarD20CreacionPersonaje = () => Math.max(8, Math.floor(Math.random() * 20) + 1);
+
+const DRAFT_KEY = 'rc:character-create-draft';
+const readDraft = (): Record<string, any> | null => {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 };
 
 const normalizarClase = (nombre: string) =>
@@ -102,28 +108,30 @@ const contarPalabras = (texto: string) =>
 // ── COMPONENTE ────────────────────────────────────────────
 export function CharacterCreate() {
   const navigate = useNavigate();
+  const d = useRef(readDraft()).current;
 
-  const [paso, setPaso] = useState(1);
+  const [paso, setPaso] = useState<number>(d?.paso ?? 1);
 
   // Paso 1
-  const [nombre, setNombre] = useState('');
-  const [raza, setRaza] = useState('');
-  const [clase, setClase] = useState('');
-  const [trasfondo, setTrasfondo] = useState('');
-  const [historia, setHistoria] = useState('');
+  const [nombre, setNombre] = useState<string>(d?.nombre ?? '');
+  const [raza, setRaza] = useState<string>(d?.raza ?? '');
+  const [clase, setClase] = useState<string>(d?.clase ?? '');
+  const [trasfondo, setTrasfondo] = useState<string>(d?.trasfondo ?? '');
+  const [historia, setHistoria] = useState<string>(d?.historia ?? '');
 
   // Paso 2
-  const [metodo, setMetodo] = useState<'puntos' | 'dados'>('puntos');
-  const [statsEstandar, setStatsEstandar] = useState<Record<StatKey, number | null>>({
-    fuerza: null, destreza: null, constitucion: null,
-    inteligencia: null, sabiduria: null, carisma: null,
-  });
-  const [tiradas, setTiradas] = useState<{ id: number; valor: number }[]>([]);
-  const [tiradaAsignada, setTiradaAsignada] = useState<Record<StatKey, number | null>>({
-    fuerza: null, destreza: null, constitucion: null,
-    inteligencia: null, sabiduria: null, carisma: null,
-  });
-  const [attackSpellEntries, setAttackSpellEntries] = useState<AttackSpellEntry[]>([]);
+  const [metodo, setMetodo] = useState<'puntos' | 'dados'>(d?.metodo ?? 'puntos');
+  const [statsEstandar, setStatsEstandar] = useState<Record<StatKey, number | null>>(
+    d?.statsEstandar ?? { fuerza: null, destreza: null, constitucion: null, inteligencia: null, sabiduria: null, carisma: null }
+  );
+  const [tiradas, setTiradas] = useState<{ id: number; valor: number }[]>(d?.tiradas ?? []);
+  const [tiradaAsignada, setTiradaAsignada] = useState<Record<StatKey, number | null>>(
+    d?.tiradaAsignada ?? { fuerza: null, destreza: null, constitucion: null, inteligencia: null, sabiduria: null, carisma: null }
+  );
+  const [d20Dado, setD20Dado] = useState<string | null>(null);
+  const [d20Resultado, setD20Resultado] = useState<number | null>(null);
+  const [isRolling, setIsRolling] = useState(false);
+  const [attackSpellEntries, setAttackSpellEntries] = useState<AttackSpellEntry[]>(d?.attackSpellEntries ?? []);
   const [entryTipo, setEntryTipo] = useState<EntryTipo>('ataque');
   const [entryNombre, setEntryNombre] = useState('');
   const [entryBonificador, setEntryBonificador] = useState('');
@@ -131,8 +139,8 @@ export function CharacterCreate() {
   const [entryRango, setEntryRango] = useState<number>(1);
 
   // Paso 3
-  const [avatarSeleccionado, setAvatarSeleccionado] = useState<string | null>(null);
-  const [avatarCustom, setAvatarCustom] = useState<string | null>(null);
+  const [avatarSeleccionado, setAvatarSeleccionado] = useState<string | null>(d?.avatarSeleccionado ?? null);
+  const avatarCustom = null;
   const [guardando, setGuardando] = useState(false);
 
   const razaData = RAZAS.find(r => r.nombre === raza);
@@ -174,15 +182,96 @@ export function CharacterCreate() {
   const valoresUsados = (statActual: StatKey) =>
     STATS.filter(s => s !== statActual).map(s => statsEstandar[s]).filter(v => v !== null) as number[];
 
-  const generarTiradas = () => {
-    setTiradas(Array.from({ length: 6 }, (_, i) => ({ id: i, valor: calcularTirada() })));
+  const rollRegistradoRef = useRef(false);
+  const fallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const registrarTirada = (valor: number) => {
+    if (rollRegistradoRef.current) return;
+    rollRegistradoRef.current = true;
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+    setTiradas(prev => [...prev, { id: prev.length, valor }]);
+    setD20Dado(null);
+    setD20Resultado(null);
+    setIsRolling(false);
+  };
+
+  const rollNextD20 = () => {
+    if (isRolling || tiradas.length >= 6) return;
+    rollRegistradoRef.current = false;
+    const result = tirarD20CreacionPersonaje();
+    setIsRolling(true);
+    setD20Resultado(result);
+    setD20Dado('d20');
+    const sound = new Audio('/public/sounds/diceroll/dado.wav');
+    sound.play().catch(() => {});
+    // Fallback solo si DiceBox no responde: settleTimeout(3000) + delay(1500) + margen = 6s
+    fallbackTimerRef.current = setTimeout(() => registrarTirada(result), 6000);
+  };
+
+  const handleD20AnimacionFin = (resultadoReal: number) => {
+    registrarTirada(resultadoReal);
+  };
+
+  const reiniciarTiradas = () => {
+    setTiradas([]);
     setTiradaAsignada({ fuerza: null, destreza: null, constitucion: null, inteligencia: null, sabiduria: null, carisma: null });
+    setD20Dado(null);
+    setD20Resultado(null);
+    setIsRolling(false);
   };
 
   const idsUsados = Object.values(tiradaAsignada).filter(v => v !== null) as number[];
 
   const asignarTirada = (stat: StatKey, idTirada: number | null) =>
     setTiradaAsignada(prev => ({ ...prev, [stat]: idTirada }));
+
+  // ── DRAG & DROP ───────────────────────────────────────────
+  type DragPayload =
+    | { source: 'pool-puntos'; valor: number }
+    | { source: 'pool-dados';  id: number }
+    | { source: 'stat-puntos'; stat: StatKey }
+    | { source: 'stat-dados';  stat: StatKey };
+
+  const dragPayload = useRef<DragPayload | null>(null);
+  const [dragOverStat, setDragOverStat] = useState<StatKey | null>(null);
+
+  const handleDropOnStat = (targetStat: StatKey) => {
+    const p = dragPayload.current;
+    setDragOverStat(null);
+    dragPayload.current = null;
+    if (!p) return;
+
+    if (p.source === 'pool-puntos') {
+      // Si el valor ya está asignado a otro stat, swap
+      const prevHolder = STATS.find(s => statsEstandar[s] === p.valor);
+      if (prevHolder && prevHolder !== targetStat) {
+        const displaced = statsEstandar[targetStat];
+        setStatsEstandar(prev => ({ ...prev, [prevHolder]: displaced, [targetStat]: p.valor }));
+      } else {
+        asignarPuntoEstandar(targetStat, p.valor);
+      }
+    } else if (p.source === 'pool-dados') {
+      // Si el id ya está asignado a otro stat, swap
+      const prevHolder = STATS.find(s => tiradaAsignada[s] === p.id);
+      if (prevHolder && prevHolder !== targetStat) {
+        const displaced = tiradaAsignada[targetStat];
+        setTiradaAsignada(prev => ({ ...prev, [prevHolder]: displaced, [targetStat]: p.id }));
+      } else {
+        asignarTirada(targetStat, p.id);
+      }
+    } else if (p.source === 'stat-puntos' && p.stat !== targetStat) {
+      const sourceVal = statsEstandar[p.stat];
+      const targetVal = statsEstandar[targetStat];
+      setStatsEstandar(prev => ({ ...prev, [p.stat]: targetVal, [targetStat]: sourceVal }));
+    } else if (p.source === 'stat-dados' && p.stat !== targetStat) {
+      const sourceId = tiradaAsignada[p.stat];
+      const targetId = tiradaAsignada[targetStat];
+      setTiradaAsignada(prev => ({ ...prev, [p.stat]: targetId, [targetStat]: sourceId }));
+    }
+  };
 
   useEffect(() => {
     setEntryRango(entryTipo === 'conjuro' ? 6 : 1);
@@ -216,31 +305,19 @@ export function CharacterCreate() {
   const cambiarMetodo = (nuevoMetodo: 'puntos' | 'dados') => {
     setMetodo(nuevoMetodo);
     setStatsEstandar({ fuerza: null, destreza: null, constitucion: null, inteligencia: null, sabiduria: null, carisma: null });
-    setTiradas([]);
     setTiradaAsignada({ fuerza: null, destreza: null, constitucion: null, inteligencia: null, sabiduria: null, carisma: null });
   };
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAvatarCustom(reader.result as string);
-      setAvatarSeleccionado(null);
-    };
-    reader.readAsDataURL(file);
-  };
 
   const seleccionarAvatar = (avatarId: string) => {
     setAvatarSeleccionado(avatarId);
-    setAvatarCustom(null);
   };
 
   const paso1Valido = nombre.trim() && raza && clase && trasfondo;
   const paso2Valido = metodo === 'puntos'
     ? STATS.every(s => statsEstandar[s] !== null)
     : STATS.every(s => tiradaAsignada[s] !== null);
-  const paso3Valido = avatarSeleccionado !== null || avatarCustom !== null;
+  const paso3Valido = avatarSeleccionado !== null;
 
   const normalizarTexto = (valor: string) =>
     valor.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -362,6 +439,7 @@ export function CharacterCreate() {
           localStorage.setItem(`rc:attacks-spells:${keyBase}`, JSON.stringify(attackSpellEntries));
         }
       }
+      localStorage.removeItem(DRAFT_KEY);
       navigate('/characters');
     } catch (error) {
       console.error('Error creando personaje:', error);
@@ -391,11 +469,21 @@ export function CharacterCreate() {
         return avatarPorDefecto;
       });
     }
-  }, [claseApariencia, avatarCustom]);
+  }, [claseApariencia]);
+
+  // Auto-guardado del borrador — se limpia solo al confirmar el personaje
+  useEffect(() => {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      paso, nombre, raza, clase, trasfondo, historia,
+      metodo, statsEstandar, tiradas, tiradaAsignada,
+      attackSpellEntries, avatarSeleccionado,
+    }));
+  }, [paso, nombre, raza, clase, trasfondo, historia, metodo, statsEstandar, tiradas, tiradaAsignada, attackSpellEntries, avatarSeleccionado]);
 
   const PASOS = ['Identidad', 'Características', 'Apariencia', 'Ficha Final'];
 
   return (
+    <>
     <div className="create-page">
       <BackButton />
       <div className="container py-5">
@@ -516,9 +604,20 @@ export function CharacterCreate() {
             {metodo === 'puntos' && (
               <>
                 <div className="mb-3 d-flex gap-2 flex-wrap">
-                  {PUNTOS_ESTANDAR.map(p => (
-                    <span key={p} className={`create-tirada-tag ${Object.values(statsEstandar).includes(p) ? 'used' : ''}`}>{p}</span>
-                  ))}
+                  {PUNTOS_ESTANDAR.map(p => {
+                    const used = Object.values(statsEstandar).includes(p);
+                    return (
+                      <span
+                        key={p}
+                        className={`create-tirada-tag ${used ? 'used' : ''}`}
+                        draggable
+                        onDragStart={() => { dragPayload.current = { source: 'pool-puntos', valor: p }; }}
+                        onDragEnd={() => setDragOverStat(null)}
+                      >
+                        {p}
+                      </span>
+                    );
+                  })}
                   <small className="text-muted ms-2 align-self-center">
                     {STATS.filter(s => statsEstandar[s] !== null).length}/6 asignados
                   </small>
@@ -526,7 +625,15 @@ export function CharacterCreate() {
                 <div className="row g-3">
                   {STATS.map(stat => (
                     <div className="col-md-4" key={stat}>
-                      <div className="create-stat-box">
+                      <div
+                        className={`create-stat-box ${dragOverStat === stat ? 'drag-over' : ''}`}
+                        onDragOver={e => { e.preventDefault(); setDragOverStat(stat); }}
+                        onDragLeave={() => setDragOverStat(null)}
+                        onDrop={() => handleDropOnStat(stat)}
+                        draggable={statsEstandar[stat] !== null}
+                        onDragStart={() => { if (statsEstandar[stat] !== null) dragPayload.current = { source: 'stat-puntos', stat }; }}
+                        onDragEnd={() => setDragOverStat(null)}
+                      >
                         <span className="create-stat-label">{STAT_LABELS[stat]}</span>
                         <select className="form-select create-input text-center"
                           value={statsEstandar[stat] ?? ''}
@@ -555,16 +662,37 @@ export function CharacterCreate() {
 
             {metodo === 'dados' && (
               <>
-                <div className="d-flex align-items-center gap-3 mb-4">
-                  <button className="btn create-btn-primary" onClick={generarTiradas}>
+                <div className="d-flex align-items-center gap-3 mb-4 flex-wrap">
+                  <button
+                    className="btn create-btn-primary"
+                    onClick={tiradas.length >= 6 ? reiniciarTiradas : rollNextD20}
+                    disabled={isRolling}
+                  >
                     <Dices width={20} height={20} style={{ color: 'currentColor' }} />
-                        {tiradas.length > 0 ? 'Volver a tirar' : 'Tirar Dados'}
+                    {tiradas.length === 0
+                      ? 'Tirar Dado'
+                      : tiradas.length >= 6
+                        ? 'Reiniciar'
+                        : 'Volver a tirar'}
                   </button>
                   {tiradas.length > 0 && (
-                    <div className="d-flex gap-2 flex-wrap">
+                    <div className="d-flex gap-2 flex-wrap align-items-center">
                       {tiradas.map(t => (
-                        <span key={t.id} className={`create-tirada-tag ${idsUsados.includes(t.id) ? 'used' : ''}`}>{t.valor}</span>
+                        <span
+                          key={t.id}
+                          className={`create-tirada-tag ${idsUsados.includes(t.id) ? 'used' : ''}`}
+                          draggable
+                          onDragStart={() => { dragPayload.current = { source: 'pool-dados', id: t.id }; }}
+                          onDragEnd={() => setDragOverStat(null)}
+                        >
+                          {t.valor}
+                        </span>
                       ))}
+                      {tiradas.length < 6 && (
+                        <span className="create-tirada-tag create-tirada-tag--pending">
+                          {6 - tiradas.length} restante{6 - tiradas.length > 1 ? 's' : ''}
+                        </span>
+                      )}
                       <small className="text-muted ms-1 align-self-center">{idsUsados.length}/6 asignados</small>
                     </div>
                   )}
@@ -573,7 +701,15 @@ export function CharacterCreate() {
                   <div className="row g-3">
                     {STATS.map(stat => (
                       <div className="col-md-4" key={stat}>
-                        <div className="create-stat-box">
+                        <div
+                          className={`create-stat-box ${dragOverStat === stat ? 'drag-over' : ''}`}
+                          onDragOver={e => { e.preventDefault(); setDragOverStat(stat); }}
+                          onDragLeave={() => setDragOverStat(null)}
+                          onDrop={() => handleDropOnStat(stat)}
+                          draggable={tiradaAsignada[stat] !== null}
+                          onDragStart={() => { if (tiradaAsignada[stat] !== null) dragPayload.current = { source: 'stat-dados', stat }; }}
+                          onDragEnd={() => setDragOverStat(null)}
+                        >
                           <span className="create-stat-label">{STAT_LABELS[stat]}</span>
                           <select className="form-select create-input text-center"
                             value={tiradaAsignada[stat] ?? ''}
@@ -714,18 +850,8 @@ export function CharacterCreate() {
                <ColorsSwatch width={20} height={20} style={{ color: 'currentColor' }} /> Apariencia del Personaje
               </h4>
             <p className="create-method-desc mb-4">
-              Selecciona un avatar para tu <strong>{raza} {clase}</strong> o sube tu propia imagen.
+              Selecciona un avatar para tu <strong>{raza} {clase}</strong>.
             </p>
-
-            <div className="create-upload-area mb-4">
-              <label className="create-upload-label" htmlFor="uploadAvatar">
-                {avatarCustom
-                  ? 'Imagen personalizada cargada — haz clic para cambiarla'
-                  : <><Folder width={20} height={20} style={{ color: 'currentColor' }} /> Subir mi propia imagen</>
-                  }
-              </label>
-              <input id="uploadAvatar" type="file" accept="image/*" className="d-none" onChange={handleUpload} />
-            </div>
 
             <div className="row g-4 align-items-start">
               <div className="col-lg-8">
@@ -794,5 +920,13 @@ export function CharacterCreate() {
       
             </div>
     </div>
+
+    <DiceRoller
+      dado={d20Dado}
+      resultado={d20Resultado}
+      onAnimacionFin={handleD20AnimacionFin}
+      containerId="dice-box-create"
+    />
+    </>
   );
 }

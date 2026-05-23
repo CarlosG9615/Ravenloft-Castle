@@ -375,7 +375,7 @@
 
 .sf-ataques-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr;
   background: rgba(120,80,30,0.15);
   padding: 6px 10px;
   font-family: 'Metal Mania', cursive;
@@ -388,7 +388,7 @@
 
 .sf-ataques-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr;
   padding: 6px 10px;
   border-bottom: 1px solid rgba(120,80,30,0.1);
   color: rgba(80,45,10,0.45);
@@ -400,6 +400,48 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.sf-ataques-edit-btn {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: rgba(120,80,30,0.45);
+  font-size: 11px;
+  line-height: 1;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.sf-ataques-edit-btn:hover {
+  color: #8b0000;
+  background: rgba(139,0,0,0.08);
+}
+
+.sf-ataques-inline-input {
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(120,80,30,0.45);
+  border-radius: 3px;
+  padding: 2px 5px;
+  font-size: 11px;
+  color: #1a0a02;
+  width: 100%;
+  min-width: 0;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.sf-ataques-inline-input:focus {
+  outline: none;
+  border-color: rgba(139,0,0,0.5);
+  background: rgba(255,255,255,0.9);
+}
+
+.sf-ataques-dano .sf-ataques-inline-input {
+  flex: 1;
 }
 
 .sf-ataques-form {
@@ -452,21 +494,6 @@
 .sf-ataques-form-actions {
   display: flex;
   justify-content: flex-end;
-}
-
-.sf-ataques-delete {
-  margin-left: auto;
-  background: transparent;
-  border: none;
-  color: rgba(139,0,0,0.75);
-  font-size: 12px;
-  cursor: pointer;
-  padding: 2px 4px;
-  line-height: 1;
-}
-
-.sf-ataques-delete:hover {
-  color: #8b0000;
 }
 
 /* ── DIARIO ── */
@@ -547,28 +574,82 @@
 .sf-orn-svg { width: 160px; height: auto; }
 
 /* ── PRINT ── */
+@page {
+  size: A4 landscape;
+  margin: 0.5cm;
+}
+
 @media print {
-  body { background: white !important; margin: 0; padding: 0; }
-  .no-print { display: none !important; }
+  /* Una sola página: el DOM oculto sigue teniendo layout, overflow:hidden lo corta */
+  html, body {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
 
-  .sf-page { background: white !important; padding: 0 !important; }
+  body[data-print-tab] * {
+    visibility: hidden !important;
+  }
 
-  .sf-pergamino {
-    background: #f7edd8 !important;
-    border: 1px solid #a07840 !important;
+  body[data-print-tab] .sf-pergamino,
+  body[data-print-tab] .sf-pergamino * {
+    visibility: visible !important;
+  }
+
+  /* Base: pergamino a tamaño natural (1000px), sin overflow hidden propio */
+  body[data-print-tab] .sf-pergamino {
+    position: absolute !important;
+    top: 0 !important;
+    width: 1000px !important;
+    max-width: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    border: none !important;
     box-shadow: none !important;
-    max-width: 100%;
-    padding: 80px 32px 40px !important;
+    border-radius: 0 !important;
+    padding: 48px 36px 36px !important;
+    background: #f7edd8 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  .sf-nombre { color: #1a0a02 !important; text-shadow: none !important; }
-  .sf-raza-clase, .sf-ficha-label, .sf-titulo-seccion { color: #5a3a10 !important; }
-  .sf-stat-valor, .sf-combate-valor, .sf-dato-valor { color: #111 !important; }
-  .sf-stat-mod, .sf-hab-mod { color: #8b0000 !important; }
-  .sf-stat-nombre, .sf-dato-label, .sf-historia { color: #555 !important; }
-  .sf-corner { opacity: 0.8; }
+  /*
+   * Ficha: zoom 0.82 → 820px visual.
+   * Centrado: left = (100% - 820px) / 2
+   * zoom afecta layout Y visual, así que no hay overflow del pergamino.
+   */
+  body[data-print-tab="ficha"] .sf-pergamino {
+    zoom: 0.82;
+    left: calc((100% - 820px) / 2) !important;
+  }
+
+  /*
+   * Diario: más contenido, zoom 0.74 → 740px visual.
+   * Centrado: left = (100% - 740px) / 2
+   */
+  body[data-print-tab="diario"] .sf-pergamino {
+    zoom: 0.74;
+    left: calc((100% - 740px) / 2) !important;
+  }
+
+  /* Colores para impresión */
+  body[data-print-tab] .sf-nombre { color: #1a0a02 !important; text-shadow: none !important; }
+  body[data-print-tab] .sf-raza-clase,
+  body[data-print-tab] .sf-ficha-label,
+  body[data-print-tab] .sf-titulo-seccion { color: #5a3a10 !important; }
+  body[data-print-tab] .sf-stat-valor,
+  body[data-print-tab] .sf-combate-valor,
+  body[data-print-tab] .sf-dato-valor { color: #111 !important; }
+  body[data-print-tab] .sf-stat-mod,
+  body[data-print-tab] .sf-hab-mod { color: #8b0000 !important; }
+  body[data-print-tab] .sf-stat-nombre,
+  body[data-print-tab] .sf-dato-label,
+  body[data-print-tab] .sf-historia { color: #555 !important; }
+  body[data-print-tab] .sf-corner { opacity: 0.8; }
+  body[data-print-tab] .sf-ataques-edit-btn { display: none !important; }
 }
 
 /* ── RESPONSIVE ── */

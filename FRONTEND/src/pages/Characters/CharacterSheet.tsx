@@ -272,6 +272,11 @@ export function CharacterSheet({
   const [entryBonificador, setEntryBonificador] = useState('');
   const [entryDano, setEntryDano] = useState('');
   const [entryRango, setEntryRango] = useState<number>(defaultRango('ataque'));
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [editingEntryTipo, setEditingEntryTipo] = useState<EntryTipo | null>(null);
+  const [editingNombre, setEditingNombre] = useState('');
+  const [editingBonificador, setEditingBonificador] = useState('');
+  const [editingDano, setEditingDano] = useState('');
   const allowEdits = mostrarFormularioAtaques;
 
   useEffect(() => {
@@ -358,10 +363,12 @@ export function CharacterSheet({
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as AttackSpellEntry[];
-        const normalized = parsed.map(normalizeEntry);
-        setAttacks(normalized.filter(entry => entry.tipo === 'ataque'));
-        setSpells(normalized.filter(entry => entry.tipo === 'conjuro'));
-        return;
+        if (parsed.length > 0) {
+          const normalized = parsed.map(normalizeEntry);
+          setAttacks(normalized.filter(entry => entry.tipo === 'ataque'));
+          setSpells(normalized.filter(entry => entry.tipo === 'conjuro'));
+          return;
+        }
       } catch {
         // Si hay datos corruptos, los regeneramos por defecto.
       }
@@ -407,12 +414,65 @@ export function CharacterSheet({
     setEntryRango(defaultRango(entryTipo));
   };
 
-  const removeEntry = (id: string, tipo: EntryTipo) => {
-    if (tipo === 'ataque') {
-      setAttacks(prev => prev.filter(item => item.id !== id));
+  const resetEntriesToDefault = () => {
+    const defaults = buildDefaultEntries(claseFinal, statsFinales, bonifComp);
+    const normalized = defaults.map(normalizeEntry);
+    setAttacks(normalized.filter(entry => entry.tipo === 'ataque'));
+    setSpells(normalized.filter(entry => entry.tipo === 'conjuro'));
+    setEditingEntryId(null);
+    setEditingEntryTipo(null);
+  };
+
+  const startEditEntry = (entry: AttackSpellEntry) => {
+    setEditingEntryId(entry.id);
+    setEditingEntryTipo(entry.tipo);
+    setEditingNombre(entry.nombre);
+    setEditingBonificador(entry.bonificador);
+    setEditingDano(entry.dano);
+  };
+
+  const saveEditEntry = () => {
+    if (!editingEntryId || !editingEntryTipo) return;
+
+    const nombreLimpio = editingNombre.trim();
+    const bonifLimpio = editingBonificador.trim();
+    const danoLimpio = editingDano.trim();
+
+    if (!nombreLimpio && !bonifLimpio && !danoLimpio) {
+      resetEntriesToDefault();
       return;
     }
-    setSpells(prev => prev.filter(item => item.id !== id));
+
+    if (!nombreLimpio || !bonifLimpio || !danoLimpio) return;
+
+    if (editingEntryTipo === 'ataque') {
+      setAttacks(prev => prev.map(item => (
+        item.id === editingEntryId
+          ? { ...item, nombre: nombreLimpio, bonificador: bonifLimpio, dano: danoLimpio }
+          : item
+      )));
+    } else {
+      setSpells(prev => prev.map(item => (
+        item.id === editingEntryId
+          ? { ...item, nombre: nombreLimpio, bonificador: bonifLimpio, dano: danoLimpio }
+          : item
+      )));
+    }
+
+    setEditingEntryId(null);
+    setEditingEntryTipo(null);
+  };
+
+  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveEditEntry();
+      return;
+    }
+    if (e.key === 'Escape') {
+      setEditingEntryId(null);
+      setEditingEntryTipo(null);
+    }
   };
 
   const renderAttacksAndSpells = () => {
@@ -430,22 +490,50 @@ export function CharacterSheet({
         key={entry.id}
         className={`sf-ataques-row ${entry.tipo === 'conjuro' ? 'sf-ataques-row--spell' : ''}`}
       >
-        <span>{entry.tipo === 'conjuro' ? `Conjuro: ${entry.nombre}` : entry.nombre}</span>
-        <span>{entry.bonificador}</span>
+        <span>
+          {allowEdits && editingEntryId === entry.id ? (
+            <input
+              className="sf-ataques-inline-input"
+              type="text"
+              value={editingNombre}
+              onChange={(e) => setEditingNombre(e.target.value)}
+              onKeyDown={handleEditKeyDown}
+            />
+          ) : (entry.tipo === 'conjuro' ? `Conjuro: ${entry.nombre}` : entry.nombre)}
+        </span>
+        <span>
+          {allowEdits && editingEntryId === entry.id ? (
+            <input
+              className="sf-ataques-inline-input"
+              type="text"
+              value={editingBonificador}
+              onChange={(e) => setEditingBonificador(e.target.value)}
+              onKeyDown={handleEditKeyDown}
+            />
+          ) : entry.bonificador}
+        </span>
         <span className="sf-ataques-dano">
-          {entry.dano}
+          {allowEdits && editingEntryId === entry.id ? (
+            <input
+              className="sf-ataques-inline-input"
+              type="text"
+              value={editingDano}
+              onChange={(e) => setEditingDano(e.target.value)}
+              onKeyDown={handleEditKeyDown}
+            />
+          ) : entry.dano}
           {allowEdits && (
             <button
               type="button"
-              className="sf-ataques-delete"
-              onClick={() => removeEntry(entry.id, entry.tipo)}
-              aria-label={`Eliminar ${entry.nombre}`}
+              className="sf-ataques-edit-btn"
+              onClick={() => (editingEntryId === entry.id ? saveEditEntry() : startEditEntry(entry))}
+              aria-label={editingEntryId === entry.id ? `Guardar ${entry.nombre}` : `Editar ${entry.nombre}`}
+              title={editingEntryId === entry.id ? 'Guardar cambios' : 'Editar'}
             >
-              ✕
+              <i className={`bi ${editingEntryId === entry.id ? 'bi-check2' : 'bi-pencil'}`} />
             </button>
           )}
         </span>
-        <span>{entry.rangoCasillas ?? defaultRango(entry.tipo)} casillas</span>
       </div>
     ));
   };
@@ -463,7 +551,19 @@ export function CharacterSheet({
     { label: 'Bonif. Comp.',    valor: personaje?.bonificacionCompetencia ? `+${personaje.bonificacionCompetencia}` : '+2' },
   ];
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const body = document.body;
+    const hadAccessibility = body.classList.contains('accessibility-enabled');
+    if (hadAccessibility) body.classList.remove('accessibility-enabled');
+    body.setAttribute('data-print-tab', tab);
+    const cleanup = () => {
+      body.removeAttribute('data-print-tab');
+      if (hadAccessibility) body.classList.add('accessibility-enabled');
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    window.print();
+  };
 
   const handleDelete = async () => {
     if (!id) return;
@@ -643,7 +743,7 @@ export function CharacterSheet({
               <h3 className="sf-titulo-seccion sf-mt">Ataques y Conjuros</h3>
               <div className="sf-ataques-tabla">
                 <div className="sf-ataques-header">
-                  <span>Nombre</span><span>Bonif.</span><span>Daño</span><span>Rango</span>
+                  <span>Nombre</span><span>Bonif.</span><span>Daño</span>
                 </div>
                 {renderAttacksAndSpells()}
               </div>
@@ -692,17 +792,6 @@ export function CharacterSheet({
                       placeholder="Ej: 1d8 + Fue"
                     />
                   </div>
-                    <div className="sf-ataques-form-row">
-                      <label className="sf-ataques-label">Rango</label>
-                      <input
-                        className="sf-ataques-input"
-                        type="number"
-                        min={1}
-                        value={entryRango}
-                        onChange={(e) => setEntryRango(Number(e.target.value))}
-                        placeholder="Casillas"
-                      />
-                    </div>
                   <div className="sf-ataques-form-actions">
                     <button type="button" className="sf-btn" onClick={addEntry}>
                       Agregar

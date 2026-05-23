@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { API_URL, isTokenExpired } from './api';
 import type { ReactNode } from 'react';
 import { resolveProfileAvatar } from '../utils/avatarUtils';
+import { clearAccessibilityPreference } from '../hooks/useAccessibilityBtn';
 
 
 export interface UserData {
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('user');
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('user');
+      clearAccessibilityPreference();
     }
   }, []);
 
@@ -61,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('rememberedEmail');
+      clearAccessibilityPreference();
     };
     window.addEventListener('auth:token-expired', handle);
     return () => window.removeEventListener('auth:token-expired', handle);
@@ -139,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    const currentUserId = user?.id;
     setUser(null);
     setToken(null);
     sessionStorage.removeItem('token');
@@ -146,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('rememberedEmail');
+    clearAccessibilityPreference(currentUserId);
   };
 
   const updateUser = (updated: Partial<UserData>) => {
