@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { STATS } from '../types';
 import type { StatKey, DragPayload, StatAssignmentResult } from '../types';
-import { PUNTOS_ESTANDAR, RAZAS } from '../constants';
+import { RAZAS } from '../constants';
 import { tirarD20CreacionPersonaje } from '../utils';
 
 const EMPTY_STATS = (): Record<StatKey, number | null> =>

@@ -7,7 +7,7 @@ import { getPersonaje, deletePersonaje } from '../../services/personajeService';
 import { getCartaUrl } from '../../utils/imageUtils';
 import { BookOpen, Sword } from 'pixelarticons/react';
 import { STAT_LABELS, TRASFONDOS_MAP, HABILIDADES, DEFAULT_STATS } from './constants';
-import { calcMod, isAbsoluteUrl, isDataUrl, normalizeEntry } from './utils';
+import { calcMod, isAbsoluteUrl, isDataUrl } from './utils';
 import { useCharacterAttacks } from './hooks/useCharacterAttacks';
 import { DiarioCampana } from './components/DiarioCampana';
 import type { Stats, AttackSpellEntry, PersonajeResponseDTO } from './types';

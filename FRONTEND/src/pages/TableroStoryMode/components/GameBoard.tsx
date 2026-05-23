@@ -1062,10 +1062,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     setMapPan({ x: pointer.x - newCenterX - localX * newRenderScale, y: pointer.y - newCenterY - localY * newRenderScale });
   };
 
-  const resetearZoom = () => {
-    setZoomFactor(1);
-    setMapPan({ x: 0, y: 0 });
-  };
+  
 
   const resetCharacterTurns = () => {
     setOpenTurnModalTokenId(null);
