@@ -2,13 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Stage, Layer, Image, Line, Circle, Text, Group, Rect } from 'react-konva';
 import { PanelPartida } from './PanelPartida';
-import { DiceRoller } from './DiceRoller';
 import { obtenerCampanaPorId } from '../../services/campanaService';
 import { getPersonajes } from '../../services/personajeService';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import { getEnemigos } from '../../services/enemigoService';
 import type { EnemigoDetalleDTO } from '../../services/enemigoService';
-import type { AttackSpellEntry } from '../Characters/CharacterSheet';
 import useImage from 'use-image';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -46,7 +44,6 @@ interface EnemigoCombate extends EnemigoDetalleDTO {
   hpActual: number;
 }
 
-
 // ── NPC ──
 interface NpcCampana {
   id?: number;
@@ -55,20 +52,6 @@ interface NpcCampana {
   descripcion?: string;
   rol: string;
   imagenUrl?: string;
-}
-
-interface CombatePendiente {
-  atacanteNombre: string;
-  objetivoNombre: string;
-  objetivoTokenId: string;
-  objetivoOwnerId?: string | number | null;
-  objetivoTipo: 'jugador' | 'enemigo' | 'npc';
-  objetivoCA: number;
-  accion: AttackSpellEntry;
-  critico: boolean;
-  etapa: 'ataque' | 'dano';
-  modAtaque: number;
-  modDano: number;
 }
 
 const COLORES_TOKEN = {
@@ -97,41 +80,6 @@ const resolveCartaUrl = (avatar?: string | null): string | null => {
   return getCartaUrl(avatar);
 };
 
-const parseBonus = (texto: string) => {
-  const match = texto.replace(/\s+/g, '').match(/-?\d+/);
-  return match ? Number(match[0]) : 0;
-};
-
-const formatBonus = (valor: number) => (valor >= 0 ? `+${valor}` : `${valor}`);
-
-const getStatMod = (valor: number) => Math.floor((valor - 10) / 2);
-
-const parseDamage = (
-  texto: string,
-  stats: { fuerza: number; destreza: number; constitucion: number; inteligencia: number; sabiduria: number; carisma: number; }
-) => {
-  const raw = texto.toLowerCase();
-  const diceMatch = raw.match(/(\d*d\d+)/);
-  let notation = diceMatch ? diceMatch[1] : null;
-  if (notation && notation.startsWith('d')) notation = `1${notation}`;
-
-  let mod = 0;
-  const numericMods = raw.match(/([+-]\s*\d+)/g) || [];
-  numericMods.forEach((m) => {
-    mod += Number(m.replace(/\s+/g, ''));
-  });
-
-  const statMap: Record<string, keyof typeof stats> = {
-    fue: 'fuerza', des: 'destreza', con: 'constitucion',
-    int: 'inteligencia', sab: 'sabiduria', car: 'carisma',
-  };
-  Object.entries(statMap).forEach(([key, stat]) => {
-    if (raw.includes(key)) mod += getStatMod(stats[stat]);
-  });
-
-  return { notation, mod };
-};
-
 function MapaFondo({ src, ancho, alto }: { src: string; ancho: number; alto: number }) {
   const [image] = useImage(src);
   return <Image image={image} x={0} y={0} width={ancho} height={alto} />;
@@ -156,6 +104,7 @@ export function Tablero() {
   const sentTokenIdsRef = useRef<Set<string>>(new Set());
 
   const lanzarDadoCaracteristicaRef = useRef<((label: string, mod: number) => void) | null>(null);
+  const lanzarDadoEnemigoRef = useRef<((enemigoNombre: string, label: string, mod: number) => void) | null>(null);
 
   const mapaUrl         = (location.state as any)?.mapaUrl        ?? '/images/mapas/bosque/caminoForestal.jpg';
   const campaaNombre    = (location.state as any)?.campaaNombre   ?? 'Campaña';
@@ -212,23 +161,16 @@ export function Tablero() {
   const [panelNpcs, setPanelNpcs]                 = useState(false);
   const [enemigos, setEnemigos]                   = useState<EnemigoDetalleDTO[]>([]);
   const [hpEnemigos, setHpEnemigos]               = useState<Record<string, number>>({});
-  const [hpEnemigosMax, setHpEnemigosMax]         = useState<Record<string, number>>({});
-  const [hpJugadores, setHpJugadores]             = useState<Record<string, number>>({});
   const [enemigosCombate, setEnemigosCombate]     = useState<EnemigoCombate[]>([]);
   const [busquedaEnemigo, setBusquedaEnemigo]     = useState('');
-  const [ataquesConjuros, setAtaquesConjuros]     = useState<AttackSpellEntry[]>([]);
-  const [accionSeleccionadaId, setAccionSeleccionadaId] = useState<string | null>(null);
-  const [modoAtaque, setModoAtaque]               = useState(false);
-  const [mensajeCombate, setMensajeCombate]       = useState<string | null>(null);
-  const [combatDado, setCombatDado]               = useState<string | null>(null);
-  const [combatResultado, setCombatResultado]     = useState<number | null>(null);
-  const [combatePendiente, setCombatePendiente]   = useState<CombatePendiente | null>(null);
+
+  // ── Ficha enemigo en combate ──
+  const [enemigoFichaAbierta, setEnemigoFichaAbierta] = useState<EnemigoCombate | null>(null);
 
   // ── Estado NPCs ──
   const [npcs, setNpcs]                           = useState<NpcCampana[]>([]);
   const [npcNombre, setNpcNombre]                 = useState('');
   const [npcDescripcion, setNpcDescripcion]       = useState('');
-
   const [npcImagen, setNpcImagen]                 = useState<string | null>(null);
   const [guardandoNpc, setGuardandoNpc]           = useState(false);
 
@@ -243,14 +185,6 @@ export function Tablero() {
     x: col * TAMANYO_CELDA + TAMANYO_CELDA / 2,
     y: row * TAMANYO_CELDA + TAMANYO_CELDA / 2,
   });
-
-  const getTokenGrid = (token: Token) => toGrid(token.x, token.y);
-
-  const gridDistance = (a: Token, b: Token) => {
-    const g1 = getTokenGrid(a);
-    const g2 = getTokenGrid(b);
-    return Math.max(Math.abs(g1.col - g2.col), Math.abs(g1.row - g2.row));
-  };
 
   const canMoverToken = (token: Token) => {
     if (esMaster) return token.tipo !== 'jugador';
@@ -358,7 +292,6 @@ export function Tablero() {
     }
   }, [esMaster]);
 
-
   // ── Cargar NPCs al abrir el panel ──
   useEffect(() => {
     if (!campanaId || !panelNpcs) return;
@@ -402,7 +335,6 @@ export function Tablero() {
         setNpcs(prev => [...prev, nuevo]);
         setNpcNombre('');
         setNpcDescripcion('');
-
         setNpcImagen(null);
       }
     } catch (err) {
@@ -424,27 +356,6 @@ export function Tablero() {
       console.error('Error eliminando NPC:', err);
     }
   };
-
-  useEffect(() => {
-    if (!personaje) return;
-    const keyById = `rc:attacks-spells:${personaje.id}`;
-    const keyByName = `rc:attacks-spells:${personaje.nombre}`;
-    const raw = localStorage.getItem(keyById) ?? localStorage.getItem(keyByName);
-    if (!raw) {
-      setAtaquesConjuros([]);
-      setAccionSeleccionadaId(null);
-      return;
-    }
-    try {
-      const parsed = JSON.parse(raw) as AttackSpellEntry[];
-      setAtaquesConjuros(parsed);
-      setAccionSeleccionadaId(parsed[0]?.id ?? null);
-    } catch {
-      setAtaquesConjuros([]);
-      setAccionSeleccionadaId(null);
-    }
-  }, [personaje?.id, personaje?.nombre]);
-
 
   const buildPath = (from: {x:number, y:number}, to: {x:number, y:number}) => {
     const path = [from];
@@ -500,7 +411,7 @@ export function Tablero() {
     overlayCells = animPath.slice(1, animStep + 1).map((pos, i) => ({ ...pos, step: i + 1 }));
   }
 
-  const handleStagePointerMove = () => {
+  const handleStagePointerMove = (e: any) => {
     if (draggingRef.current) {
       const stage = stageRef.current;
       const pointer = stage.getPointerPosition();
@@ -615,6 +526,17 @@ export function Tablero() {
     lanzarDadoCaracteristicaRef.current?.(label, mod);
   };
 
+  // ── Tirada dado enemigo — delega en PanelPartida via ref ──
+  const lanzarDadoEnemigo = (enemigoNombre: string, label: string, valorStat: number) => {
+    const mod = Math.floor((valorStat - 10) / 2);
+    lanzarDadoEnemigoRef.current?.(enemigoNombre, label, mod);
+  };
+
+  // ── Tirada ataque enemigo — delega en PanelPartida via ref ──
+  const lanzarAtaqueEnemigo = (enemigoNombre: string, fuerzaAtaque: number) => {
+    lanzarDadoEnemigoRef.current?.(enemigoNombre, 'Ataque', fuerzaAtaque);
+  };
+
   const nombreMapa = (url: string) =>
     url.split('/').pop()?.replace(/\.(jpg|jpeg|png|webp)$/i, '') ?? url;
 
@@ -623,7 +545,6 @@ export function Tablero() {
     const nuevoEnemigo: EnemigoCombate = { ...enemigo, instanciaId, hpActual: enemigo.salud };
     setEnemigosCombate(prev => [...prev, nuevoEnemigo]);
     setHpEnemigos(prev => ({ ...prev, [instanciaId]: enemigo.salud }));
-    setHpEnemigosMax(prev => ({ ...prev, [instanciaId]: enemigo.salud }));
     const token: Token = {
       id: instanciaId,
       ownerId: null,
@@ -635,54 +556,18 @@ export function Tablero() {
     };
     setTokens(prev => [...prev, token]);
     publishTokenMove(token, token.x, token.y);
-    if (stompRef.current?.connected && campanaId) {
-      // Enviar HP inicial para que todos los clientes conozcan la vida del enemigo.
-      stompRef.current.publish({
-        destination: `/app/campana/${campanaId}/hp-update`,
-        body: JSON.stringify({ jugadorId: instanciaId, hp: enemigo.salud, hpMax: enemigo.salud }),
-      });
-    }
     setPanelEnemigos(false);
   };
 
-  const cambiarHpEnemigo = (instanciaId: string, hpActual: number, hpMax: number | null | undefined, delta: number) => {
-    const upperBound = typeof hpMax === 'number' ? hpMax : Number.MAX_SAFE_INTEGER;
-    const nuevoHp = Math.max(0, Math.min(upperBound, hpActual + delta));
+  const cambiarHpEnemigo = (instanciaId: string, hpActual: number, hpMax: number, delta: number) => {
+    const nuevoHp = Math.max(0, Math.min(hpMax, hpActual + delta));
     setHpEnemigos(prev => ({ ...prev, [instanciaId]: nuevoHp }));
-    if (typeof hpMax === 'number') {
-      setHpEnemigosMax(prev => ({ ...prev, [instanciaId]: hpMax }));
-    }
-    setEnemigosCombate(prev => prev.map(e => e.instanciaId === instanciaId ? { ...e, hpActual: nuevoHp } : e));
     if (stompRef.current?.connected && campanaId) {
       stompRef.current.publish({
         destination: `/app/campana/${campanaId}/hp-update`,
-        body: JSON.stringify({ jugadorId: instanciaId, hp: nuevoHp, hpMax: typeof hpMax === 'number' ? hpMax : undefined }),
+        body: JSON.stringify({ jugadorId: instanciaId, hp: nuevoHp }),
       });
     }
-  };
-
-  const aplicarHpJugador = (jugadorId: string, nuevoHp: number) => {
-    setHpJugadores(prev => ({ ...prev, [jugadorId]: nuevoHp }));
-    if (stompRef.current?.connected && campanaId) {
-      stompRef.current.publish({
-        destination: `/app/campana/${campanaId}/hp-update`,
-        body: JSON.stringify({ jugadorId, hp: nuevoHp }),
-      });
-    }
-  };
-
-  const publicarSistema = (texto: string) => {
-    if (!stompRef.current?.connected || !campanaId) return;
-    stompRef.current.publish({
-      destination: `/app/campana/${campanaId}/chat.enviar`,
-      body: JSON.stringify({
-        autor: 'Sistema',
-        colorAutor: '#8b0000',
-        texto,
-        tipo: 'sistema',
-        timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
-      }),
-    });
   };
 
   const eliminarEnemigoCombate = (instanciaId: string) => {
@@ -692,15 +577,13 @@ export function Tablero() {
       delete next[instanciaId];
       return next;
     });
-    setHpEnemigosMax(prev => {
-      const next = { ...prev };
-      delete next[instanciaId];
-      return next;
-    });
     const token = tokens.find(t => t.id === instanciaId);
     if (token) {
       setTokens(prev => prev.filter(t => t.id !== instanciaId));
       publishTokenDelete(token);
+    }
+    if (enemigoFichaAbierta?.instanciaId === instanciaId) {
+      setEnemigoFichaAbierta(null);
     }
   };
 
@@ -747,43 +630,12 @@ export function Tablero() {
             console.error('Error borrando token:', e);
           }
         });
-        client.subscribe(`/topic/campana/${campanaId}/hp-update`, (frame) => {
-          try {
-            const { jugadorId, hp, hpMax } = JSON.parse(frame.body) as { jugadorId: string; hp: number; hpMax?: number };
-            setHpJugadores(prev => ({ ...prev, [jugadorId]: hp }));
-            setHpEnemigos(prev => ({ ...prev, [jugadorId]: hp }));
-            if (typeof hpMax === 'number') {
-              setHpEnemigosMax(prev => ({ ...prev, [jugadorId]: hpMax }));
-            }
-            setEnemigosCombate(prev => prev.map(e => e.instanciaId === jugadorId ? { ...e, hpActual: hp } : e));
-          } catch (e) {
-            console.error('Error hp-update:', e);
-          }
-        });
-        client.subscribe(`/topic/campana/${campanaId}/hp-sync`, (frame) => {
-          try {
-            const hpMap = JSON.parse(frame.body) as Record<string, number>;
-            setHpJugadores(prev => ({ ...prev, ...hpMap }));
-            setHpEnemigos(prev => ({ ...prev, ...hpMap }));
-            setEnemigosCombate(prev => prev.map(e => {
-              if (hpMap[e.instanciaId] !== undefined) {
-                return { ...e, hpActual: hpMap[e.instanciaId] };
-              }
-              return e;
-            }));
-          } catch (e) {
-            console.error('Error hp-sync:', e);
-          }
-        });
         if (!syncRequestedRef.current) {
           syncRequestedRef.current = true;
           const sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
           client.publish({
             destination: `/app/campana/${campanaId}/token-request-sync`,
             body: JSON.stringify({ sessionId }),
-          });
-          client.publish({
-            destination: `/app/campana/${campanaId}/hp-request-sync`
           });
         }
       },
@@ -796,38 +648,6 @@ export function Tablero() {
       syncRequestedRef.current = false;
     };
   }, [campanaId, mapaActualUrl]);
-
-  // Sincronizar enemigosCombate con tokens (para recuperar estado si el master sale y entra)
-  useEffect(() => {
-    if (!esMaster || enemigos.length === 0 || tokens.length === 0) return;
-    
-    setEnemigosCombate(prev => {
-      let changed = false;
-      const newEnemigos = [...prev];
-      const prevIds = new Set(prev.map(e => e.instanciaId));
-      
-      tokens.forEach(token => {
-        if (token.tipo === 'enemigo' && !prevIds.has(token.id)) {
-          const parts = token.id.split('-');
-          if (parts.length >= 3 && parts[0] === 'enemigo') {
-            const baseIdStr = parts[1];
-            const enemigoBase = enemigos.find(e => String(e.id) === baseIdStr);
-            if (enemigoBase) {
-              const hpActual = hpEnemigos[token.id] ?? enemigoBase.salud;
-              newEnemigos.push({
-                ...enemigoBase,
-                instanciaId: token.id,
-                hpActual
-              });
-              changed = true;
-            }
-          }
-        }
-      });
-      
-      return changed ? newEnemigos : prev;
-    });
-  }, [tokens, enemigos, esMaster, hpEnemigos]);
 
   useEffect(() => {
     if (!jugadoresCampaa || jugadoresCampaa.length === 0) return;
@@ -882,132 +702,6 @@ export function Tablero() {
       publishTokenMove(token, token.x, token.y);
     });
   }, [tokens, campanaId, esMaster, currentPlayerId]);
-
-
-
-  const accionSeleccionada = ataquesConjuros.find(a => a.id === accionSeleccionadaId) || null;
-
-  const iniciarAtaque = (objetivo: Token) => {
-    if (!accionSeleccionada || !personaje) {
-      setMensajeCombate('Selecciona un ataque o conjuro primero.');
-      return;
-    }
-    if (objetivo.tipo === 'jugador' && String(objetivo.ownerId) === String(currentPlayerId)) {
-      setMensajeCombate('No puedes atacarte a ti mismo.');
-      return;
-    }
-
-    const rango = accionSeleccionada.rangoCasillas ?? (accionSeleccionada.tipo === 'conjuro' ? 6 : 1);
-    const atacante = tokens.find(t => t.tipo === 'jugador' && String(t.ownerId) === String(currentPlayerId));
-    if (!atacante) {
-      setMensajeCombate('No se encontro tu token en el mapa.');
-      return;
-    }
-    const distancia = gridDistance(atacante, objetivo);
-    if (distancia > rango) {
-      setMensajeCombate(`Objetivo fuera de rango (${distancia} > ${rango}).`);
-      return;
-    }
-
-    const enemigo = enemigosCombate.find(e => e.instanciaId === objetivo.id);
-    const jugadorObjetivo = jugadoresCampaa.find((j: any) => String(j.id ?? j.personajeId ?? j.usuarioId) === String(objetivo.ownerId));
-    const objetivoCA = enemigo?.ca ?? jugadorObjetivo?.claseArmadura ?? 10;
-    const modAtaque = parseBonus(accionSeleccionada.bonificador || '0');
-    const { mod: modDano } = parseDamage(accionSeleccionada.dano, personaje);
-
-    setCombatePendiente({
-      atacanteNombre: personaje.nombre,
-      objetivoNombre: objetivo.nombre,
-      objetivoTokenId: objetivo.id,
-      objetivoOwnerId: objetivo.ownerId ?? null,
-      objetivoTipo: objetivo.tipo,
-      objetivoCA,
-      accion: accionSeleccionada,
-      critico: false,
-      etapa: 'ataque',
-      modAtaque,
-      modDano,
-    });
-    setMensajeCombate(null);
-    setCombatDado('d20');
-    setCombatResultado(0);
-  };
-
-  const resolverAtaque = (resultado: number) => {
-    if (!combatePendiente) return;
-    const total = resultado + combatePendiente.modAtaque;
-    const critico = resultado === 20;
-    const impacto = total >= combatePendiente.objetivoCA || critico;
-    if (!impacto) {
-      setMensajeCombate(`Fallo: ${total} vs CA ${combatePendiente.objetivoCA}.`);
-      publicarSistema(`❌ ${combatePendiente.atacanteNombre} fallo el ataque contra ${combatePendiente.objetivoNombre}.`);
-      setCombatePendiente(null);
-      setCombatDado(null);
-      setCombatResultado(null);
-      return;
-    }
-
-    const { notation } = parseDamage(combatePendiente.accion.dano, personaje);
-    if (!notation) {
-      setMensajeCombate('No se pudo interpretar el dado de daño.');
-      setCombatePendiente(null);
-      setCombatDado(null);
-      setCombatResultado(null);
-      return;
-    }
-
-    let notationFinal = notation;
-    if (critico) {
-      const parts = notation.split('d');
-      const count = Number(parts[0] || '1');
-      const faces = parts[1];
-      notationFinal = `${count * 2}d${faces}`;
-    }
-
-    setCombatePendiente(prev => prev ? { ...prev, critico, etapa: 'dano' } : prev);
-    setCombatDado(notationFinal);
-    setCombatResultado(0);
-  };
-
-  const resolverDano = (resultado: number) => {
-    if (!combatePendiente) return;
-    const totalDano = Math.max(0, resultado + combatePendiente.modDano);
-    const mensajeCritico = combatePendiente.critico ? ' (critico)' : '';
-    if (combatePendiente.objetivoTipo === 'enemigo') {
-      const enemigo = enemigosCombate.find(e => e.instanciaId === combatePendiente.objetivoTokenId);
-      const hpMax = enemigo?.salud ?? hpEnemigosMax[combatePendiente.objetivoTokenId] ?? null;
-      const hpActual = hpEnemigos[combatePendiente.objetivoTokenId] ?? hpMax ?? null;
-      if (hpActual !== null) {
-        cambiarHpEnemigo(combatePendiente.objetivoTokenId, hpActual, hpMax, -totalDano);
-      }
-    } else {
-      const jugadorId = combatePendiente.objetivoOwnerId ?? combatePendiente.objetivoTokenId;
-      const jugadorKey = String(jugadorId);
-      const jugador = jugadoresCampaa.find((j: any) => String(j.id ?? j.personajeId ?? j.usuarioId) === jugadorKey);
-      const hpBase = hpJugadores[jugadorKey] ?? jugador?.hp ?? jugador?.puntosGolpeActual ?? null;
-      const hpMax = jugador?.hpMax ?? jugador?.puntosGolpeMax ?? null;
-      if (hpBase !== null && hpMax !== null) {
-        const nuevoHp = Math.max(0, Math.min(hpMax, hpBase - totalDano));
-        aplicarHpJugador(jugadorKey, nuevoHp);
-      }
-    }
-
-    setMensajeCombate(`Impacto: ${totalDano} daño${mensajeCritico}.`);
-    publicarSistema(`⚔ ${combatePendiente.atacanteNombre} golpea a ${combatePendiente.objetivoNombre} por ${totalDano} daño${mensajeCritico}.`);
-    setCombatePendiente(null);
-    setCombatDado(null);
-    setCombatResultado(null);
-  };
-
-  const handleCombatAnimacionFin = (resultado: number) => {
-    if (!combatePendiente) return;
-    if (combatePendiente.etapa === 'ataque') {
-      resolverAtaque(resultado);
-      return;
-    }
-    resolverDano(resultado);
-  };
-
 
   return (
     <div className="tb-page" ref={containerRef}>
@@ -1097,7 +791,11 @@ export function Tablero() {
                     return (
                       <div key={e.instanciaId} className="tb-enemigo-combate-item">
                         <div className="tb-enemigo-combate-cabecera">
-                          <span className="tb-enemigo-combate-nombre">{e.nombre}</span>
+                          <span
+                            className="tb-enemigo-combate-nombre tb-enemigo-combate-nombre--clickable"
+                            onClick={() => setEnemigoFichaAbierta(enemigoFichaAbierta?.instanciaId === e.instanciaId ? null : e)}
+                            title="Ver ficha del enemigo"
+                          >{e.nombre}</span>
                           <button className="tb-token-borrar" onClick={() => eliminarEnemigoCombate(e.instanciaId)} title="Eliminar del combate">✕</button>
                         </div>
                         <div className="tb-enemigo-hp-wrap">
@@ -1175,6 +873,66 @@ export function Tablero() {
         </div>
       )}
 
+      {/* FICHA ENEMIGO EN COMBATE */}
+      {esMaster && enemigoFichaAbierta && (
+        <div className="tb-enemigos-panel tb-ficha-enemigo-panel">
+          <div className="tb-enemigos-panel-header">
+            <h4 className="tb-enemigos-titulo">📋 {enemigoFichaAbierta.nombre}</h4>
+            <button className="tb-enemigos-cerrar" onClick={() => setEnemigoFichaAbierta(null)}>✕</button>
+          </div>
+
+          {/* Stats clicables */}
+          {enemigoFichaAbierta.stats && (
+            <div className="tb-ficha-enemigo-stats">
+              {[
+                { label: 'FUE', valor: enemigoFichaAbierta.stats.fuerza },
+                { label: 'DES', valor: enemigoFichaAbierta.stats.destreza },
+                { label: 'CON', valor: enemigoFichaAbierta.stats.constitucion },
+                { label: 'INT', valor: enemigoFichaAbierta.stats.inteligencia },
+                { label: 'SAB', valor: enemigoFichaAbierta.stats.sabiduria },
+                { label: 'CAR', valor: enemigoFichaAbierta.stats.carisma },
+              ].map(({ label, valor }) => {
+                const mod = Math.floor((valor - 10) / 2);
+                return (
+                  <div
+                    key={label}
+                    className="tb-ficha-stat tb-ficha-stat--clickable"
+                    onClick={() => lanzarDadoEnemigo(enemigoFichaAbierta.nombre, label, valor)}
+                    title={`Tirada de ${label}: d20 ${mod >= 0 ? '+' : ''}${mod}`}
+                  >
+                    <span className="tb-ficha-stat-label">{label}</span>
+                    <span className="tb-ficha-stat-valor">{valor}</span>
+                    <span className="tb-ficha-stat-mod">{mod >= 0 ? `+${mod}` : mod}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Combate info */}
+          <div className="tb-ficha-enemigo-combate">
+            <div
+              className="tb-ficha-enemigo-combate-item tb-ficha-stat--clickable"
+              onClick={() => lanzarAtaqueEnemigo(enemigoFichaAbierta.nombre, enemigoFichaAbierta.fuerzaAtaque)}
+              title="Tirar ataque"
+            >
+              <span className="tb-ficha-stat-label">ATAQUE</span>
+              <span className="tb-ficha-stat-valor">
+                {enemigoFichaAbierta.fuerzaAtaque >= 0 ? `+${enemigoFichaAbierta.fuerzaAtaque}` : enemigoFichaAbierta.fuerzaAtaque}
+              </span>
+            </div>
+            <div className="tb-ficha-enemigo-combate-item">
+              <span className="tb-ficha-stat-label">CA</span>
+              <span className="tb-ficha-stat-valor">{enemigoFichaAbierta.ca}</span>
+            </div>
+            <div className="tb-ficha-enemigo-combate-item">
+              <span className="tb-ficha-stat-label">DAÑO</span>
+              <span className="tb-ficha-stat-valor" style={{ fontSize: 11 }}>{enemigoFichaAbierta.danoAtaque}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* PANEL CATÁLOGO ENEMIGOS */}
       {esMaster && panelEnemigos && (
         <div className="tb-enemigos-panel">
@@ -1218,9 +976,7 @@ export function Tablero() {
             <button className="tb-enemigos-cerrar" onClick={() => setPanelNpcs(false)}>✕</button>
           </div>
 
-          {/* Formulario nuevo NPC */}
           <div className="tb-npc-form">
-            {/* Preview imagen */}
             <div className="tb-npc-imagen-preview">
               {npcImagen
                 ? <img src={npcImagen} alt="preview" className="tb-npc-img" />
@@ -1257,7 +1013,6 @@ export function Tablero() {
             </button>
           </div>
 
-          {/* Lista NPCs */}
           <div className="tb-enemigos-lista" style={{ marginTop: 12 }}>
             {npcs.length === 0 && <p className="tb-vacio">Sin personajes añadidos</p>}
             {npcs.map(npc => (
@@ -1383,41 +1138,6 @@ export function Tablero() {
               </div>
             </div>
 
-            <div className="tb-seccion">
-              <span className="tb-seccion-label">Ataques y Conjuros</span>
-              {ataquesConjuros.length === 0 && (
-                <p className="tb-vacio">No tienes ataques/conjuros guardados.</p>
-              )}
-              {ataquesConjuros.length > 0 && (
-                <div className="tb-combate-lista">
-                  {ataquesConjuros.map(entry => (
-                    <button
-                      key={entry.id}
-                      className={`tb-combate-item-btn ${accionSeleccionadaId === entry.id ? 'active' : ''}`}
-                      onClick={() => setAccionSeleccionadaId(entry.id)}
-                    >
-                      <span className="tb-combate-item-nombre">{entry.tipo === 'conjuro' ? `Conjuro: ${entry.nombre}` : entry.nombre}</span>
-                      <span className="tb-combate-item-detalle">{formatBonus(parseBonus(entry.bonificador))} / {entry.dano}</span>
-                      <span className="tb-combate-item-detalle">Rango {entry.rangoCasillas ?? (entry.tipo === 'conjuro' ? 6 : 1)} casillas</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              <button
-                className={`tb-combate-toggle ${modoAtaque ? 'active' : ''}`}
-                onClick={() => setModoAtaque(prev => !prev)}
-                disabled={!accionSeleccionada}
-              >
-                {modoAtaque ? '🛑 Cancelar ataque' : '⚔ Modo ataque'}
-              </button>
-              {modoAtaque && (
-                <p className="tb-combate-hint">Selecciona un objetivo haciendo click en su token.</p>
-              )}
-              {mensajeCombate && (
-                <p className="tb-combate-msg">{mensajeCombate}</p>
-              )}
-            </div>
-
             <button className="tb-btn-salir" onClick={() => navigate('/join')}>
               &#8592; Salir de Partida
             </button>
@@ -1477,13 +1197,7 @@ export function Tablero() {
                     draggingRef.current = { tokenId: token.id, origin, current: origin };
                   }
                 }}
-                onClick={() => {
-                  if (modoAtaque) {
-                    iniciarAtaque(token);
-                    return;
-                  }
-                  borrarToken(token.id);
-                }}
+                onClick={() => borrarToken(token.id)}
                 onMouseEnter={e => {
                   const stage = e.target.getStage();
                   if (stage) stage.container().style.cursor = herramienta === 'borrar' ? 'not-allowed' : 'grab';
@@ -1503,17 +1217,6 @@ export function Tablero() {
         </Layer>
       </Stage>
 
-
-
-      <DiceRoller
-        dado={combatDado}
-        resultado={combatResultado}
-        onAnimacionFin={handleCombatAnimacionFin}
-        containerId="dice-box-combat"
-      />
-
-      {/* INSTRUCCIONES */}
-
       <div className="tb-instrucciones">
         <span>🖱 Rueda: zoom</span>
         <span>🤚 Arrastrar: mover vista</span>
@@ -1528,6 +1231,7 @@ export function Tablero() {
         jugadorActual={jugadorActualConAvatar}
         esMaster={esMaster}
         lanzarDadoCaracteristicaRef={lanzarDadoCaracteristicaRef}
+        lanzarDadoEnemigoRef={lanzarDadoEnemigoRef}
       />
     </div>
   );

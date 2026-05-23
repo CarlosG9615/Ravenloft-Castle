@@ -16,6 +16,8 @@ export interface EnemigoDetalleDTO {
   cr: number;
   salud: number;
   ca: number;
+  velocidad: number;   
+  iniciativa: number; 
   stats: StatsDTO;
   fuerzaAtaque: number;
   danoAtaque: string;

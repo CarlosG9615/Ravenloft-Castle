@@ -9,8 +9,11 @@ public record EnemigoDetalleDTO(
         double cr,
         int salud,
         int ca,
+        int velocidad,
+        int iniciativa,
         StatsDTO stats,
         int fuerzaAtaque,
         String danoAtaque,
         String descripcion
+
 ) {}
