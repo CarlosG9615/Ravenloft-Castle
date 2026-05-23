@@ -446,3 +446,107 @@
   border-color: rgba(255,255,255,0.2);
   color: rgba(232, 213, 183, 0.8);
 }
+
+.mc-btn-borrar {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid rgba(180, 30, 30, 0.35);
+  border-radius: 10px;
+  color: rgba(255, 120, 120, 0.6);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mc-btn-borrar:hover {
+  border-color: rgba(220, 50, 50, 0.7);
+  background: rgba(139, 0, 0, 0.18);
+  color: rgba(255, 140, 140, 0.95);
+}
+
+/* ── MODAL CONFIRMACIÓN BORRADO ── */
+.mc-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  backdrop-filter: blur(6px);
+}
+
+.mc-confirm {
+  background: rgba(10, 3, 4, 0.98);
+  border: 1px solid rgba(180, 30, 30, 0.5);
+  border-radius: 14px;
+  padding: 32px 28px 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(139, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mc-confirm-titulo {
+  font-family: 'Metal Mania', cursive;
+  font-size: 22px;
+  color: #fff;
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.mc-confirm-texto {
+  font-size: 14px;
+  color: rgba(232, 213, 183, 0.7);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.mc-confirm-texto strong {
+  color: rgba(232, 213, 183, 0.95);
+}
+
+.mc-confirm-acciones {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.mc-confirm-btn-cancelar {
+  flex: 1;
+  padding: 11px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(232, 213, 183, 0.6);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mc-confirm-btn-cancelar:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(232, 213, 183, 0.9);
+}
+
+.mc-confirm-btn-borrar {
+  flex: 1;
+  padding: 11px;
+  background: rgba(139, 0, 0, 0.5);
+  border: 1px solid rgba(200, 30, 30, 0.6);
+  border-radius: 8px;
+  color: #fff;
+  font-family: 'Metal Mania', cursive;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mc-confirm-btn-borrar:hover {
+  background: rgba(180, 0, 0, 0.75);
+  border-color: rgba(220, 50, 50, 0.8);
+}

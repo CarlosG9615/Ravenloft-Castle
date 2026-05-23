@@ -5,9 +5,10 @@ import SockJS from 'sockjs-client';
 import { DiceRoller } from '../../Tablero/DiceRoller';
 import { getAvatarUrl, getCartaUrl } from '../../../utils/imageUtils';
 import { Comment, Users, Mic, Skull, Sword } from 'pixelarticons/react'
-import { Dices, Smile } from 'lucide-react';
+import { Dices, Smile, Accessibility } from 'lucide-react';
 import { PerfilPublicoModal } from '../../../components/PerfilPublicoModal/PerfilPublicoModal';
 import { WS_URL } from '../../../services/api';
+import { useAccessibility } from '../../../services/AccessibilityContext';
 import './PanelPartidaStoryMode.css';
 
 interface Jugador {
@@ -188,6 +189,8 @@ export function PanelPartidaStoryModeChat({
   const [inputChat, setInputChat] = useState('');
   const modificador = 0;
   const [conectado, setConectado] = useState(false);
+  const [chatAbierto, setChatAbierto] = useState(true);
+  const { enabled: accessibilityEnabled, toggleAccessibility } = useAccessibility();
   const [dadoActivo, setDadoActivo] = useState<string | null>(null);
   const [resultadoActivo, setResultadoActivo] = useState<number | null>(null);
   const [mostrarEmotes, setMostrarEmotes] = useState(false);
@@ -630,7 +633,12 @@ export function PanelPartidaStoryModeChat({
   };
 
   return (
-    <div className="pp-panel">
+    <div className={`pp-panel ${chatAbierto ? '' : 'cerrado'}`}>
+
+      <button className="pp-panel-toggle" onClick={() => setChatAbierto(a => !a)}>
+        <span className="pp-panel-toggle-glyph">{chatAbierto ? '>' : '<'}</span>
+      </button>
+
       <DiceRoller
         dado={dadoActivo}
         resultado={resultadoActivo}
@@ -788,7 +796,16 @@ export function PanelPartidaStoryModeChat({
                 rows={2}
                 disabled={!conectado}
               />
-              <button className="pp-chat-send" onClick={enviarMensaje} disabled={!conectado}>➤</button>
+              <div className="pp-chat-actions-col">
+                <button
+                  className={`pp-accessibility-btn ${accessibilityEnabled ? 'active' : ''}`}
+                  title={accessibilityEnabled ? 'Desactivar accesibilidad' : 'Activar accesibilidad'}
+                  onClick={toggleAccessibility}
+                >
+                  <Accessibility size={14} />
+                </button>
+                <button className="pp-chat-send" onClick={enviarMensaje} disabled={!conectado}>➤</button>
+              </div>
             </div>
           </div>
         </div>

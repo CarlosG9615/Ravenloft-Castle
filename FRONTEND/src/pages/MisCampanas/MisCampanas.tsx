@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMisCampanas } from '../../services/campanaService';
+import { getMisCampanas, eliminarCampana } from '../../services/campanaService';
 import { getCampanaUrl } from '../../utils/imageUtils';
 import { useAccessibility } from '../../services/AccessibilityContext';
 import { useAuth } from '../../services/AuthContext';
@@ -15,6 +15,7 @@ export function MisCampanas() {
   const [cargando, setCargando] = useState(true);
   const [pagina, setPagina] = useState(1);
   const [campanaSeleccionada, setCampanaSeleccionada] = useState<any | null>(null);
+  const [campanaABorrar, setCampanaABorrar] = useState<any | null>(null);
   const { enabled: accessibilityEnabled } = useAccessibility();
 
   useEffect(() => {
@@ -30,6 +31,22 @@ export function MisCampanas() {
   const campanasMostradas = accessibilityEnabled
     ? campanas.slice((pagina - 1) * CARDS_POR_PAGINA, pagina * CARDS_POR_PAGINA)
     : campanas;
+
+  const getImagenSrc = (c: any) =>
+    c.imagen?.startsWith('http') ? c.imagen : getCampanaUrl(c.nombre);
+
+  const confirmarEliminar = async () => {
+    if (!campanaABorrar) return;
+    try {
+      await eliminarCampana(campanaABorrar.id);
+      setCampanas(prev => prev.filter(camp => camp.id !== campanaABorrar.id));
+      setCampanaSeleccionada(null);
+    } catch {
+      // no-op, modal se cierra igualmente
+    } finally {
+      setCampanaABorrar(null);
+    }
+  };
 
   const entrarAlTablero = (c: any) => {
     navigate('/tablero', {
@@ -77,10 +94,16 @@ export function MisCampanas() {
           {campanasMostradas.map(c => (
             <div key={c.id} className="mc-card" onClick={() => setCampanaSeleccionada(c)}>
               <div className="mc-card-imagen">
-                {getCampanaUrl(c.nombre)
-                  ? <img src={getCampanaUrl(c.nombre)} alt={c.nombre} />
-                  : <div className="mc-card-imagen-placeholder">⚔</div>
-                }
+                <img
+                  src={getImagenSrc(c)}
+                  alt={c.nombre}
+                  onError={e => {
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                    target.nextElementSibling?.removeAttribute('style');
+                  }}
+                />
+                <div className="mc-card-imagen-placeholder" style={{ display: 'none' }}>⚔</div>
                 <span className={`mc-card-estado mc-card-estado--${c.estado?.toLowerCase()}`}>
                   {c.estado}
                 </span>
@@ -115,10 +138,17 @@ export function MisCampanas() {
           <div className="mc-modal" onClick={e => e.stopPropagation()}>
 
             <div className="mc-modal-hero">
-              {getCampanaUrl(campanaSeleccionada.nombre)
-                ? <img src={getCampanaUrl(campanaSeleccionada.nombre)} alt={campanaSeleccionada.nombre} className="mc-modal-hero-img" />
-                : <div className="mc-modal-hero-placeholder">⚔</div>
-              }
+              <img
+                src={getImagenSrc(campanaSeleccionada)}
+                alt={campanaSeleccionada.nombre}
+                className="mc-modal-hero-img"
+                onError={e => {
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                  target.nextElementSibling?.removeAttribute('style');
+                }}
+              />
+              <div className="mc-modal-hero-placeholder" style={{ display: 'none' }}>⚔</div>
               <div className="mc-modal-hero-overlay" />
               <button className="mc-modal-close" onClick={() => setCampanaSeleccionada(null)}>✕</button>
               <div className="mc-modal-hero-info">
@@ -162,15 +192,43 @@ export function MisCampanas() {
                   className="mc-btn-liderar"
                   onClick={() => entrarAlTablero(campanaSeleccionada)}
                 >
-                  👑 Liderar la campaña
+                   Liderar la campaña
                 </button>
                 <button
                   className="mc-btn-editar"
                   onClick={() => navigate(`/create?edit=${campanaSeleccionada.id}`)}
                 >
-                  ✏ Editar campaña
+                   Editar campaña
                 </button>
+                {campanaSeleccionada.masterId === user?.id && (
+                  <button
+                    className="mc-btn-borrar"
+                    onClick={() => setCampanaABorrar(campanaSeleccionada)}
+                  >
+                     Borrar campaña
+                  </button>
+                )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL CONFIRMACIÓN BORRADO ── */}
+      {campanaABorrar && (
+        <div className="mc-confirm-overlay" onClick={() => setCampanaABorrar(null)}>
+          <div className="mc-confirm" onClick={e => e.stopPropagation()}>
+            <p className="mc-confirm-titulo">¿Borrar campaña?</p>
+            <p className="mc-confirm-texto">
+              Se eliminará <strong>"{campanaABorrar.nombre}"</strong> de forma permanente. Esta acción no se puede deshacer.
+            </p>
+            <div className="mc-confirm-acciones">
+              <button className="mc-confirm-btn-cancelar" onClick={() => setCampanaABorrar(null)}>
+                Cancelar
+              </button>
+              <button className="mc-confirm-btn-borrar" onClick={confirmarEliminar}>
+                Sí, borrar
+              </button>
             </div>
           </div>
         </div>
