@@ -273,13 +273,10 @@ export function JoinGame() {
 
   const campanasFiltradas = campanas.filter(c => {
     const coincideBusqueda = c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    c.master.toLowerCase().includes(busqueda.toLowerCase());
-  const coincideFiltro = filtro === 'todas' || normalizarDificultad(c.dificultad) === normalizarDificultad(filtro);
-
-  
-  // Excluir campañas donde soy master
-  const noSoyMaster = c.masterId !== user?.id;
-  return coincideBusqueda && coincideFiltro && noSoyMaster;
+      c.master.toLowerCase().includes(busqueda.toLowerCase());
+    const coincideFiltro = filtro === 'todas' || normalizarDificultad(c.dificultad) === normalizarDificultad(filtro);
+    const noSoyMaster = c.masterId !== user?.id;
+    return coincideBusqueda && coincideFiltro && noSoyMaster;
   });
 
   useEffect(() => { setPagina(1); }, [filtro, busqueda, accessibilityEnabled]);
@@ -321,25 +318,36 @@ export function JoinGame() {
       console.error('Error al unirse a la campaña:', err);
     }
 
+    const p = personajeSeleccionado as any;
+
     const jugadorRed = crearJugadorBase({
-      id: personajeSeleccionado.id,
-      nombre: personajeSeleccionado.nombre,
-      clase: (personajeSeleccionado as { clase?: string }).clase,
-      hp: (personajeSeleccionado as { hp?: number }).hp,
-      hpMax: (personajeSeleccionado as { hpMax?: number }).hpMax,
-      avatar: personajeSeleccionado.avatar,
+      id: p.id,
+      nombre: p.nombre,
+      clase: p.clase,
+      hp: p.puntosGolpeActual ?? p.hp ?? p.hpMax ?? 20,
+      hpMax: p.puntosGolpeMax ?? p.hpMax ?? p.hp ?? 20,
+      avatar: p.avatar,
     });
 
-    const misJugadores = [...campanaParaUnirse.jugadores, jugadorRed];
+    // Añadir stats para que el master los vea
+    const jugadorConStats = {
+      ...jugadorRed,
+      fuerza: p.fuerza ?? p.statsFinales?.fuerza ?? p.statsBase?.fuerza ?? 10,
+      destreza: p.destreza ?? p.statsFinales?.destreza ?? p.statsBase?.destreza ?? 10,
+      constitucion: p.constitucion ?? p.statsFinales?.constitucion ?? p.statsBase?.constitucion ?? 10,
+      inteligencia: p.inteligencia ?? p.statsFinales?.inteligencia ?? p.statsBase?.inteligencia ?? 10,
+      sabiduria: p.sabiduria ?? p.statsFinales?.sabiduria ?? p.statsBase?.sabiduria ?? 10,
+      carisma: p.carisma ?? p.statsFinales?.carisma ?? p.statsBase?.carisma ?? 10,
+    };
 
     navigate('/tablero', {
       state: {
         campanaId: campanaParaUnirse.id,
         campaaNombre: campanaParaUnirse.nombre,
         mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
-        jugadores: misJugadores,
+        jugadores: [...campanaParaUnirse.jugadores, jugadorConStats],
         esMaster: false,
-        jugadorActual: jugadorRed,
+        jugadorActual: jugadorConStats,
         masterNombre: campanaParaUnirse.master,
       },
     });

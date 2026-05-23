@@ -319,8 +319,7 @@ export function PanelPartida({
           client.subscribe(`/topic/campana/${campanaId}/dice-roll`, (frame) => {
             const { dado, resultado, senderId } = JSON.parse(frame.body);
             const miId = jugadorActual?.id?.toString() || 'master';
-            const esMiTirada = senderId === miId || (senderId === 'master' && esMaster);
-            if (!esMiTirada) {
+            if (senderId !== miId) {
               esAnimacionRemota.current = true;
               setDadoActivo(null);
               setTimeout(() => {
@@ -351,6 +350,18 @@ export function PanelPartida({
               const pc = peersRef.current.get(de);
               if (pc) await pc.addIceCandidate(new RTCIceCandidate(candidate));
             }
+          });
+
+          // Pedir lista actual de jugadores al conectar
+          client.publish({
+            destination: `/app/campana/${campanaId}/jugadores-sync`,
+            body: JSON.stringify({}),
+          });
+
+          // Pedir lista actual de jugadores al conectar
+          client.publish({
+            destination: `/app/campana/${campanaId}/jugadores-sync`,
+            body: JSON.stringify({}),
           });
 
           if (jugadorActual) {
@@ -531,8 +542,7 @@ export function PanelPartida({
       if (j.esMaster === true) return false;
       if (!j.hp && !j.hpMax) return false;
       if (esMaster) {
-        const miId = jugadorActual?.id?.toString();
-        return j.id?.toString() !== miId;
+        return j.esMaster !== true;
       }
       return true;
     })

@@ -44,15 +44,7 @@ interface EnemigoCombate extends EnemigoDetalleDTO {
   hpActual: number;
 }
 
-// ── NPC ──
-interface NpcCampana {
-  id?: number;
-  campanaId?: number;
-  nombre: string;
-  descripcion?: string;
-  rol: string;
-  imagenUrl?: string;
-}
+
 
 const COLORES_TOKEN = {
   jugador: '#4a90d9',
@@ -93,6 +85,41 @@ function Cuadricula({ ancho, alto, celda }: { ancho: number; alto: number; celda
     lineas.push(<Line key={`h${y}`} points={[0, y, ancho, y]} stroke="rgba(255,255,255,0.15)" strokeWidth={0.5} />);
   return <>{lineas}</>;
 }
+
+function TokenEnemigo({ nombre, celda = 50 }: { nombre: string; celda?: number }) {
+  const imgSrc = ENEMIGO_IMAGENES[nombre] ?? null;
+  const [img] = useImage(imgSrc ?? '');
+  if (img && imgSrc) {
+    const size = celda * 1.8;
+    return (
+      <Image image={img} width={size} height={size} offsetX={size / 2} offsetY={size / 2} />
+    );
+  }
+  return (
+    <>
+      <Circle radius={22} fill="rgba(0,0,0,0.3)" offsetY={-4} />
+      <Circle radius={20} fill="#e74c3c" stroke="white" strokeWidth={2} />
+    </>
+  );
+}
+
+const ENEMIGO_IMAGENES: Record<string, string> = {
+  'Goblin': '/images/enemiCampaña/goblin.png',
+  'Orco': '/images/enemiCampaña/orco.png',
+  'Esqueleto': '/images/enemiCampaña/esqueleto.png',
+  'Zombie': '/images/enemiCampaña/zombie.png',
+  'Mago Oscuro': '/images/enemiCampaña/MagoOscuro.png',
+  'Troll': '/images/enemiCampaña/Troll.png',
+  'Vampiro': '/images/enemiCampaña/vampiro.png',
+  'Dragón Rojo': '/images/enemiCampaña/dragonRojo.png',
+  'Vampiro Siervo': '/images/enemiCampaña/vgampiroSiervo.png',
+  'Lobo Sombrio': '/images/enemiCampaña/loboSombrio.png',
+  'Cultista Lunatico': '/images/enemiCampaña/cultistaLunatico.png',
+  'Sacerdote Oscuro': '/images/enemiCampaña/saserdoteOscuro.png',
+  'Esqueleto Guerrero': '/images/enemiCampaña/esqueletoGuerrero.png',
+  'Zombi Blindado': '/images/enemiCampaña/zombieBlindado.png',
+  'Archlich Azalin': '/images/enemiCampaña/archlichAzalin.png',
+};
 
 export function Tablero() {
   const location = useLocation();
@@ -158,7 +185,7 @@ export function Tablero() {
   const [mostrarCuadricula, setMostrarCuadricula] = useState(true);
   const [panelAbierto, setPanelAbierto]           = useState(true);
   const [panelEnemigos, setPanelEnemigos]         = useState(false);
-  const [panelNpcs, setPanelNpcs]                 = useState(false);
+  
   const [enemigos, setEnemigos]                   = useState<EnemigoDetalleDTO[]>([]);
   const [hpEnemigos, setHpEnemigos]               = useState<Record<string, number>>({});
   const [enemigosCombate, setEnemigosCombate]     = useState<EnemigoCombate[]>([]);
@@ -166,13 +193,6 @@ export function Tablero() {
 
   // ── Ficha enemigo en combate ──
   const [enemigoFichaAbierta, setEnemigoFichaAbierta] = useState<EnemigoCombate | null>(null);
-
-  // ── Estado NPCs ──
-  const [npcs, setNpcs]                           = useState<NpcCampana[]>([]);
-  const [npcNombre, setNpcNombre]                 = useState('');
-  const [npcDescripcion, setNpcDescripcion]       = useState('');
-  const [npcImagen, setNpcImagen]                 = useState<string | null>(null);
-  const [guardandoNpc, setGuardandoNpc]           = useState(false);
 
   const currentPlayerId = jugadorActualConAvatar?.id ?? jugadorActualConAvatar?.personajeId ?? personaje?.id ?? null;
 
@@ -291,71 +311,6 @@ export function Tablero() {
         .catch(err => console.error('Error cargando enemigos:', err));
     }
   }, [esMaster]);
-
-  // ── Cargar NPCs al abrir el panel ──
-  useEffect(() => {
-    if (!campanaId || !panelNpcs) return;
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    fetch(`http://localhost:8080/api/campanas/${campanaId}/npcs`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then(r => r.ok ? r.json() : [])
-      .then(data => setNpcs(data))
-      .catch(err => console.error('Error cargando NPCs:', err));
-  }, [campanaId, panelNpcs]);
-
-  const handleNpcImagen = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setNpcImagen(reader.result as string);
-    reader.readAsDataURL(file);
-  };
-
-  const guardarNpc = async () => {
-    if (!npcNombre.trim() || !campanaId) return;
-    setGuardandoNpc(true);
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    try {
-      const res = await fetch(`http://localhost:8080/api/campanas/${campanaId}/npcs`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          nombre: npcNombre.trim(),
-          descripcion: npcDescripcion.trim(),
-          rol: 'ALIADO',
-          imagenUrl: npcImagen,
-        }),
-      });
-      if (res.ok) {
-        const nuevo = await res.json();
-        setNpcs(prev => [...prev, nuevo]);
-        setNpcNombre('');
-        setNpcDescripcion('');
-        setNpcImagen(null);
-      }
-    } catch (err) {
-      console.error('Error guardando NPC:', err);
-    } finally {
-      setGuardandoNpc(false);
-    }
-  };
-
-  const eliminarNpc = async (npcId: number) => {
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    try {
-      await fetch(`http://localhost:8080/api/campanas/${campanaId}/npcs/${npcId}`, {
-        method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      setNpcs(prev => prev.filter(n => n.id !== npcId));
-    } catch (err) {
-      console.error('Error eliminando NPC:', err);
-    }
-  };
 
   const buildPath = (from: {x:number, y:number}, to: {x:number, y:number}) => {
     const path = [from];
@@ -765,18 +720,9 @@ export function Tablero() {
                   <img src="/images/gif/enemigo.gif" alt="Enemigos" className="tb-combat-gif" />
                   <button
                     className={`tb-combat-btn ${panelEnemigos ? 'active' : ''}`}
-                    onClick={() => { setPanelEnemigos(!panelEnemigos); setPanelNpcs(false); }}
+                    onClick={() => setPanelEnemigos(!panelEnemigos)}
                   >
                     Enemigos
-                  </button>
-                </div>
-                <div className="tb-combat-item">
-                  <img src="/images/gif/npc.gif" alt="Personajes" className="tb-combat-gif tb-combat-gif-npc" />
-                  <button
-                    className={`tb-combat-btn ${panelNpcs ? 'active' : ''}`}
-                    onClick={() => { setPanelNpcs(!panelNpcs); setPanelEnemigos(false); }}
-                  >
-                    Personajes
                   </button>
                 </div>
               </div>
@@ -950,85 +896,27 @@ export function Tablero() {
           <div className="tb-enemigos-lista">
             {enemigosFiltrados.map(e => (
               <div key={e.id} className="tb-enemigo-card" onClick={() => añadirEnemigoCombate(e)}>
-                <div className="tb-enemigo-card-header">
-                  <span className="tb-enemigo-nombre">{e.nombre}</span>
-                  <span className="tb-enemigo-tipo">{e.tipo}</span>
+                <div className="tb-enemigo-card-img-wrap">
+                  {ENEMIGO_IMAGENES[e.nombre]
+                    ? <img src={ENEMIGO_IMAGENES[e.nombre]} alt={e.nombre} className="tb-enemigo-card-img" />
+                    : <div className="tb-enemigo-card-img-placeholder">⚔</div>
+                  }
                 </div>
-                <div className="tb-enemigo-card-stats">
-                  <span>❤ {e.salud}</span>
-                  <span>🛡 {e.ca}</span>
-                  <span>⚔ {e.danoAtaque}</span>
-                  <span>CR {e.cr}</span>
+                <div className="tb-enemigo-card-body">
+                  <div className="tb-enemigo-card-header">
+                    <span className="tb-enemigo-nombre">{e.nombre}</span>
+                    <span className="tb-enemigo-tipo">{e.tipo}</span>
+                  </div>
+                  <div className="tb-enemigo-card-stats">
+                    <span>❤ {e.salud}</span>
+                    <span>🛡 {e.ca}</span>
+                    <span>⚔ {e.danoAtaque}</span>
+                    <span>CR {e.cr}</span>
+                  </div>
                 </div>
-                {e.descripcion && <p className="tb-enemigo-desc">{e.descripcion}</p>}
               </div>
             ))}
             {enemigosFiltrados.length === 0 && <p className="tb-vacio">No se encontraron enemigos</p>}
-          </div>
-        </div>
-      )}
-
-      {/* PANEL NPCs / PERSONAJES DE LA CAMPAÑA */}
-      {esMaster && panelNpcs && (
-        <div className="tb-enemigos-panel">
-          <div className="tb-enemigos-panel-header">
-            <h4 className="tb-enemigos-titulo">🧙 Personajes de la Campaña</h4>
-            <button className="tb-enemigos-cerrar" onClick={() => setPanelNpcs(false)}>✕</button>
-          </div>
-
-          <div className="tb-npc-form">
-            <div className="tb-npc-imagen-preview">
-              {npcImagen
-                ? <img src={npcImagen} alt="preview" className="tb-npc-img" />
-                : <div className="tb-npc-img-placeholder">📷</div>
-              }
-              <label className="tb-npc-upload-btn" htmlFor="npc-upload">
-                {npcImagen ? 'Cambiar' : 'Subir foto'}
-              </label>
-              <input id="npc-upload" type="file" accept="image/*" className="tb-npc-upload-input" onChange={handleNpcImagen} />
-            </div>
-
-            <input
-              className="tb-input"
-              placeholder="Nombre del personaje..."
-              value={npcNombre}
-              onChange={e => setNpcNombre(e.target.value)}
-              style={{ marginBottom: 6 }}
-            />
-            <textarea
-              className="tb-input"
-              placeholder="Descripción (opcional)..."
-              value={npcDescripcion}
-              onChange={e => setNpcDescripcion(e.target.value)}
-              rows={2}
-              style={{ marginBottom: 6, resize: 'none' }}
-            />
-            <button
-              className="tb-combat-btn"
-              onClick={guardarNpc}
-              disabled={!npcNombre.trim() || guardandoNpc}
-              style={{ width: '100%', borderRadius: 6 }}
-            >
-              {guardandoNpc ? 'Guardando...' : '+ Añadir personaje'}
-            </button>
-          </div>
-
-          <div className="tb-enemigos-lista" style={{ marginTop: 12 }}>
-            {npcs.length === 0 && <p className="tb-vacio">Sin personajes añadidos</p>}
-            {npcs.map(npc => (
-              <div key={npc.id} className="tb-npc-card">
-                {npc.imagenUrl && (
-                  <img src={npc.imagenUrl} alt={npc.nombre} className="tb-npc-card-img" />
-                )}
-                <div className="tb-npc-card-info">
-                  <div className="tb-npc-card-header">
-                    <span className="tb-enemigo-nombre">{npc.nombre}</span>
-                    <button className="tb-token-borrar" onClick={() => npc.id && eliminarNpc(npc.id)}>✕</button>
-                  </div>
-                  {npc.descripcion && <p className="tb-enemigo-desc">{npc.descripcion}</p>}
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}
@@ -1208,9 +1096,14 @@ export function Tablero() {
                 }}
               >
                 <Circle radius={22} fill="rgba(0,0,0,0.3)" offsetY={-4} />
-                <Circle radius={20} fill={token.color} stroke="white" strokeWidth={2} shadowColor="rgba(0,0,0,0.5)" shadowBlur={6} shadowOffsetY={2} />
-                <Text text={token.nombre.charAt(0).toUpperCase()} fontSize={16} fontStyle="bold" fill="white" align="center" verticalAlign="middle" width={40} height={40} offsetX={20} offsetY={20} />
-                <Text text={token.nombre} fontSize={10} fill="white" align="center" width={60} offsetX={30} offsetY={-26} shadowColor="black" shadowBlur={4} />
+                {token.tipo === 'enemigo'
+                  ? <TokenEnemigo nombre={token.nombre} celda={120} />
+                  : <>
+                      <Circle radius={20} fill={token.color} stroke="white" strokeWidth={2} shadowColor="rgba(0,0,0,0.5)" shadowBlur={6} shadowOffsetY={2} />
+                      <Text text={token.nombre.charAt(0).toUpperCase()} fontSize={16} fontStyle="bold" fill="white" align="center" verticalAlign="middle" width={40} height={40} offsetX={20} offsetY={20} />
+                    </>
+                }
+                
               </Group>
             );
           })}
