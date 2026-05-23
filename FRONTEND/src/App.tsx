@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from '
 import { useEffect } from 'react';
 import { ThemeProvider } from './services/ThemeContext';
 import { AuthProvider } from './services/AuthContext';
+import { AccessibilityProvider } from './services/AccessibilityContext';
 import { Header } from './components/Header/Header';
 import { Footer } from './components/Footer/Footer';
 import { PrivateRoute } from './components/PrivateRoute/PrivateRoute';
@@ -28,6 +29,7 @@ import Mission from './pages/Mission/Mission';
 import { CreateMission } from './pages/CreateMission/CreateMission';
 import { buildMissionDetailsPath, buildMissionListPath } from './pages/Mission/missionRoutes';
 
+import './styles/accessibility.css';
 import './App.css';
 import { MisCampanas } from './pages/MisCampanas/MisCampanas';
 
@@ -174,10 +176,12 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
-            <ScrollToTop />
-          <Layout />
-        </BrowserRouter>
+        <AccessibilityProvider>
+          <BrowserRouter>
+              <ScrollToTop />
+            <Layout />
+          </BrowserRouter>
+        </AccessibilityProvider>
       </AuthProvider>
     </ThemeProvider>
   );

@@ -139,20 +139,38 @@
   opacity: 1;
 }
 
+.icon-btn-clean--active {
+  opacity: 1;
+  color: var(--yellow-gold);
+}
+
+.icon-btn-clean--active:hover {
+  color: #ffd76a;
+}
+
 .mobile-menu-btn {
   display: none;
   flex-direction: column;
+  align-items: flex-start;
   gap: 5px;
   background: transparent;
   border: none;
   cursor: pointer;
   padding: 10px;
+  flex-shrink: 0;
+}
+
+.mobile-menu-anchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .mobile-menu-btn span {
-  width: 25px;
+  width: 22px;
   height: 3px;
-  background: var(--orange-fire);
+  background: rgba(255, 255, 255, 0.88);
   border-radius: 2px;
   transition: all 0.3s ease;
 }
@@ -173,7 +191,9 @@
   background: rgba(10, 2, 2, 0.97);
   border: 1px solid rgba(139, 0, 0, 0.4);
   border-radius: 8px;
-  min-width: 180px;
+  width: max-content;
+  min-width: 0;
+  max-width: min(260px, calc(100vw - 24px));
   z-index: 200;
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -181,9 +201,9 @@
 
 .nav-dropdown-item {
   display: block;
-  padding: 12px 16px;
+  padding: 11px 14px;
   color: rgba(232, 213, 183, 0.8);
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -191,6 +211,7 @@
   letter-spacing: 1px;
   text-decoration: none;
   border-bottom: none;
+  white-space: nowrap;
 }
 .nav-dropdown a,
 .nav-dropdown-item {
@@ -222,39 +243,94 @@
 }
 
 @media (max-width: 1024px) {
-  .nav-menu {
-    display: none;
+  .header {
+    gap: 10px;
+    padding: 0 12px;
   }
 
   .mobile-menu-btn {
     display: flex;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .nav-menu {
+    display: none;
+  }
+
+  .header-actions {
+    min-width: 0;
+    gap: 10px;
+    margin-left: auto;
   }
 
   .mobile-menu {
     display: flex;
     flex-direction: column;
-    position: absolute;
+    position: fixed;
     top: 80px;
     left: 0;
-    right: 0;
+    right: auto;
     background: rgba(0, 0, 0, 0.95);
     backdrop-filter: blur(15px);
     border-bottom: 2px solid rgba(255, 107, 53, 0.4);
-    padding: 20px;
+    padding: 14px 16px;
     gap: 10px;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    width: max-content;
+    min-width: min(240px, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
+    align-items: flex-start;
+    z-index: 2100;
   }
 
   .mobile-nav-link {
+    display: block;
     font-family: 'Metal Mania', cursive;
     font-size: 16px;
     color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 1px;
     cursor: pointer;
-    padding: 15px 20px;
+    padding: 14px 18px;
     border-left: 4px solid transparent;
     transition: all 0.3s ease;
     text-decoration: none;
+    width: fit-content;
+    white-space: nowrap;
+  }
+
+  .mobile-nav-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 6px 0 8px;
+    margin: 4px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    width: 100%;
+  }
+
+  .mobile-nav-group-title {
+    padding: 0 20px;
+    font-family: 'Metal Mania', cursive;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    width: fit-content;
+  }
+
+  .mobile-nav-link--sub {
+    margin-left: 14px;
+    padding-left: 18px;
+    border-left: 3px solid rgba(255, 107, 53, 0.28);
+    font-size: 15px;
+    width: fit-content;
   }
 
   .mobile-nav-link:hover,
@@ -268,6 +344,10 @@
     gap: 10px;
   }
 
+  .user-name {
+    display: none;
+  }
+
   .login-btn span {
     display: none;
   }
@@ -275,12 +355,26 @@
 
 @media (max-width: 768px) {
   .header {
-    padding: 0 20px;
+    padding: 0 12px;
   }
 
   .logo {
     width: 40px;
     height: 40px;
+  }
+
+  .header {
+    padding: 0 12px;
+  }
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .notif-dropdown,
+  .user-dropdown {
+    right: -8px;
+    width: min(320px, calc(100vw - 20px));
   }
 }
 

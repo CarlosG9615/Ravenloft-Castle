@@ -5,6 +5,7 @@ import './StoryMode.css';
 import { API_URL } from '../../services/api';
 import { getMySuscripciones, getUserSuscripciones } from '../../services/suscripcionService';
 import { getModoHistoriaImageCandidates, getAvatarUrl } from '../../utils/imageUtils';
+import { useAccessibility } from '../../services/AccessibilityContext';
 
 const isAbsoluteUrl = (v: string) => /^https?:\/\//i.test(v);
 const isAppPath    = (v: string) => v.startsWith('/');
@@ -239,7 +240,7 @@ function ModalModoHistoria({
             placeholderClassName="jg-card-modo-plantilla"
           />
           <div className="jg-modal-hero-overlay" />
-          <button className="jg-modal-close" onClick={onClose}>✕</button>
+          <button type="button" className="jg-modal-close" onClick={e => { e.stopPropagation(); onClose(); }}>✕</button>
           <div className="jg-modal-hero-info">
             <span className="jg-dificultad-badge" style={{ background: getDificultadColor(modoHistoria.dificultad) }}>
               {modoHistoria.dificultad}
@@ -333,7 +334,7 @@ function ModalSuscripcionRequerida({
   return (
     <div className="jg-modal-overlay" onClick={onClose}>
       <div className="jg-modal jg-upgrade-modal" onClick={e => e.stopPropagation()}>
-        <button className="jg-modal-close" onClick={onClose}>✕</button>
+        <button type="button" className="jg-modal-close" onClick={e => { e.stopPropagation(); onClose(); }}>✕</button>
         <div className="jg-upgrade-header">
           <h3>Necesitas mejorar tu suscripción</h3>
           <p>
@@ -362,13 +363,17 @@ function ModalSuscripcionRequerida({
   );
 }
 
+const CARDS_POR_PAGINA_MODO = 2;
+
 // ── COMPONENTE PRINCIPAL ──────────────────────────────────
 export function StoryMode() {
   const navigate = useNavigate();
+  const { enabled: accessibilityEnabled } = useAccessibility();
   const [modoHistoriaSeleccionado, setModoHistoriaSeleccionado] = useState<ModoHistoria | null>(null);
   const [modoBloqueadoSeleccionado, setModoBloqueadoSeleccionado] = useState<{ nombre: string; nivelRequerido: TipoSuscripcion } | null>(null);
   const [filtro, setFiltro] = useState<string>('todas');
   const [busqueda, setBusqueda] = useState('');
+  const [pagina, setPagina] = useState(1);
   const [modosHistoria, setModosHistoria] = useState<ModoHistoria[]>([]);
   const [cargandoModosHistoria, setCargandoModosHistoria] = useState(false);
   const [errorModosHistoria, setErrorModosHistoria] = useState<string | null>(null);
@@ -471,6 +476,13 @@ export function StoryMode() {
       return nivelA - nivelB;
     });
 
+  useEffect(() => { setPagina(1); }, [filtro, busqueda, accessibilityEnabled]);
+
+  const totalPaginas = Math.ceil(modosHistoriaFiltrados.length / CARDS_POR_PAGINA_MODO);
+  const modosMostrados = accessibilityEnabled
+    ? modosHistoriaFiltrados.slice((pagina - 1) * CARDS_POR_PAGINA_MODO, pagina * CARDS_POR_PAGINA_MODO)
+    : modosHistoriaFiltrados;
+
   const handleSeleccionModoHistoria = (modoHistoria: ModoHistoria) => {
     if (!usuarioPuedeVerModo(modoHistoria)) {
       setModoBloqueadoSeleccionado({
@@ -507,7 +519,6 @@ export function StoryMode() {
         {/* CABECERA */}
         <div className="jg-header">
           <h1 className="jg-titulo">Unirte a una partida</h1>
-          <h2 className="jg-subtitulo">Unete a una aventura</h2>
           <p className="jg-descripcion">Encuentra tu grupo y forja tu leyenda en RavenLoft Castle</p>
         </div>
 
@@ -564,7 +575,7 @@ export function StoryMode() {
         ) : (
           <>
             <div className="jg-grid">
-              {modosHistoriaFiltrados.map((modoHistoria, i) => {
+              {modosMostrados.map((modoHistoria, i) => {
                 const jugadoresActuales = getJugadoresActuales(modoHistoria);
                 const mastersActuales = getMastersActuales(modoHistoria);
                 const plazasJugadorLibres = getPlazasJugadorLibres(modoHistoria);
@@ -644,6 +655,21 @@ export function StoryMode() {
                 );
               })}
             </div>
+            {accessibilityEnabled && totalPaginas > 1 && (
+              <div className="jg-paginacion">
+                <button
+                  className="jg-pag-btn"
+                  onClick={() => setPagina(p => Math.max(1, p - 1))}
+                  disabled={pagina === 1}
+                >← Anterior</button>
+                <span className="jg-pag-info">Página {pagina} de {totalPaginas}</span>
+                <button
+                  className="jg-pag-btn"
+                  onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                  disabled={pagina === totalPaginas}
+                >Siguiente →</button>
+              </div>
+            )}
             {modosHistoriaFiltrados.length === 0 && (
               <div className="jg-vacio">
                 <div className="jg-vacio-icon">📖</div>
