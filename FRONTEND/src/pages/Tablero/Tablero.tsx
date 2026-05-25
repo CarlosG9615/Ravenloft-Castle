@@ -664,8 +664,8 @@ export function Tablero() {
       {/* PANEL MASTER */}
       {esMaster && (
         <div className={`tb-panel ${panelAbierto ? 'abierto' : ''}`}>
-          <button className="tb-panel-toggle" onClick={() => setPanelAbierto(!panelAbierto)}>
-            {panelAbierto ? '◀' : '▶'}
+          <button className="tb-panel-toggle" onClick={() => setPanelAbierto(!panelAbierto)} aria-label={panelAbierto ? 'Cerrar panel lateral' : 'Abrir panel lateral'} title={panelAbierto ? 'Cerrar panel lateral' : 'Abrir panel lateral'}>
+            <span className="tb-panel-toggle-glyph">{panelAbierto ? '<' : '>'}</span>
           </button>
           <div className="tb-panel-contenido">
             <h3 className="tb-panel-titulo">🗡 Tablero</h3>

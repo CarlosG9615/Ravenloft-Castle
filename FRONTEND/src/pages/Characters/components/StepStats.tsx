@@ -27,8 +27,8 @@ export function StepStats({
   } = statAssignment;
 
   const {
-    attackSpellEntries, entryTipo, entryNombre, entryBonificador, entryDano, entryRango,
-    setEntryTipo, setEntryNombre, setEntryBonificador, setEntryDano, setEntryRango,
+    attackSpellEntries, entryTipo, entryNombre, entryBonificador, entryDano,
+    setEntryTipo, setEntryNombre, setEntryBonificador, setEntryDano,
     addEntry, removeEntry,
   } = attackEntries;
 
@@ -212,23 +212,18 @@ export function StepStats({
             <input type="text" className="form-control create-input" placeholder="Ej: 1d8 + Fue"
               value={entryDano} onChange={e => setEntryDano(e.target.value)} />
           </div>
-          <div className="col-md-2">
-            <label className="create-label">Rango</label>
-            <input type="number" min={1} className="form-control create-input" placeholder="Casillas"
-              value={entryRango} onChange={e => setEntryRango(Number(e.target.value))} />
-          </div>
         </div>
         <div className="d-flex justify-content-end mt-3">
           <button type="button" className="btn create-btn-primary" onClick={addEntry}>Agregar</button>
         </div>
         <div className="create-ataques-table mt-3">
           <div className="create-ataques-row create-ataques-header">
-            <span>Nombre</span><span>Bonif.</span><span>Daño</span><span>Rango</span><span></span>
+            <span>Nombre</span><span>Bonif.</span><span>Daño</span><span></span>
           </div>
           {attackSpellEntries.length === 0
             ? [1, 2].map(i => (
                 <div key={`empty-${i}`} className="create-ataques-row">
-                  <span>—</span><span>—</span><span>—</span><span>—</span><span></span>
+                  <span>—</span><span>—</span><span>—</span><span></span>
                 </div>
               ))
             : attackSpellEntries.map(entry => (
@@ -236,7 +231,6 @@ export function StepStats({
                   <span>{entry.tipo === 'conjuro' ? `Conjuro: ${entry.nombre}` : entry.nombre}</span>
                   <span>{entry.bonificador}</span>
                   <span>{entry.dano}</span>
-                  <span>{entry.rangoCasillas ?? (entry.tipo === 'conjuro' ? 6 : 1)} casillas</span>
                   <span>
                     <button type="button" className="create-ataques-delete"
                       onClick={() => removeEntry(entry.id)}

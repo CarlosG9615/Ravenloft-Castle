@@ -77,8 +77,8 @@ export function Home() {
     {
       iconSrc: '/images/icons/icon-mapa.png',
       title: 'Mapas Interactivos',
-      description: 'Tableros dinámicos con fog of war. Sistema de dados y mucho más.',
-      route: '/tools'
+      description: 'Crea tus campañas con tableros dinámicos. Sistema de dados y mucho más.',
+      route: '/create'
     },
   ];
 
