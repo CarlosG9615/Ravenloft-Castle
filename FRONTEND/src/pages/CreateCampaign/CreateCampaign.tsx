@@ -14,17 +14,17 @@ interface Mapa {
 }
 
 const CATEGORIAS_MAPA = [
-  { key: 'Todos',     icon: '🗺' },
-  { key: 'Día',       icon: '☀️' },
-  { key: 'Noche',     icon: '🌙' },
-  { key: 'Interior',  icon: '🏚' },
-  { key: 'Combate',   icon: '⚔️' },
-  { key: 'Bosque',    icon: '🌲' },
-  { key: 'Ciudad',    icon: '🏙' },
-  { key: 'Destruido', icon: '💀' },
-  { key: 'Cyberpunk', icon: '⚡' },
-  { key: 'Medieval',  icon: '🏰' },
-  { key: 'Clima',     icon: '🌧️' },
+  { key: 'Todos' },
+  { key: 'Día' },
+  { key: 'Noche' },
+  { key: 'Interior' },
+  { key: 'Combate' },
+  { key: 'Bosque' },
+  { key: 'Ciudad' },
+  { key: 'Destruido' },
+  { key: 'Cyberpunk' },
+  { key: 'Medieval' },
+  { key: 'Clima' },
 ];
 
 const MAPAS_MOCK: Mapa[] = [
@@ -201,7 +201,7 @@ export function CreateCampaign() {
         ...(codigoInvitacion.trim() ? { codigoInvitacion: codigoInvitacion.trim() } : {}),
       });
       // Optionally, navigate to a success page or back to /join where it shows "Mis Campañas"
-      navigate('/join');
+      navigate('/mis-campanas');
     } catch (error) {
       console.error('Error creando campaña', error);
       alert('Hubo un error al crear la campaña. Intenta de nuevo.');
@@ -343,7 +343,7 @@ export function CreateCampaign() {
               className={`cc-mesa-filtro ${categoriaActiva === cat.key ? 'active' : ''}`}
               onClick={() => { cambiarCategoria(cat.key); setFiltroAbierto(false); }}
             >
-              {cat.icon} {cat.key}
+              {cat.key}
             </button>
           ))}
     <button
@@ -351,7 +351,7 @@ export function CreateCampaign() {
       onClick={() => { mapaRandom(); setFiltroAbierto(false); }}
       disabled={mapasSeleccionados.length >= 10}
     >
-      🎲 Random
+       Random
     </button>
   </div>
 </div>

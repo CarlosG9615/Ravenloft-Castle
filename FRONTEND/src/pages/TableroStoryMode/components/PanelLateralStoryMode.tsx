@@ -283,7 +283,7 @@ export function PanelLateralStoryMode({
 
   return (
     <div className={`tb-panel ${abierto ? 'abierto' : ''}`}>
-      <button className="tb-panel-toggle" onClick={onToggle}>
+      <button className="tb-panel-toggle" onClick={onToggle} aria-label={abierto ? 'Cerrar panel lateral' : 'Abrir panel lateral'} title={abierto ? 'Cerrar panel lateral' : 'Abrir panel lateral'}>
         <span className="tb-panel-toggle-glyph">{abierto ? '<' : '>'}</span>
       </button>
 

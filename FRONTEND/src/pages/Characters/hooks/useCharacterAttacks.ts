@@ -28,11 +28,12 @@ export function useCharacterAttacks(
   }, [entryTipo]);
 
   useEffect(() => {
-    if (!entradasAtaquesConjuros || entradasAtaquesConjuros.length === 0) return;
-    const normalized = entradasAtaquesConjuros.map(normalizeEntry);
+    if (modo !== 'wizard') return;
+    const source = Array.isArray(entradasAtaquesConjuros) ? entradasAtaquesConjuros : [];
+    const normalized = source.map(normalizeEntry);
     setAttacks(normalized.filter(e => e.tipo === 'ataque'));
     setSpells(normalized.filter(e => e.tipo === 'conjuro'));
-  }, [entradasAtaquesConjuros]);
+  }, [modo, entradasAtaquesConjuros]);
 
   useEffect(() => {
     if (modo !== 'view' || !entriesKey) return;
@@ -81,11 +82,13 @@ export function useCharacterAttacks(
     setEntryRango(defaultRango(entryTipo));
   };
 
-  const resetEntriesToDefault = () => {
-    const defaults = buildDefaultEntries(claseFinal, statsFinales, bonifComp);
-    const normalized = defaults.map(normalizeEntry);
-    setAttacks(normalized.filter(e => e.tipo === 'ataque'));
-    setSpells(normalized.filter(e => e.tipo === 'conjuro'));
+  const removeEditedEntry = () => {
+    if (!editingEntryId || !editingEntryTipo) return;
+    if (editingEntryTipo === 'ataque') {
+      setAttacks(prev => prev.filter(item => item.id !== editingEntryId));
+    } else {
+      setSpells(prev => prev.filter(item => item.id !== editingEntryId));
+    }
     setEditingEntryId(null);
     setEditingEntryTipo(null);
   };
@@ -104,7 +107,7 @@ export function useCharacterAttacks(
     const bonifLimpio = editingBonificador.trim();
     const danoLimpio = editingDano.trim();
 
-    if (!nombreLimpio && !bonifLimpio && !danoLimpio) { resetEntriesToDefault(); return; }
+    if (!nombreLimpio && !bonifLimpio && !danoLimpio) { removeEditedEntry(); return; }
     if (!nombreLimpio || !bonifLimpio || !danoLimpio) return;
 
     const update = (prev: AttackSpellEntry[]) =>

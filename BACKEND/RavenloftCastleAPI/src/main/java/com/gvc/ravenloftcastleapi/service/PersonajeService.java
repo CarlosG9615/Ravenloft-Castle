@@ -1,9 +1,19 @@
 package com.gvc.ravenloftcastleapi.service;
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.gvc.ravenloftcastleapi.dto.catalogo.ClaseResumenDTO;
 import com.gvc.ravenloftcastleapi.dto.catalogo.RazaResumenDTO;
-import com.gvc.ravenloftcastleapi.dto.personaje.PersonajeCreateDTO;
 import com.gvc.ravenloftcastleapi.dto.personaje.PersonajeCreacionConfigDTO;
+import com.gvc.ravenloftcastleapi.dto.personaje.PersonajeCreateDTO;
 import com.gvc.ravenloftcastleapi.dto.personaje.PersonajeResponseDTO;
 import com.gvc.ravenloftcastleapi.dto.personaje.StatsBaseDTO;
 import com.gvc.ravenloftcastleapi.dto.personaje.StatsDTO;
@@ -12,20 +22,15 @@ import com.gvc.ravenloftcastleapi.entity.Habilidad;
 import com.gvc.ravenloftcastleapi.entity.Personaje;
 import com.gvc.ravenloftcastleapi.entity.Raza;
 import com.gvc.ravenloftcastleapi.entity.Usuario;
+import com.gvc.ravenloftcastleapi.repository.CampanaJugadorRepository;
 import com.gvc.ravenloftcastleapi.repository.ClaseRepository;
+import com.gvc.ravenloftcastleapi.repository.MisionParticipanteRepository;
+import com.gvc.ravenloftcastleapi.repository.ModoHistoriaPersonajeRepository;
 import com.gvc.ravenloftcastleapi.repository.PersonajeRepository;
 import com.gvc.ravenloftcastleapi.repository.RazaRepository;
 import com.gvc.ravenloftcastleapi.repository.UsuarioRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +48,9 @@ public class PersonajeService {
     private final UsuarioRepository usuarioRepository;
     private final ClaseRepository claseRepository;
     private final RazaRepository razaRepository;
+    private final MisionParticipanteRepository misionParticipanteRepository;
+    private final CampanaJugadorRepository campanaJugadorRepository;
+    private final ModoHistoriaPersonajeRepository modoHistoriaPersonajeRepository;
 
     @Transactional(readOnly = true)
     public PersonajeCreacionConfigDTO getCreationConfig() {
@@ -200,6 +208,9 @@ public class PersonajeService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes eliminar personajes de otro usuario");
         }
 
+        misionParticipanteRepository.deleteByPersonajeId(id);
+        campanaJugadorRepository.deleteByPersonajeId(id);
+        modoHistoriaPersonajeRepository.deleteByPersonajeId(id);
         personajeRepository.delete(personaje);
     }
 

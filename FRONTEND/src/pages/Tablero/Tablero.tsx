@@ -36,6 +36,7 @@ interface TokenMovePayload {
 
 interface TokenDeletePayload {
   tokenId: string;
+  tipo?: 'jugador' | 'enemigo' | 'npc';
   mapaUrl?: string | null;
 }
 
@@ -55,6 +56,15 @@ const COLORES_TOKEN = {
 const TAMANYO_CELDA = 50;
 const MAPA_ANCHO    = 2400;
 const MAPA_ALTO     = 1600;
+const PLAYER_SPAWN_POSITIONS = [
+  { x: 100, y: 100 },
+  { x: 200, y: 150 },
+];
+
+const getPlayerKey = (jugador: any): string | null => {
+  const value = jugador?.id ?? jugador?.personajeId ?? jugador?.usuarioId ?? jugador?.personaje?.id ?? null;
+  return value === null || value === undefined ? null : String(value);
+};
 
 const isAbsoluteUrl = (value: string) => /^https?:\/\//i.test(value);
 const isDataUrl = (value: string) => /^data:/i.test(value);
@@ -145,6 +155,7 @@ export function Tablero() {
   const [mapasDisponibles, setMapasDisponibles] = useState<string[]>([]);
   const [cargandoMapas, setCargandoMapas]       = useState(false);
   const [personaje, setPersonaje]               = useState<any>(null);
+  const [jugadoresActivos, setJugadoresActivos] = useState<any[]>(jugadoresCampaa);
   const avatarSrc = resolveAvatarUrl(personaje?.avatar);
   const jugadorActualConAvatar = jugadorActual && !jugadorActual.avatar && personaje?.avatar
     ? { ...jugadorActual, avatar: personaje.avatar }
@@ -164,11 +175,9 @@ export function Tablero() {
   const [scale, setScale]       = useState(calcularScaleInicial);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [tokensPorMapa, setTokensPorMapa] = useState<Record<string, Token[]>>({
-    [mapaUrl]: [
-      { id: '1', x: 100, y: 100, color: COLORES_TOKEN.jugador, nombre: 'P1', tipo: 'jugador' },
-      { id: '2', x: 200, y: 150, color: COLORES_TOKEN.jugador, nombre: 'P2', tipo: 'jugador' },
-    ]
+    [mapaUrl]: []
   });
+  const playerSpawnSlotsRef = useRef<Map<string, number>>(new Map());
 
   const tokens = tokensPorMapa[mapaActualUrl] || [];
   const setTokens = (updater: Token[] | ((prev: Token[]) => Token[])) => {
@@ -179,9 +188,7 @@ export function Tablero() {
     });
   };
 
-  const [herramienta, setHerramienta]             = useState<'mover' | 'token' | 'borrar'>('mover');
-  const [tipoToken, setTipoToken]                 = useState<'jugador' | 'enemigo' | 'npc'>('jugador');
-  const [tokenNombre, setTokenNombre]             = useState('');
+  const [herramienta, setHerramienta]             = useState<'mover' | 'borrar'>('mover');
   const [mostrarCuadricula, setMostrarCuadricula] = useState(true);
   const [panelAbierto, setPanelAbierto]           = useState(true);
   const [panelEnemigos, setPanelEnemigos]         = useState(false);
@@ -234,6 +241,7 @@ export function Tablero() {
     if (!campanaId || !stompRef.current?.connected) return;
     const payload: TokenDeletePayload = {
       tokenId: token.id,
+      tipo: token.tipo,
       mapaUrl: mapaActualUrl,
     };
     stompRef.current.publish({
@@ -260,7 +268,7 @@ export function Tablero() {
         x: position.x,
         y: position.y,
         color: move.color || COLORES_TOKEN[move.tipo],
-        nombre: move.nombre || move.tipo.charAt(0).toUpperCase(),
+        nombre: move.nombre || (move.tipo === 'jugador' ? 'PJ' : move.tipo.charAt(0).toUpperCase()),
         tipo: move.tipo,
         ownerId: move.ownerId ?? null,
       };
@@ -272,8 +280,19 @@ export function Tablero() {
     const mapKey = payload.mapaUrl || mapaActualUrl;
     setTokensPorMapa(prev => {
       const actualTokens = prev[mapKey] || [];
+      const removedToken = actualTokens.find(t => t.id === payload.tokenId);
       const updated = actualTokens.filter(t => t.id !== payload.tokenId);
       if (updated.length === actualTokens.length) return prev;
+      if ((payload.tipo || removedToken?.tipo) === 'enemigo' && removedToken) {
+        setEnemigosCombate(prevEnemigos =>
+          prevEnemigos.filter((enemigo: EnemigoCombate) => enemigo.instanciaId !== payload.tokenId)
+        );
+      }
+      if ((payload.tipo || removedToken?.tipo) === 'jugador' && removedToken) {
+        setJugadoresActivos(prevJugadores =>
+          prevJugadores.filter((jugador: any) => getPlayerKey(jugador) !== String(payload.tokenId))
+        );
+      }
       return { ...prev, [mapKey]: updated };
     });
     sentTokenIdsRef.current.delete(payload.tokenId);
@@ -433,24 +452,7 @@ export function Tablero() {
   };
 
   const handleStageClick = (e: any) => {
-    if (herramienta !== 'token') return;
-    if (!esMaster) return;
-    if (e.target !== e.target.getStage() && e.target.getClassName() !== 'Image') return;
-    const stage   = stageRef.current;
-    const pointer = stage.getPointerPosition();
-    const x = (pointer.x - position.x) / scale;
-    const y = (pointer.y - position.y) / scale;
-    const nuevo: Token = {
-      id: Date.now().toString(),
-      x: Math.round(x / TAMANYO_CELDA) * TAMANYO_CELDA + TAMANYO_CELDA / 2,
-      y: Math.round(y / TAMANYO_CELDA) * TAMANYO_CELDA + TAMANYO_CELDA / 2,
-      color: COLORES_TOKEN[tipoToken],
-      nombre: tokenNombre || tipoToken.charAt(0).toUpperCase(),
-      tipo: tipoToken,
-      ownerId: null,
-    };
-    setTokens(prev => [...prev, nuevo]);
-    publishTokenMove(nuevo, nuevo.x, nuevo.y);
+    if (herramienta !== 'mover' && herramienta !== 'borrar') return;
   };
 
   const moverToken = (id: string, x: number, y: number) =>
@@ -468,6 +470,14 @@ export function Tablero() {
     if (!token) return;
     if (!esMaster) return;
     setTokens(prev => prev.filter(t => t.id !== id));
+    if (token.tipo === 'enemigo') {
+      setEnemigosCombate(prevEnemigos => prevEnemigos.filter(enemigo => enemigo.instanciaId !== token.id));
+    }
+    if (token.tipo === 'jugador') {
+      setJugadoresActivos(prevJugadores =>
+        prevJugadores.filter((jugador: any) => getPlayerKey(jugador) !== String(token.id))
+      );
+    }
     publishTokenDelete(token);
   };
 
@@ -585,6 +595,30 @@ export function Tablero() {
             console.error('Error borrando token:', e);
           }
         });
+        client.subscribe(`/topic/campana/${campanaId}/jugadores`, (frame) => {
+          try {
+            const payload = JSON.parse(frame.body);
+            if (Array.isArray(payload)) {
+              setJugadoresActivos(payload);
+            }
+          } catch (e) {
+            console.error('Error sincronizando jugadores:', e);
+          }
+        });
+        client.subscribe(`/topic/campana/${campanaId}/jugadores-leave`, (frame) => {
+          try {
+            const payload = JSON.parse(frame.body) as { jugadorId?: string | number };
+            if (payload.jugadorId === undefined || payload.jugadorId === null) return;
+            setJugadoresActivos(prev => prev.filter((j: any) => String(j.id ?? j.usuarioId ?? j.personajeId ?? j.personaje?.id) !== String(payload.jugadorId)));
+            playerSpawnSlotsRef.current.delete(String(payload.jugadorId));
+          } catch (e) {
+            console.error('Error procesando salida de jugador:', e);
+          }
+        });
+        client.publish({
+          destination: `/app/campana/${campanaId}/jugadores-sync`,
+          body: JSON.stringify({}),
+        });
         if (!syncRequestedRef.current) {
           syncRequestedRef.current = true;
           const sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -605,48 +639,52 @@ export function Tablero() {
   }, [campanaId, mapaActualUrl]);
 
   useEffect(() => {
-    if (!jugadoresCampaa || jugadoresCampaa.length === 0) return;
+    if (!jugadoresActivos || jugadoresActivos.length === 0) return;
+    const activeKeys = new Set<string>();
+    jugadoresActivos.forEach((j: any) => {
+      const key = getPlayerKey(j);
+      if (key) activeKeys.add(key);
+    });
+    for (const key of Array.from(playerSpawnSlotsRef.current.keys())) {
+      if (!activeKeys.has(key)) {
+        playerSpawnSlotsRef.current.delete(key);
+      }
+    }
+    jugadoresActivos.forEach((j: any) => {
+      const key = getPlayerKey(j);
+      if (!key || playerSpawnSlotsRef.current.has(key)) return;
+      const usedSlots = new Set(playerSpawnSlotsRef.current.values());
+      const nextSlot = PLAYER_SPAWN_POSITIONS.findIndex((_, index) => !usedSlots.has(index));
+      playerSpawnSlotsRef.current.set(key, nextSlot >= 0 ? nextSlot : PLAYER_SPAWN_POSITIONS.length - 1);
+    });
+
     setTokens(prev => {
-      const existing = new Map(prev.map(t => [String(t.ownerId ?? t.id), t]));
-      const nuevos: Token[] = [];
-      jugadoresCampaa.forEach((j: any) => {
-        const ownerId = j.id ?? j.usuarioId ?? j.personajeId ?? j.personaje?.id ?? null;
-        if (ownerId === null || ownerId === undefined) return;
-        const key = String(ownerId);
-        if (existing.has(key)) return;
-        const base = existing.get(key);
-        if (base) return;
-        nuevos.push({
-          id: `player-${key}`,
-          ownerId,
-          x: TAMANYO_CELDA / 2 + (nuevos.length * TAMANYO_CELDA),
-          y: TAMANYO_CELDA / 2 + (nuevos.length * TAMANYO_CELDA),
-          color: COLORES_TOKEN.jugador,
-          nombre: j.nombre || j.usuarioNombre || 'Jugador',
+      const otherTokens = prev.filter((token) => token.tipo !== 'jugador');
+      const previousPlayerTokens = new Map(prev.filter((token) => token.tipo === 'jugador').map((token) => [String(token.id), token]));
+      const nextPlayerTokens: Token[] = [];
+
+      jugadoresActivos.forEach((j: any) => {
+        const key = getPlayerKey(j);
+        if (!key) return;
+
+        const existing = previousPlayerTokens.get(key);
+        const spawnIndex = playerSpawnSlotsRef.current.get(key) ?? 0;
+        const spawn = PLAYER_SPAWN_POSITIONS[spawnIndex] ?? PLAYER_SPAWN_POSITIONS[PLAYER_SPAWN_POSITIONS.length - 1] ?? { x: TAMANYO_CELDA / 2, y: TAMANYO_CELDA / 2 };
+
+        nextPlayerTokens.push({
+          id: key,
+          ownerId: key,
+          x: existing?.x ?? spawn.x,
+          y: existing?.y ?? spawn.y,
+          color: existing?.color ?? COLORES_TOKEN.jugador,
+          nombre: j.nombrePersonaje || j.nombre || j.usuarioNombre || existing?.nombre || 'PJ',
           tipo: 'jugador',
         });
       });
-      return nuevos.length > 0 ? [...prev, ...nuevos] : prev;
-    });
-  }, [jugadoresCampaa, mapaActualUrl]);
 
-  useEffect(() => {
-    if (!currentPlayerId || esMaster) return;
-    setTokens(prev => {
-      const exists = prev.some(t => t.tipo === 'jugador' && String(t.ownerId) === String(currentPlayerId));
-      if (exists) return prev;
-      const token: Token = {
-        id: `player-${currentPlayerId}`,
-        ownerId: currentPlayerId,
-        x: TAMANYO_CELDA / 2,
-        y: TAMANYO_CELDA / 2,
-        color: COLORES_TOKEN.jugador,
-        nombre: jugadorActualConAvatar?.nombre || personaje?.nombre || 'Jugador',
-        tipo: 'jugador',
-      };
-      return [...prev, token];
+      return [...otherTokens, ...nextPlayerTokens];
     });
-  }, [currentPlayerId, esMaster, jugadorActualConAvatar?.nombre, personaje?.nombre]);
+  }, [jugadoresActivos, mapaActualUrl]);
 
   useEffect(() => {
     if (!stompRef.current?.connected || !campanaId) return;
@@ -664,8 +702,8 @@ export function Tablero() {
       {/* PANEL MASTER */}
       {esMaster && (
         <div className={`tb-panel ${panelAbierto ? 'abierto' : ''}`}>
-          <button className="tb-panel-toggle" onClick={() => setPanelAbierto(!panelAbierto)}>
-            {panelAbierto ? '◀' : '▶'}
+          <button className="tb-panel-toggle" onClick={() => setPanelAbierto(!panelAbierto)} aria-label={panelAbierto ? 'Cerrar panel lateral' : 'Abrir panel lateral'} title={panelAbierto ? 'Cerrar panel lateral' : 'Abrir panel lateral'}>
+            <span className="tb-panel-toggle-glyph">{panelAbierto ? '<' : '>'}</span>
           </button>
           <div className="tb-panel-contenido">
             <h3 className="tb-panel-titulo">🗡 Tablero</h3>
@@ -675,35 +713,9 @@ export function Tablero() {
               <span className="tb-seccion-label">Herramienta</span>
               <div className="tb-herramientas">
                 <button className={`tb-tool-btn ${herramienta === 'mover'  ? 'active' : ''}`} onClick={() => setHerramienta('mover')}  title="Mover vista"><Hand /></button>
-                <button className={`tb-tool-btn ${herramienta === 'token'  ? 'active' : ''}`} onClick={() => setHerramienta('token')}  title="Añadir token">⊕</button>
                 <button className={`tb-tool-btn ${herramienta === 'borrar' ? 'active' : ''}`} onClick={() => setHerramienta('borrar')} title="Borrar token">🗑</button>
               </div>
             </div>
-
-            {herramienta === 'token' && (
-              <div className="tb-seccion">
-                <span className="tb-seccion-label">Tipo de token</span>
-                <div className="tb-tipos-token">
-                  {(['jugador', 'enemigo', 'npc'] as const).map(tipo => (
-                    <button
-                      key={tipo}
-                      className={`tb-tipo-btn ${tipoToken === tipo ? 'active' : ''}`}
-                      style={{ '--color': COLORES_TOKEN[tipo] } as any}
-                      onClick={() => setTipoToken(tipo)}
-                    >
-                      <span className="tb-tipo-dot" style={{ background: COLORES_TOKEN[tipo] }} />
-                      {tipo.charAt(0).toUpperCase() + tipo.slice(1)}
-                    </button>
-                  ))}
-                </div>
-                <input
-                  className="tb-input"
-                  placeholder="Nombre del token..."
-                  value={tokenNombre}
-                  onChange={e => setTokenNombre(e.target.value)}
-                />
-              </div>
-            )}
 
             <div className="tb-seccion">
               <span className="tb-seccion-label">Vista</span>
@@ -1088,7 +1100,7 @@ export function Tablero() {
                 onClick={() => borrarToken(token.id)}
                 onMouseEnter={e => {
                   const stage = e.target.getStage();
-                  if (stage) stage.container().style.cursor = herramienta === 'borrar' ? 'not-allowed' : 'grab';
+                  if (stage) stage.container().style.cursor = herramienta === 'borrar' ? 'pointer' : 'grab';
                 }}
                 onMouseLeave={e => {
                   const stage = e.target.getStage();
@@ -1100,7 +1112,7 @@ export function Tablero() {
                   ? <TokenEnemigo nombre={token.nombre} celda={120} />
                   : <>
                       <Circle radius={20} fill={token.color} stroke="white" strokeWidth={2} shadowColor="rgba(0,0,0,0.5)" shadowBlur={6} shadowOffsetY={2} />
-                      <Text text={token.nombre.charAt(0).toUpperCase()} fontSize={16} fontStyle="bold" fill="white" align="center" verticalAlign="middle" width={40} height={40} offsetX={20} offsetY={20} />
+                      <Text text={token.nombre.trim().slice(0, 2).toUpperCase()} fontSize={16} fontStyle="bold" fill="white" align="center" verticalAlign="middle" width={40} height={40} offsetX={20} offsetY={20} />
                     </>
                 }
                 
@@ -1113,13 +1125,12 @@ export function Tablero() {
       <div className="tb-instrucciones">
         <span>🖱 Rueda: zoom</span>
         <span>🤚 Arrastrar: mover vista</span>
-        {herramienta === 'token'  && <span>⊕ Clic en el mapa: añadir token</span>}
         {herramienta === 'borrar' && <span>🗑 Clic en token: borrar</span>}
       </div>
 
       <PanelPartida
         nombreMaster={esMaster ? 'Tú (Master)' : masterNombre}
-        jugadores={jugadoresCampaa}
+        jugadores={jugadoresActivos}
         campanaId={campanaId}
         jugadorActual={jugadorActualConAvatar}
         esMaster={esMaster}

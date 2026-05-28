@@ -29,6 +29,7 @@ const PASOS = ['Identidad', 'Características', 'Apariencia', 'Ficha Final'];
 export function CharacterCreate() {
   const navigate = useNavigate();
   const d = useRef(readDraft()).current;
+  const initialAttackEntries = useRef(Array.isArray(d?.attackSpellEntries) ? d.attackSpellEntries : []).current;
 
   const [paso, setPaso] = useState<number>(d?.paso ?? 1);
   const [nombre, setNombre] = useState<string>(d?.nombre ?? '');
@@ -57,7 +58,7 @@ export function CharacterCreate() {
   const nivelInicial = 1;
   const puntosGolpeMax = clase ? calcularPuntosGolpeMax(clase, statsFinal.constitucion, nivelInicial) : null;
 
-  const attackEntries = useAttackEntries(d?.attackSpellEntries ?? []);
+  const attackEntries = useAttackEntries(initialAttackEntries);
   const { attackSpellEntries } = attackEntries;
 
   const imagenFinal = avatarSeleccionado ? getCartaUrl(avatarSeleccionado) : null;

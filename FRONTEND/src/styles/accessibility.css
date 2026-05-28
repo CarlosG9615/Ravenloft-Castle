@@ -28,6 +28,16 @@ body.accessibility-enabled .pp-jugador-nombre {
   font-size: 14px !important;
 }
 
+body.accessibility-enabled .tb-mapa-nombre {
+  font-size: 1.15rem !important;
+  line-height: 1.25 !important;
+}
+
+body.accessibility-enabled .tb-mapa-nombre-actual {
+  font-size: 1.05rem !important;
+  line-height: 1.25 !important;
+}
+
 body.accessibility-enabled .notif-badge {
   width: 20px;
   height: 20px;

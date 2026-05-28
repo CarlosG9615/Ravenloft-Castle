@@ -38,16 +38,25 @@
   border-left: none;
   border-radius: 0 8px 8px 0;
   color: rgba(255, 255, 255, 0.5);
-  font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  z-index: 101;
 }
 .tb-panel-toggle:hover {
   background: rgba(30, 8, 8, 0.7);
   color: white;
+}
+
+.tb-panel-toggle-glyph {
+  display: inline-block;
+  font-family: 'Courier New', monospace;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+  transform: scaleX(0.9);
 }
 
 .tb-panel-contenido {
