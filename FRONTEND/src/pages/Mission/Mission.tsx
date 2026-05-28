@@ -618,6 +618,26 @@ function MissionDetailView() {
 
 		setMasterCheckLoading(true);
 		try {
+			const miParticipacionResponse = await fetch(
+				`${API_URL}/api/misiones/${misionIdNumero}/participantes/me`,
+				{ headers: authHeaders() }
+			);
+
+			if (miParticipacionResponse.ok) {
+				const miParticipacion = (await miParticipacionResponse.json()) as { rol?: string };
+				const miRol = (miParticipacion.rol ?? '').toUpperCase();
+
+				if (miRol === 'MASTER') {
+					navigate(buildCreateMissionPath(modoHistoriaId!, misionId!), { state: { mision, modoHistoria } });
+					return;
+				}
+
+				if (miRol === 'JUGADOR') {
+					setShowJasSoyPersonajeModal(true);
+					return;
+				}
+			}
+
 			const masterCheckResponse = await fetch(
 				`${API_URL}/api/misiones/${misionIdNumero}/participantes/tiene-master`,
 				{ headers: authHeaders() }

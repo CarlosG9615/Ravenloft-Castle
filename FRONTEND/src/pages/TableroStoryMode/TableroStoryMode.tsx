@@ -525,11 +525,17 @@ export function TableroStoryMode() {
   }, [configPartida?.enemigos, enemyHpMap, sendEnemyDefeated]);
 
   useEffect(() => {
+    const totalPlayers = playerRoster.length;
+    const totalEnemies = (configPartida?.enemigos ?? []).length;
+    const skipPlayerDefeatModal = totalPlayers > 0 && defeatedPlayerIds.size >= totalPlayers;
+    const skipEnemyDefeatModal = totalEnemies > 0 && defeatedEnemyIds.size >= totalEnemies;
+
     const toAdd: DefeatEvent[] = [];
     defeatedPlayerIds.forEach((playerId) => {
       const marker = `player:${playerId}`;
       if (processedDefeatModalRef.current.has(marker)) return;
       processedDefeatModalRef.current.add(marker);
+      if (skipPlayerDefeatModal) return;
       const player = playerRoster.find((p) => p.id === playerId);
       toAdd.push({
         type: 'player',
@@ -543,6 +549,7 @@ export function TableroStoryMode() {
       const marker = `enemy:${enemyId}`;
       if (processedDefeatModalRef.current.has(marker)) return;
       processedDefeatModalRef.current.add(marker);
+      if (skipEnemyDefeatModal) return;
       const enemy = (configPartida?.enemigos ?? []).find((e) => e.instanciaId === enemyId);
       toAdd.push({
         type: 'enemy',
