@@ -1,5 +1,12 @@
 package com.gvc.ravenloftcastleapi.service;
 
+import java.util.UUID;
+
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import com.gvc.ravenloftcastleapi.dto.autenticacion.LoginRequestDTO;
 import com.gvc.ravenloftcastleapi.dto.autenticacion.LoginResponseDTO;
 import com.gvc.ravenloftcastleapi.dto.autenticacion.UsuarioCreateDTO;
@@ -9,18 +16,9 @@ import com.gvc.ravenloftcastleapi.entity.Usuario;
 import com.gvc.ravenloftcastleapi.exception.CredencialesInvalidasException;
 import com.gvc.ravenloftcastleapi.repository.RoleRepository;
 import com.gvc.ravenloftcastleapi.repository.UsuarioRepository;
-import com.gvc.ravenloftcastleapi.repository.SuscripcionRepository;
-import com.gvc.ravenloftcastleapi.entity.Suscripcion;
-import com.gvc.ravenloftcastleapi.enums.NombreSuscripcion;
-import java.time.LocalDate;
 import com.gvc.ravenloftcastleapi.security.JwtService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
-import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +26,6 @@ public class AuthService {
 
     private final UsuarioRepository usuarioRepository;
     private final RoleRepository roleRepository;
-    private final SuscripcionRepository suscripcionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final JavaMailSender mailSender;
@@ -52,15 +49,6 @@ public class AuthService {
         nuevo.setTokenActivacion(tokenActivacion);
 
         Usuario guardado = usuarioRepository.save(nuevo);
-
-        Suscripcion suscripcionGratis = Suscripcion.builder()
-                .usuario(guardado)
-                .nombre(NombreSuscripcion.HEROE.name())
-                .tipo(com.gvc.ravenloftcastleapi.enums.TipoSuscripcion.BASICA)
-                .estado("ACTIVA")
-                .fechaAlta(LocalDate.now())
-                .build();
-        suscripcionRepository.save(suscripcionGratis);
 
         // Envío de correo
         String urlActivacion = "http://localhost:5173/activate?token=" + tokenActivacion;

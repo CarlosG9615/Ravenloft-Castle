@@ -29,6 +29,8 @@ const PASOS = ['Identidad', 'Características', 'Apariencia', 'Ficha Final'];
 export function CharacterCreate() {
   const navigate = useNavigate();
   const d = useRef(readDraft()).current;
+  const completedWizardRef = useRef(false);
+  const latestNombreRef = useRef('');
   const initialAttackEntries = useRef(Array.isArray(d?.attackSpellEntries) ? d.attackSpellEntries : []).current;
 
   const [paso, setPaso] = useState<number>(d?.paso ?? 1);
@@ -62,6 +64,23 @@ export function CharacterCreate() {
   const { attackSpellEntries } = attackEntries;
 
   const imagenFinal = avatarSeleccionado ? getCartaUrl(avatarSeleccionado) : null;
+
+  const clearWizardStorage = (nombreValue: string) => {
+    localStorage.removeItem(DRAFT_KEY);
+    const nombreKey = nombreValue.trim();
+    if (nombreKey) {
+      localStorage.removeItem(`rc:attacks-spells:${nombreKey}`);
+    }
+  };
+
+  const clearLegacyAttackSpellEntries = () => {
+    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+      const key = localStorage.key(index);
+      if (key?.startsWith('rc:attacks-spells:')) {
+        localStorage.removeItem(key);
+      }
+    }
+  };
 
   const handleHistoria = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (contarPalabras(e.target.value) <= 120) setHistoria(e.target.value);
@@ -127,11 +146,11 @@ export function CharacterCreate() {
     try {
       setGuardando(true);
       const created = await createPersonaje(payload);
-      if (attackSpellEntries.length > 0) {
-        const keyBase = created?.id ?? nombre.trim();
-        if (keyBase) localStorage.setItem(`rc:attacks-spells:${keyBase}`, JSON.stringify(attackSpellEntries));
+      if (created?.id) {
+        localStorage.removeItem(`rc:attacks-spells:${created.id}`);
       }
-      localStorage.removeItem(DRAFT_KEY);
+      completedWizardRef.current = true;
+      clearWizardStorage(nombre);
       navigate('/mis-personajes');
     } catch (error) {
       console.error('Error creando personaje:', error);
@@ -140,6 +159,10 @@ export function CharacterCreate() {
       setGuardando(false);
     }
   };
+
+  useEffect(() => {
+    clearLegacyAttackSpellEntries();
+  }, []);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -169,6 +192,18 @@ export function CharacterCreate() {
   }, [paso, nombre, raza, clase, trasfondo, historia, metodo,
       statAssignment.statsEstandar, statAssignment.tiradas, statAssignment.tiradaAsignada,
       attackSpellEntries, avatarSeleccionado]);
+
+  useEffect(() => {
+    latestNombreRef.current = nombre;
+  }, [nombre]);
+
+  useEffect(() => {
+    return () => {
+      if (!completedWizardRef.current) {
+        clearWizardStorage(latestNombreRef.current);
+      }
+    };
+  }, []);
 
   return (
     <>
