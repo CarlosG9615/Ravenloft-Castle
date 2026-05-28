@@ -234,7 +234,7 @@ export function JoinGame() {
           nombre: c.nombre,
           descripcion: c.descripcion || c.nombre,
           historia: c.descripcion || c.nombre,
-          portada: getCampanaUrl(c.nombre),
+          portada: c.imagen?.startsWith('http') ? c.imagen : getCampanaUrl(c.nombre),
           masterId: c.masterId,
           master: c.masterNombre || 'Master',
           jugadores: [],
