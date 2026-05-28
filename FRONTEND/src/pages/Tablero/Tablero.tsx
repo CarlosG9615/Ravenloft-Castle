@@ -40,6 +40,10 @@ interface TokenDeletePayload {
   mapaUrl?: string | null;
 }
 
+interface MapaActualPayload {
+  mapaUrl: string;
+}
+
 interface EnemigoCombate extends EnemigoDetalleDTO {
   instanciaId: string;
   hpActual: number;
@@ -234,6 +238,14 @@ export function Tablero() {
     stompRef.current.publish({
       destination: `/app/campana/${campanaId}/token-move`,
       body: JSON.stringify(payload),
+    });
+  };
+
+  const publishMapaActual = (mapaUrl: string) => {
+    if (!campanaId || !stompRef.current?.connected || !esMaster) return;
+    stompRef.current.publish({
+      destination: `/app/campana/${campanaId}/mapa-cambiar`,
+      body: JSON.stringify({ mapaUrl } satisfies MapaActualPayload),
     });
   };
 
@@ -451,7 +463,7 @@ export function Tablero() {
     });
   };
 
-  const handleStageClick = (e: any) => {
+  const handleStageClick = () => {
     if (herramienta !== 'mover' && herramienta !== 'borrar') return;
   };
 
@@ -595,6 +607,16 @@ export function Tablero() {
             console.error('Error borrando token:', e);
           }
         });
+        client.subscribe(`/topic/campana/${campanaId}/mapa-actual`, (frame) => {
+          try {
+            const payload = JSON.parse(frame.body) as MapaActualPayload;
+            if (payload?.mapaUrl) {
+              setMapaActualUrl(payload.mapaUrl);
+            }
+          } catch (e) {
+            console.error('Error sincronizando mapa actual:', e);
+          }
+        });
         client.subscribe(`/topic/campana/${campanaId}/jugadores`, (frame) => {
           try {
             const payload = JSON.parse(frame.body);
@@ -625,6 +647,10 @@ export function Tablero() {
           client.publish({
             destination: `/app/campana/${campanaId}/token-request-sync`,
             body: JSON.stringify({ sessionId }),
+          });
+          client.publish({
+            destination: `/app/campana/${campanaId}/mapa-request-sync`,
+            body: JSON.stringify({}),
           });
         }
       },
@@ -814,7 +840,10 @@ export function Tablero() {
                   <div
                     key={index}
                     className={`tb-mapa-item ${mapaActualUrl === url ? 'active' : ''}`}
-                    onClick={() => setMapaActualUrl(url)}
+                    onClick={() => {
+                      setMapaActualUrl(url);
+                      publishMapaActual(url);
+                    }}
                     title={nombreMapa(url)}
                   >
                     <img src={url} alt={`Mapa ${index + 1}`} className="tb-mapa-thumb" />

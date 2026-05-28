@@ -45,6 +45,7 @@ public class TableroWebSocketController {
     private final Map<String, java.util.Set<String>> defeatedPlayersMision = new ConcurrentHashMap<>();
     private final Map<String, java.util.Set<String>> defeatedEnemiesMision = new ConcurrentHashMap<>();
     private final Map<String, VictoryWsDTO> victoryByMision = new ConcurrentHashMap<>();
+    private final Map<String, String> mapaActualCampana = new ConcurrentHashMap<>();
 
     public TableroWebSocketController(SimpMessagingTemplate messagingTemplate,
                                       MisionParticipanteRepository misionParticipanteRepository,
@@ -285,6 +286,27 @@ public class TableroWebSocketController {
     public void campanaHpRequestSync(@DestinationVariable String campanaId) {
         Map<String, Integer> hpOverrides = hpOverridesCampana.getOrDefault(campanaId, new ConcurrentHashMap<>());
         messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/hp-sync", hpOverrides);
+    }
+
+    @MessageMapping("/campana/{campanaId}/mapa-cambiar")
+    public void campanaMapaCambiar(@DestinationVariable String campanaId, @Payload MapaActualWsDTO dto) {
+        if (dto == null || dto.getMapaUrl() == null || dto.getMapaUrl().isBlank()) {
+            return;
+        }
+        mapaActualCampana.put(campanaId, dto.getMapaUrl());
+        messagingTemplate.convertAndSend("/topic/campana/" + campanaId + "/mapa-actual", dto);
+    }
+
+    @MessageMapping("/campana/{campanaId}/mapa-request-sync")
+    public void campanaMapaRequestSync(@DestinationVariable String campanaId) {
+        String mapaActual = mapaActualCampana.get(campanaId);
+        if (mapaActual == null || mapaActual.isBlank()) {
+            return;
+        }
+        messagingTemplate.convertAndSend(
+                "/topic/campana/" + campanaId + "/mapa-actual",
+                new MapaActualWsDTO(mapaActual)
+        );
     }
     @MessageMapping("/campana/{campanaId}/jugadores-sync")
     public void campanaJugadoresSync(@DestinationVariable String campanaId) {
@@ -715,6 +737,19 @@ public class TableroWebSocketController {
 
         public String getTokenId() { return tokenId; }
         public void setTokenId(String tokenId) { this.tokenId = tokenId; }
+    }
+
+    public static class MapaActualWsDTO {
+        private String mapaUrl;
+
+        public MapaActualWsDTO() {}
+
+        public MapaActualWsDTO(String mapaUrl) {
+            this.mapaUrl = mapaUrl;
+        }
+
+        public String getMapaUrl() { return mapaUrl; }
+        public void setMapaUrl(String mapaUrl) { this.mapaUrl = mapaUrl; }
     }
 
     public static class CampanaTokenStateDTO {

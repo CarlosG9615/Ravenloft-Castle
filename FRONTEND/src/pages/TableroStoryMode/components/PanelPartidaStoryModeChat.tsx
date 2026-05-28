@@ -11,23 +11,6 @@ import { WS_URL } from '../../../services/api';
 import { useAccessibility } from '../../../services/AccessibilityContext';
 import './PanelPartidaStoryMode.css';
 
-interface Jugador {
-  id: string;
-  nombre: string;
-  clase: string;
-  hp: number;
-  hpMax: number;
-  color: string;
-  conectado: boolean;
-  avatar?: string | null;
-  fuerza?: number;
-  destreza?: number;
-  constitucion?: number;
-  inteligencia?: number;
-  sabiduria?: number;
-  carisma?: number;
-}
-
 interface MensajeChat {
   id: string;
   autor: string;
@@ -54,12 +37,6 @@ const EMOTES = [
   { id: 'emoji-guino',    src: '/images/emotes/emoji-guino.png',    label: 'Guiño' },
   { id: 'emoji-riendo',   src: '/images/emotes/emoji-riendo.png',   label: 'Riendo' },
   { id: 'emoji-decep',    src: '/images/emotes/emoji-decep.png',    label: 'Decepcionado' },
-];
-
-const JUGADORES_DEMO: Jugador[] = [
-  { id: '1', nombre: 'Valdris',  clase: 'Bárbaro', hp: 28, hpMax: 35, color: '#4a90d9', conectado: true  },
-  { id: '2', nombre: 'Seraphel', clase: 'Clérigo', hp: 18, hpMax: 22, color: '#2ecc71', conectado: true  },
-  { id: '3', nombre: 'Kira',     clase: 'Pícaro',  hp: 15, hpMax: 15, color: '#f39c12', conectado: false },
 ];
 
 const COLORES_CLASES: Record<string, string> = {
@@ -507,7 +484,7 @@ export function PanelPartidaStoryModeChat({
   // Si no está disponible, usamos el personaje pasado por navegación.
   const miPersonajeId = (jugadorActual?.personajeId ?? jugadorActual?.id)?.toString?.() ?? null;
 
-  const jugadoresAMostrar = (jugadoresBase.length > 0 ? jugadoresBase : JUGADORES_DEMO)
+  const jugadoresAMostrar = jugadoresBase
       .filter((j: any) => {
 
       if (esMaster) {
