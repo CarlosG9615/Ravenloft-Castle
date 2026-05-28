@@ -5,8 +5,9 @@ import SockJS from 'sockjs-client';
 import { DiceRoller } from './DiceRoller';
 import { getAvatarUrl, getCartaUrl } from '../../utils/imageUtils';
 import { Comment, Users, Mic, Skull, Sword } from 'pixelarticons/react'
-import { Dices, Smile } from 'lucide-react';
+import { Dices, Smile, Accessibility } from 'lucide-react';
 import { PerfilPublicoModal } from '../../components/PerfilPublicoModal/PerfilPublicoModal';
+import { useAccessibility } from '../../services/AccessibilityContext';
 import './PanelPartida.css';
 
 interface Jugador {
@@ -137,6 +138,7 @@ interface Props {
   esMaster?: boolean;
   chatSince?: string | null;
   lanzarDadoCaracteristicaRef?: MutableRefObject<((label: string, mod: number) => void) | null>;
+  lanzarDadoEnemigoRef?: MutableRefObject<((enemigoNombre: string, label: string, mod: number) => void) | null>;
 }
 
 export function PanelPartida({
@@ -149,6 +151,7 @@ export function PanelPartida({
   esMaster = false,
   chatSince,
   lanzarDadoCaracteristicaRef,
+  lanzarDadoEnemigoRef,
 }: Props) {
 
   const [pestana, setPestana]                   = useState<'chat' | 'jugadores' | 'voz'>('chat');
@@ -156,10 +159,12 @@ export function PanelPartida({
   const [inputChat, setInputChat]               = useState('');
   const [modificador]                           = useState(0);
   const [conectado, setConectado]               = useState(false);
+  const [chatAbierto, setChatAbierto]           = useState(true);
   const [dadoActivo, setDadoActivo]             = useState<string | null>(null);
   const [resultadoActivo, setResultadoActivo]   = useState<number | null>(null);
   const [mostrarEmotes, setMostrarEmotes]       = useState(false);
   const [mostrarDados, setMostrarDados]         = useState(false);
+  const { enabled: accessibilityEnabled, toggleAccessibility } = useAccessibility();
 
   const [perfilPersonajeId, setPerfilPersonajeId] = useState<number | null>(null);
   const [hpOverrides, setHpOverrides]           = useState<Record<string, number>>({});
@@ -171,7 +176,6 @@ export function PanelPartida({
 
   const esAnimacionRemota         = useRef(false);
   const jugadoresInicializadosRef = useRef(false);
-
   const jugadoresInicialesIdsRef  = useRef<Set<string>>(new Set());
   const chatRef                   = useRef<HTMLDivElement>(null);
   const stompRef                  = useRef<Client | null>(null);
@@ -180,8 +184,7 @@ export function PanelPartida({
   const lastSentAvatarRef         = useRef<string | null>(null);
   const audioElementsRef          = useRef<Map<string, HTMLAudioElement>>(new Map());
 
-  // ── Registrar nuestra función en el ref de Tablero ──
-
+  // ── Registrar función tirada característica jugador ──
   useEffect(() => {
     if (!lanzarDadoCaracteristicaRef) return;
     lanzarDadoCaracteristicaRef.current = (label: string, mod: number) => {
@@ -189,7 +192,7 @@ export function PanelPartida({
       setPendingLabel(label);
       setPendingMod(mod);
       setDadoActivo('d20');
-      setResultadoActivo(0);
+      setResultadoActivo(resultadoReal);
       if (stompRef.current?.connected && campanaId) {
         const senderId = jugadorActual?.id?.toString() || 'jugador';
         stompRef.current.publish({
@@ -199,6 +202,25 @@ export function PanelPartida({
       }
     };
   }, [lanzarDadoCaracteristicaRef, campanaId, jugadorActual]);
+
+  // ── Registrar función tirada enemigo ──
+  useEffect(() => {
+    if (!lanzarDadoEnemigoRef) return;
+    lanzarDadoEnemigoRef.current = (enemigoNombre: string, label: string, mod: number) => {
+      const resultadoReal = Math.floor(Math.random() * 20) + 1;
+      // Formato especial: "NombreEnemigo|Label" para detectarlo en handleAnimacionFin
+      setPendingLabel(`${enemigoNombre}|${label}`);
+      setPendingMod(mod);
+      setDadoActivo('d20');
+      setResultadoActivo(resultadoReal);
+      if (stompRef.current?.connected && campanaId) {
+        stompRef.current.publish({
+          destination: `/app/campana/${campanaId}/dice-roll`,
+          body: JSON.stringify({ dado: 'd20', resultado: resultadoReal, senderId: 'master' }),
+        });
+      }
+    };
+  }, [lanzarDadoEnemigoRef, campanaId]);
 
   // ── WebSocket principal ──
   useEffect(() => {
@@ -244,7 +266,6 @@ export function PanelPartida({
             }]);
           });
 
-          // ── Jugadores: solo detección de entradas ──
           client.subscribe(`/topic/campana/${campanaId}/jugadores`, (frame) => {
             const list = JSON.parse(frame.body);
             if (!Array.isArray(list) || list.length === 0) return;
@@ -261,8 +282,6 @@ export function PanelPartida({
               }
 
               const prevIds = new Set(prev.map((j: any) => j.id?.toString()));
-
-              // Solo mensajes de entrada — las salidas las gestiona jugadores-leave
               list.forEach((j: any) => {
                 const id = j.id?.toString();
                 if (!prevIds.has(id) && !jugadoresInicialesIdsRef.current.has(id)) {
@@ -279,7 +298,6 @@ export function PanelPartida({
             });
           });
 
-          // ── Salidas reales via leave explícito del backend ──
           client.subscribe(`/topic/campana/${campanaId}/jugadores-leave`, (frame) => {
             const { jugadorId, nombre } = JSON.parse(frame.body);
             setMensajes(msgs => [...msgs, {
@@ -299,17 +317,17 @@ export function PanelPartida({
           });
 
           client.subscribe(`/topic/campana/${campanaId}/dice-roll`, (frame) => {
-            const { dado, resultado, senderId } = JSON.parse(frame.body); // añade resultado
-                const miId = jugadorActual?.id?.toString() || 'master';
-                if (senderId !== miId) {
-                  esAnimacionRemota.current = true;
-                  setDadoActivo(null);
-                  setTimeout(() => {
-                    setDadoActivo(dado);
-                    setResultadoActivo(resultado); 
-                  }, 50);
-                }
-              });
+            const { dado, resultado, senderId } = JSON.parse(frame.body);
+            const miId = jugadorActual?.id?.toString() || 'master';
+            if (senderId !== miId) {
+              esAnimacionRemota.current = true;
+              setDadoActivo(null);
+              setTimeout(() => {
+                setDadoActivo(dado);
+                setResultadoActivo(resultado);
+              }, 50);
+            }
+          });
 
           client.subscribe(`/topic/campana/${campanaId}/voice`, async (frame) => {
             const señal = JSON.parse(frame.body);
@@ -334,19 +352,31 @@ export function PanelPartida({
             }
           });
 
+          // Pedir lista actual de jugadores al conectar
+          client.publish({
+            destination: `/app/campana/${campanaId}/jugadores-sync`,
+            body: JSON.stringify({}),
+          });
+
+          // Pedir lista actual de jugadores al conectar
+          client.publish({
+            destination: `/app/campana/${campanaId}/jugadores-sync`,
+            body: JSON.stringify({}),
+          });
+
           if (jugadorActual) {
             client.publish({
               destination: `/app/campana/${campanaId}/join`,
               body: JSON.stringify({ ...jugadorActual, esMaster }),
             });
           }
-        } // fin if (campanaId)
+        }
 
         setMensajes(prev => [...prev, {
           id: 'connected-' + Date.now(), autor: 'Sistema', colorAutor: '#8b0000',
           texto: 'Conectado a la partida en tiempo real.', tipo: 'sistema', timestamp: hora(),
         }]);
-      }, // fin onConnect
+      },
       onDisconnect: () => {
         setConectado(false);
         setMensajes(prev => [...prev, {
@@ -389,7 +419,6 @@ export function PanelPartida({
     };
   }, [campanaId, jugadorActual]);
 
-  // ── Re-publicar join si cambia el avatar ──
   useEffect(() => {
     if (!stompRef.current?.connected || !campanaId || !jugadorActual) return;
     const avatarActual = jugadorActual?.avatar ?? null;
@@ -424,19 +453,18 @@ export function PanelPartida({
   };
 
   const lanzarDado = (caras: number, label: string) => {
-    const resultadoReal = Math.floor(Math.random() * caras) + 1; // ← calcular aquí
-
-        if (stompRef.current?.connected && campanaId) {
-          const senderId = jugadorActual?.id?.toString() || 'master';
-          stompRef.current.publish({
-            destination: `/app/campana/${campanaId}/dice-roll`,
-            body: JSON.stringify({ dado: label, resultado: resultadoReal, senderId }), // ← enviar resultado
-          });
-        }
-        setDadoActivo(label);
-        setResultadoActivo(resultadoReal); // ← usar el mismo resultado
-        setMostrarDados(false);
-};
+    const resultadoReal = Math.floor(Math.random() * caras) + 1;
+    if (stompRef.current?.connected && campanaId) {
+      const senderId = jugadorActual?.id?.toString() || 'master';
+      stompRef.current.publish({
+        destination: `/app/campana/${campanaId}/dice-roll`,
+        body: JSON.stringify({ dado: label, resultado: resultadoReal, senderId }),
+      });
+    }
+    setDadoActivo(label);
+    setResultadoActivo(resultadoReal);
+    setMostrarDados(false);
+  };
 
   const handleAnimacionFin = useCallback((resultadoReal: number) => {
     if (dadoActivo === null) return;
@@ -446,20 +474,33 @@ export function PanelPartida({
       setResultadoActivo(null);
       return;
     }
-    const autorNombre = jugadorActual?.nombre || nombreMaster;
-    const autorColor  = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+
+    // ── Detectar si es tirada de enemigo (formato "NombreEnemigo|Label") ──
+    const esTiradaEnemigo = pendingLabel !== null && pendingLabel.includes('|');
+    const esTiradaCaracteristica = pendingLabel !== null && pendingMod !== null && !esTiradaEnemigo;
+
+    let autorNombreFinal = jugadorActual?.nombre || nombreMaster;
+    let autorColorFinal  = jugadorActual?.color || COLORES_CLASES[jugadorActual?.clase || ''] || colorMaster;
+    let dadoFinal        = dadoActivo;
+    const modFinal       = esTiradaEnemigo || esTiradaCaracteristica ? pendingMod! : modificador;
+
+    if (esTiradaEnemigo && pendingLabel) {
+      const [enemigoNombre, statLabel] = pendingLabel.split('|');
+      autorNombreFinal = enemigoNombre;
+      autorColorFinal  = '#e74c3c';
+      dadoFinal        = `d20 (${statLabel})`;
+    } else if (esTiradaCaracteristica) {
+      dadoFinal = `d20 (${pendingLabel})`;
+    }
+
+    const total = resultadoReal + modFinal;
     const personajeId = jugadorActual?.personajeId ?? jugadorActual?.id ?? null;
     const usuarioId   = jugadorActual?.usuarioId ?? jugadorActual?.usuario_id ?? null;
 
-    const esTiradaCaracteristica = pendingLabel !== null && pendingMod !== null;
-    const modFinal  = esTiradaCaracteristica ? pendingMod!  : modificador;
-    const dadoFinal = esTiradaCaracteristica ? `d20 (${pendingLabel})` : dadoActivo;
-    const total     = resultadoReal + modFinal;
-
     const msg: MensajeChat = {
-      id: Date.now().toString(), autor: autorNombre, colorAutor: autorColor,
+      id: Date.now().toString(), autor: autorNombreFinal, colorAutor: autorColorFinal,
       texto: '', tipo: 'tirada', timestamp: hora(),
-      tirada: { dado: dadoFinal, resultado: resultadoReal, modificador: modFinal, total },
+      tirada: { dado: dadoFinal!, resultado: resultadoReal, modificador: modFinal, total },
     };
 
     if (stompRef.current?.connected && campanaId) {
@@ -473,7 +514,6 @@ export function PanelPartida({
 
     setPendingLabel(null);
     setPendingMod(null);
-
     setDadoActivo(null);
     setResultadoActivo(null);
   }, [dadoActivo, modificador, pendingLabel, pendingMod, nombreMaster, colorMaster, campanaId, jugadorActual]);
@@ -502,8 +542,7 @@ export function PanelPartida({
       if (j.esMaster === true) return false;
       if (!j.hp && !j.hpMax) return false;
       if (esMaster) {
-        const miId = jugadorActual?.id?.toString();
-        return j.id?.toString() !== miId;
+        return j.esMaster !== true;
       }
       return true;
     })
@@ -606,10 +645,13 @@ export function PanelPartida({
   };
 
   return (
-    <div className="pp-panel">
+    <div className={`pp-panel ${chatAbierto ? '' : 'cerrado'}`}>
+
+      <button className="pp-panel-toggle" onClick={() => setChatAbierto(a => !a)}>
+        <span className="pp-panel-toggle-glyph">{chatAbierto ? '>' : '<'}</span>
+      </button>
 
       <DiceRoller dado={dadoActivo} resultado={resultadoActivo} onAnimacionFin={handleAnimacionFin} />
-
 
       <div className="pp-conexion">
         <span className={`pp-conexion-dot ${conectado ? 'online' : 'offline'}`} />
@@ -737,7 +779,16 @@ export function PanelPartida({
                 rows={2}
                 disabled={!conectado}
               />
-              <button className="pp-chat-send" onClick={enviarMensaje} disabled={!conectado}>➤</button>
+              <div className="pp-chat-actions-col">
+                <button
+                  className={`pp-accessibility-btn ${accessibilityEnabled ? 'active' : ''}`}
+                  title={accessibilityEnabled ? 'Desactivar accesibilidad' : 'Activar accesibilidad'}
+                  onClick={toggleAccessibility}
+                >
+                  <Accessibility size={14} />
+                </button>
+                <button className="pp-chat-send" onClick={enviarMensaje} disabled={!conectado}>➤</button>
+              </div>
             </div>
           </div>
         </div>

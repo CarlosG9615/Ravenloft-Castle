@@ -5,9 +5,10 @@ import SockJS from 'sockjs-client';
 import { DiceRoller } from '../../Tablero/DiceRoller';
 import { getAvatarUrl, getCartaUrl } from '../../../utils/imageUtils';
 import { Comment, Users, Mic, Skull, Sword } from 'pixelarticons/react'
-import { Dices, Smile } from 'lucide-react';
+import { Dices, Smile, Accessibility } from 'lucide-react';
 import { PerfilPublicoModal } from '../../../components/PerfilPublicoModal/PerfilPublicoModal';
 import { WS_URL } from '../../../services/api';
+import { useAccessibility } from '../../../services/AccessibilityContext';
 import './PanelPartidaStoryMode.css';
 
 interface Jugador {
@@ -188,6 +189,8 @@ export function PanelPartidaStoryModeChat({
   const [inputChat, setInputChat] = useState('');
   const modificador = 0;
   const [conectado, setConectado] = useState(false);
+  const [chatAbierto, setChatAbierto] = useState(true);
+  const { enabled: accessibilityEnabled, toggleAccessibility } = useAccessibility();
   const [dadoActivo, setDadoActivo] = useState<string | null>(null);
   const [resultadoActivo, setResultadoActivo] = useState<number | null>(null);
   const [mostrarEmotes, setMostrarEmotes] = useState(false);
@@ -494,20 +497,17 @@ export function PanelPartidaStoryModeChat({
   };
 
   const jugadoresBase = Array.isArray(jugadores) ? jugadores : [];
-  // jugadoresBase[i].id = usuarioId (remapeado en useStoryModeSync)
-  const jugadoresBasePorUsuarioId = new Map(jugadoresBase.map(j => [j?.id?.toString?.(), j]));
-  // jugadoresBase[i].personajeId viene del spread de ParticipanteJugadorDTO
-  const jugadoresBasePorPersonajeId = new Map(jugadoresBase.map(j => [j?.personajeId?.toString?.(), j]));
-  const jugadoresBasePorNombre = new Map<string, any>();
-  jugadoresBase.forEach(j => {
-    if (j?.nombre) jugadoresBasePorNombre.set(j.nombre, j);
-    if (j?.usuarioNombre) jugadoresBasePorNombre.set(j.usuarioNombre, j);
+  const estadoConexionPorPersonajeId = new Map<string, boolean>();
+  jugadoresRed.forEach((j: any) => {
+    const pid = (j?.personajeId ?? j?.id)?.toString?.();
+    if (pid) estadoConexionPorPersonajeId.set(pid, j?.conectado !== false);
   });
 
-  // personajeId canónico del usuario actual: preferir personajeId, caer en id si es objeto personaje
-  const miPersonajeId = (jugadorActual?.personajeId ?? jugadorActual?.id)?.toString() ?? null;
+  // En Story Mode usamos participante de misión como fuente de verdad para personajeId.
+  // Si no está disponible, usamos el personaje pasado por navegación.
+  const miPersonajeId = (jugadorActual?.personajeId ?? jugadorActual?.id)?.toString?.() ?? null;
 
-  const jugadoresAMostrar = (jugadoresRed.length > 0 ? jugadoresRed : (jugadores !== undefined ? jugadores : JUGADORES_DEMO))
+  const jugadoresAMostrar = (jugadoresBase.length > 0 ? jugadoresBase : JUGADORES_DEMO)
       .filter((j: any) => {
 
       if (esMaster) {
@@ -518,37 +518,30 @@ export function PanelPartidaStoryModeChat({
   })
 
     .map((j: any, i: number) => {
-      // jugadoresRed viene del campana WS (JugadorWsDTO): j.id = personajeId, sin personajeId explícito
-      // jugadores prop viene de useStoryModeSync (mision WS): j.id = usuarioId, con personajeId
-      const base = jugadoresBasePorUsuarioId.get(j.id?.toString?.())
-        || jugadoresBasePorPersonajeId.get(j.id?.toString?.())
-        || jugadoresBasePorNombre.get(j.nombre || j.usuarioNombre);
-      // personajeId: tomar del campo explícito, o del base, o de j.id (que en campana WS ya ES el personajeId)
-      const personajeIdResuelto = (j.personajeId ?? base?.personajeId ?? j.id)?.toString() ?? null;
+      const personajeIdResuelto = (j.personajeId ?? null)?.toString?.() ?? null;
       return {
         id: j.id?.toString() || i.toString(),
         personajeId: personajeIdResuelto,
-        usuarioId: (j.usuarioId ?? j.usuario_id ?? base?.usuarioId)?.toString() ?? null,
+        usuarioId: (j.usuarioId ?? j.usuario_id ?? j.id)?.toString?.() ?? null,
         nombre: j.nombre || j.usuarioNombre || 'Aventurero',
-        clase: j.clase || base?.clase || 'Desconocida',
+        clase: j.clase || 'Desconocida',
         avatar: j.avatar
           || j.foto
-          || base?.avatar
           || (jugadorActual?.id?.toString?.() === j.id?.toString?.() ? jugadorActual?.avatar : null)
           || (jugadorActual?.nombre && (jugadorActual.nombre === j.nombre || jugadorActual.nombre === j.usuarioNombre)
             ? jugadorActual?.avatar
             : null)
           || null,
-        hp: j.hp || base?.hp || 10,
-        hpMax: j.hpMax || base?.hpMax || 10,
-        color: j.color || base?.color || COLORES_CLASES[j.clase || base?.clase] || '#4a90d9',
-        conectado: j.conectado !== false,
-        fuerza: j.fuerza ?? base?.fuerza,
-        destreza: j.destreza ?? base?.destreza,
-        constitucion: j.constitucion ?? base?.constitucion,
-        inteligencia: j.inteligencia ?? base?.inteligencia,
-        sabiduria: j.sabiduria ?? base?.sabiduria,
-        carisma: j.carisma ?? base?.carisma,
+        hp: j.hp || 10,
+        hpMax: j.hpMax || 10,
+        color: j.color || COLORES_CLASES[j.clase] || '#4a90d9',
+        conectado: personajeIdResuelto ? (estadoConexionPorPersonajeId.get(personajeIdResuelto) ?? (j.conectado !== false)) : (j.conectado !== false),
+        fuerza: j.fuerza,
+        destreza: j.destreza,
+        constitucion: j.constitucion,
+        inteligencia: j.inteligencia,
+        sabiduria: j.sabiduria,
+        carisma: j.carisma,
       };
     });
 
@@ -630,7 +623,12 @@ export function PanelPartidaStoryModeChat({
   };
 
   return (
-    <div className="pp-panel">
+    <div className={`pp-panel ${chatAbierto ? '' : 'cerrado'}`}>
+
+      <button className="pp-panel-toggle" onClick={() => setChatAbierto(a => !a)}>
+        <span className="pp-panel-toggle-glyph">{chatAbierto ? '>' : '<'}</span>
+      </button>
+
       <DiceRoller
         dado={dadoActivo}
         resultado={resultadoActivo}
@@ -788,7 +786,16 @@ export function PanelPartidaStoryModeChat({
                 rows={2}
                 disabled={!conectado}
               />
-              <button className="pp-chat-send" onClick={enviarMensaje} disabled={!conectado}>➤</button>
+              <div className="pp-chat-actions-col">
+                <button
+                  className={`pp-accessibility-btn ${accessibilityEnabled ? 'active' : ''}`}
+                  title={accessibilityEnabled ? 'Desactivar accesibilidad' : 'Activar accesibilidad'}
+                  onClick={toggleAccessibility}
+                >
+                  <Accessibility size={14} />
+                </button>
+                <button className="pp-chat-send" onClick={enviarMensaje} disabled={!conectado}>➤</button>
+              </div>
             </div>
           </div>
         </div>
@@ -810,7 +817,8 @@ export function PanelPartidaStoryModeChat({
 
             {jugadoresAMostrar.length > 0 ? (
               jugadoresAMostrar.map(j => {
-                const hpReal = playerHpMap?.[j.id] ?? j.hp;
+                const hpKey = j.personajeId?.toString() ?? null;
+                const hpReal = hpKey ? (playerHpMap?.[hpKey] ?? j.hp) : j.hp;
                 const sumaAtaque  = (j.fuerza ?? 10) + (j.destreza ?? 10) + (j.constitucion ?? 10);
                 const sumaDefensa = (j.inteligencia ?? 10) + (j.sabiduria ?? 10) + (j.carisma ?? 10);
                 const dadosAtaque  = sumaAtaque  <= 30 ? 1 : sumaAtaque  <= 50 ? 2 : 3;
@@ -838,8 +846,8 @@ export function PanelPartidaStoryModeChat({
                     </div>
                     <div className="pp-jugador-hp-wrap">
                       <span className="pp-jugador-hp-label">HP</span>
-                      {j.personajeId != null && miPersonajeId != null && j.personajeId === miPersonajeId && (
-                        <button className="pp-hp-btn" onClick={() => cambiarHp(j.id, hpReal, j.hpMax, -1)}>−</button>
+                      {hpKey != null && miPersonajeId != null && hpKey === miPersonajeId && (
+                        <button className="pp-hp-btn" onClick={() => cambiarHp(hpKey, hpReal, j.hpMax, -1)}>−</button>
                       )}
                       <div className="pp-jugador-hp-barra">
                         <div
@@ -850,8 +858,8 @@ export function PanelPartidaStoryModeChat({
                           }}
                         />
                       </div>
-                      {j.personajeId != null && miPersonajeId != null && j.personajeId === miPersonajeId && (
-                        <button className="pp-hp-btn" onClick={() => cambiarHp(j.id, hpReal, j.hpMax, 1)}>+</button>
+                      {hpKey != null && miPersonajeId != null && hpKey === miPersonajeId && (
+                        <button className="pp-hp-btn" onClick={() => cambiarHp(hpKey, hpReal, j.hpMax, 1)}>+</button>
                       )}
                       <span className="pp-jugador-hp-num">{hpReal}/{j.hpMax}</span>
                     </div>

@@ -64,15 +64,6 @@ type MisionDetalle = {
 	completada?: boolean;
 };
 
-type MisionParticipanteResponse = {
-	id: number;
-	misionId: number;
-	usuarioId: number;
-	usuarioNombre?: string;
-	rol?: string;
-	personajeId?: number | null;
-	personajeNombre?: string | null;
-};
 
 type MissionListItem = MisionDetalle & {
 	id: number;
@@ -292,7 +283,6 @@ function MissionListView() {
 			<div className="sm-contenido jg-contenido">
 				<div className="jg-header sm-header">
 					<h1 className="jg-titulo">{tituloModoHistoria}</h1>
-					<h2 className="jg-subtitulo">MODO HISTORIA</h2>
 					<p className="jg-descripcion">{descripcionModoHistoria}</p>
 				</div>
 
@@ -467,7 +457,6 @@ function MissionDetailView() {
 	const [nivelCampanaRequerido, setNivelCampanaRequerido] = useState(1);
 	const [misionesSugeridas, setMisionesSugeridas] = useState<MisionDetalle[]>([]);
 	const [todosModosHistoria, setTodosModosHistoria] = useState<ModoHistoriaState[]>([]);
-	const [personajeAsignado, setPersonajeAsignado] = useState<CharacterLike | null>(null);
 	const [masterCheckLoading, setMasterCheckLoading] = useState(false);
 	const [showMasterOcupadoModal, setShowMasterOcupadoModal] = useState(false);
 	const [showJasSoyMasterModal, setShowJasSoyMasterModal] = useState(false);
@@ -483,30 +472,6 @@ function MissionDetailView() {
 
 	const misionIdNumero = useMemo(() => Number(misionId), [misionId]);
 
-	useEffect(() => {
-		if (!Number.isFinite(misionIdNumero) || misionIdNumero <= 0) return;
-
-		const controller = new AbortController();
-
-		const checkParticipacion = async () => {
-			try {
-				const response = await fetch(`${API_URL}/api/misiones/${misionIdNumero}/participantes/me`, {
-					signal: controller.signal,
-					headers: authHeaders(),
-				});
-				if (!response.ok) return;
-				const participante = (await response.json()) as MisionParticipanteResponse;
-				if (participante.personajeId) {
-					setPersonajeAsignado({ id: participante.personajeId, nombre: participante.personajeNombre ?? `Personaje ${participante.personajeId}` });
-				}
-			} catch {
-				// silently ignore — si falla el check, mostramos el modal normalmente
-			}
-		};
-
-		checkParticipacion();
-		return () => controller.abort();
-	}, [misionIdNumero]);
 
 	useEffect(() => {
 		if (!Number.isFinite(misionIdNumero) || misionIdNumero <= 0) {
@@ -653,36 +618,35 @@ function MissionDetailView() {
 
 		setMasterCheckLoading(true);
 		try {
-			// 1. Comprobar si el usuario actual ya es master de esta misión
-			const meResponse = await fetch(`${API_URL}/api/misiones/${misionIdNumero}/participantes/me`, {
-				headers: authHeaders(),
-			});
-			if (meResponse.ok) {
-				const participante = (await meResponse.json()) as MisionParticipanteResponse;
-				if (participante.rol === 'MASTER') {
-					navigate('/tablero-story-mode', {
-						state: { rol: 'master', modoHistoria, mision },
-					});
+			const miParticipacionResponse = await fetch(
+				`${API_URL}/api/misiones/${misionIdNumero}/participantes/me`,
+				{ headers: authHeaders() }
+			);
+
+			if (miParticipacionResponse.ok) {
+				const miParticipacion = (await miParticipacionResponse.json()) as { rol?: string };
+				const miRol = (miParticipacion.rol ?? '').toUpperCase();
+
+				if (miRol === 'MASTER') {
+					navigate(buildCreateMissionPath(modoHistoriaId!, misionId!), { state: { mision, modoHistoria } });
 					return;
 				}
-				if (participante.personajeId) {
-					// Usuario ya está en la partida como personaje -> mostrar modal que debe abandonar primero
+
+				if (miRol === 'JUGADOR') {
 					setShowJasSoyPersonajeModal(true);
 					return;
 				}
-				// Si existe con otro rol, caemos al flujo normal (CreateMission bloqueará si hay master)
-			} else if (meResponse.status === 404) {
-				// 2. El usuario no participa — comprobar si hay otro master asignado
-				const masterCheckResponse = await fetch(
-					`${API_URL}/api/misiones/${misionIdNumero}/participantes/tiene-master`,
-					{ headers: authHeaders() }
-				);
-				if (masterCheckResponse.ok) {
-					const data = (await masterCheckResponse.json()) as { tieneMaster: boolean };
-					if (data.tieneMaster) {
-						setShowMasterOcupadoModal(true);
-						return;
-					}
+			}
+
+			const masterCheckResponse = await fetch(
+				`${API_URL}/api/misiones/${misionIdNumero}/participantes/tiene-master`,
+				{ headers: authHeaders() }
+			);
+			if (masterCheckResponse.ok) {
+				const data = (await masterCheckResponse.json()) as { tieneMaster: boolean };
+				if (data.tieneMaster) {
+					setShowMasterOcupadoModal(true);
+					return;
 				}
 			}
 		} catch {
@@ -694,31 +658,7 @@ function MissionDetailView() {
 		navigate(buildCreateMissionPath(modoHistoriaId!, misionId!), { state: { mision, modoHistoria } });
 	};
 
-	const abrirModalPersonaje = async () => {
-		if (personajeAsignado) {
-			navigate('/tablero-story-mode', {
-				state: { modoHistoria, mision, personaje: personajeAsignado },
-			});
-			return;
-		}
-
-		try {
-			// Verificar si el usuario actual es master de esta misión
-			const meResponse = await fetch(`${API_URL}/api/misiones/${misionIdNumero}/participantes/me`, {
-				headers: authHeaders(),
-			});
-			if (meResponse.ok) {
-				const participante = (await meResponse.json()) as MisionParticipanteResponse;
-				if (participante.rol === 'MASTER') {
-					// El usuario es master, no puede unirse como personaje
-					setShowJasSoyMasterModal(true);
-					return;
-				}
-			}
-		} catch {
-			// Si falla el check, proceder igualmente
-		}
-
+	const abrirModalPersonaje = () => {
 		setIsCharacterModalOpen(true);
 	};
 

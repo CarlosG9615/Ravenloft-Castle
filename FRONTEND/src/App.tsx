@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from '
 import { useEffect } from 'react';
 import { ThemeProvider } from './services/ThemeContext';
 import { AuthProvider } from './services/AuthContext';
+import { AccessibilityProvider } from './services/AccessibilityContext';
 import { Header } from './components/Header/Header';
 import { Footer } from './components/Footer/Footer';
 import { PrivateRoute } from './components/PrivateRoute/PrivateRoute';
@@ -10,11 +11,8 @@ import { Login } from './pages/Auth/Login';
 import { Register } from './pages/Auth/Register';
 import { ActivateAccount } from './pages/Auth/ActivateAccount';
 import { UserProfile } from './pages/Profile/UserProfile';
-import { CharactersMenu } from './pages/Characters/CharactersMenu';
-import { Characters } from './pages/Characters/Characters';
 import { CharacterSheet } from './pages/Characters/CharacterSheet';
 import { CharacterCreate } from './pages/Characters/CharacterCreate';
-import { CharactersList } from './pages/Characters/CharactersList';
 import { ScrollToTop } from './components/ScrollToTop/ScrollToTop';
 import { JoinGame } from './pages/JoinGame/JoinGame';
 import { StoryMode } from './pages/StoryMode/StoryMode';
@@ -28,8 +26,10 @@ import Mission from './pages/Mission/Mission';
 import { CreateMission } from './pages/CreateMission/CreateMission';
 import { buildMissionDetailsPath, buildMissionListPath } from './pages/Mission/missionRoutes';
 
+import './styles/accessibility.css';
 import './App.css';
 import { MisCampanas } from './pages/MisCampanas/MisCampanas';
+import { MisPersonajes } from './pages/MisPersonajes/MisPersonajes';
 
 function Layout() {
   const location = useLocation();
@@ -85,20 +85,12 @@ function Layout() {
           <Route path="/profile/edit" element={
             <PrivateRoute><UserProfile /></PrivateRoute>
           } />
-          <Route path="/characters" element={
-            <PrivateRoute><CharactersList /></PrivateRoute>
-          } />
-          <Route path="/characters/menu" element={
-            <PrivateRoute><CharactersMenu /></PrivateRoute>
-          } />
+          <Route path="/characters" element={<Navigate to="/mis-personajes" replace />} />
+          <Route path="/characters/list" element={<Navigate to="/mis-personajes" replace />} />
+          <Route path="/characters/menu" element={<Navigate to="/mis-personajes" replace />} />
+          <Route path="/characters/avatar" element={<Navigate to="/characters/new" replace />} />
           <Route path="/characters/new" element={
             <PrivateRoute><CharacterCreate /></PrivateRoute>
-          } />
-          <Route path="/characters/avatar" element={
-            <PrivateRoute><Characters /></PrivateRoute>
-          } />
-          <Route path="/characters/list" element={
-            <PrivateRoute><CharactersList /></PrivateRoute>
           } />
           <Route path="/characters/:id" element={
             <PrivateRoute><CharacterSheet /></PrivateRoute>
@@ -140,6 +132,9 @@ function Layout() {
         <Route path="/mis-campanas" element={
           <PrivateRoute><MisCampanas /></PrivateRoute>
         } />
+        <Route path="/mis-personajes" element={
+          <PrivateRoute><MisPersonajes /></PrivateRoute>
+        } />
 
         </Routes>
       </main>
@@ -174,10 +169,12 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
-            <ScrollToTop />
-          <Layout />
-        </BrowserRouter>
+        <AccessibilityProvider>
+          <BrowserRouter>
+              <ScrollToTop />
+            <Layout />
+          </BrowserRouter>
+        </AccessibilityProvider>
       </AuthProvider>
     </ThemeProvider>
   );

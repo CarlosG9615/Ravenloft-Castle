@@ -119,12 +119,9 @@ export function TableroStoryMode() {
   const jugadorActual   = rawState.jugadorActual   ?? rawState.personaje       ?? fallback.jugadorActual ?? fallback.personaje ?? null;
   const esMaster        = rawState.rol === 'master';
 
-  const introShownKey = mision?.id ? `tsm_intro_shown_${mision.id}` : null;
-  const introAlreadyShown = Boolean(introShownKey && sessionStorage.getItem(introShownKey));
-
   const [panelAbierto, setPanelAbierto] = useState(true);
-  const [showIntroModal, setShowIntroModal] = useState(!introAlreadyShown && esMaster);
-  const introTriggeredRef = useRef(esMaster || introAlreadyShown);
+  const [showIntroModal, setShowIntroModal] = useState(esMaster);
+  const introTriggeredRef = useRef(esMaster);
   const [participantes, setParticipantes] = useState<{ personajeId: number; nombrePersonaje: string; nombreUsuario: string; ordenUnion?: number; clase?: string; saludActual?: number; saludMax?: number }[]>([]);
   const [selectedPlayerModal, setSelectedPlayerModal] = useState<any>(null);
   const [nombreMasterUsuario, setNombreMasterUsuario] = useState<string | null>(null);
@@ -237,9 +234,9 @@ export function TableroStoryMode() {
   useEffect(() => {
     if (!esMaster && masterListo === true && !introTriggeredRef.current) {
       introTriggeredRef.current = true;
-      if (!introAlreadyShown) setShowIntroModal(true);
+      setShowIntroModal(true);
     }
-  }, [masterListo, esMaster, introAlreadyShown]);
+  }, [masterListo, esMaster]);
 
   useEffect(() => {
     if (masterListo === true && connectionTimedOut) {
@@ -528,11 +525,17 @@ export function TableroStoryMode() {
   }, [configPartida?.enemigos, enemyHpMap, sendEnemyDefeated]);
 
   useEffect(() => {
+    const totalPlayers = playerRoster.length;
+    const totalEnemies = (configPartida?.enemigos ?? []).length;
+    const skipPlayerDefeatModal = totalPlayers > 0 && defeatedPlayerIds.size >= totalPlayers;
+    const skipEnemyDefeatModal = totalEnemies > 0 && defeatedEnemyIds.size >= totalEnemies;
+
     const toAdd: DefeatEvent[] = [];
     defeatedPlayerIds.forEach((playerId) => {
       const marker = `player:${playerId}`;
       if (processedDefeatModalRef.current.has(marker)) return;
       processedDefeatModalRef.current.add(marker);
+      if (skipPlayerDefeatModal) return;
       const player = playerRoster.find((p) => p.id === playerId);
       toAdd.push({
         type: 'player',
@@ -546,6 +549,7 @@ export function TableroStoryMode() {
       const marker = `enemy:${enemyId}`;
       if (processedDefeatModalRef.current.has(marker)) return;
       processedDefeatModalRef.current.add(marker);
+      if (skipEnemyDefeatModal) return;
       const enemy = (configPartida?.enemigos ?? []).find((e) => e.instanciaId === enemyId);
       toAdd.push({
         type: 'enemy',
@@ -841,7 +845,6 @@ export function TableroStoryMode() {
               type="button"
               className="tsm-intro-btn"
               onClick={() => {
-                if (introShownKey) sessionStorage.setItem(introShownKey, '1');
                 setShowIntroModal(false);
               }}
             >

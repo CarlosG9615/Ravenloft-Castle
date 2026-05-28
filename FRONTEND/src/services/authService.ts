@@ -1,4 +1,5 @@
 import { API_URL, publicHeaders, authHeaders, fetchWithAuth } from './api';
+import { clearAccessibilityPreference } from '../hooks/useAccessibilityBtn';
 
 // LOGIN — guarda token Y datos del usuario
 export const login = async (email: string, password: string, rememberMe: boolean = false) => {
@@ -58,6 +59,7 @@ export const logout = () => {
   sessionStorage.removeItem('user');
   localStorage.removeItem('token');
   localStorage.removeItem('user');
+  clearAccessibilityPreference();
 };
 
 // OBTENER PERFIL del usuario logueado

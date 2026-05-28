@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './CreateCampaign.css';
 import { crearCampana } from '../../services/campanaService';
+import { uploadImage } from '../../services/uploadService';
 import { Settings2, ArrowLeft, ArrowRight } from 'pixelarticons/react';
 
 interface Mapa {
@@ -13,17 +14,17 @@ interface Mapa {
 }
 
 const CATEGORIAS_MAPA = [
-  { key: 'Todos',     icon: '🗺' },
-  { key: 'Día',       icon: '☀️' },
-  { key: 'Noche',     icon: '🌙' },
-  { key: 'Interior',  icon: '🏚' },
-  { key: 'Combate',   icon: '⚔️' },
-  { key: 'Bosque',    icon: '🌲' },
-  { key: 'Ciudad',    icon: '🏙' },
-  { key: 'Destruido', icon: '💀' },
-  { key: 'Cyberpunk', icon: '⚡' },
-  { key: 'Medieval',  icon: '🏰' },
-  { key: 'Clima',     icon: '🌧️' },
+  { key: 'Todos' },
+  { key: 'Día' },
+  { key: 'Noche' },
+  { key: 'Interior' },
+  { key: 'Combate' },
+  { key: 'Bosque' },
+  { key: 'Ciudad' },
+  { key: 'Destruido' },
+  { key: 'Cyberpunk' },
+  { key: 'Medieval' },
+  { key: 'Clima' },
 ];
 
 const MAPAS_MOCK: Mapa[] = [
@@ -98,6 +99,8 @@ export function CreateCampaign() {
   const [descripcion, setDescripcion] = useState('');
   const [logoFile, setLogoFile] = useState<string | null>(null);
   const [imagenFile, setImagenFile] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingImagen, setUploadingImagen] = useState(false);
   const [maxJugadores, setMaxJugadores] = useState(5);
   const [numSesiones, setNumSesiones] = useState(0);
   const [dificultad, setDificultad] = useState('Media');
@@ -113,12 +116,23 @@ export function CreateCampaign() {
   const [filtroAbierto, setFiltroAbierto] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>, setter: (v: string) => void) => {
+  const handleFile = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setter: (v: string) => void,
+    folder: string,
+    setUploading: (v: boolean) => void,
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setter(reader.result as string);
-    reader.readAsDataURL(file);
+    setUploading(true);
+    try {
+      const url = await uploadImage(file, folder);
+      setter(url);
+    } catch {
+      alert('Error subiendo la imagen. Inténtalo de nuevo.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const toggleFavorito = (id: number) => {
@@ -184,10 +198,10 @@ export function CreateCampaign() {
         maxJugadores,
         numSesiones,
         dificultad,
-        codigoInvitacion
+        ...(codigoInvitacion.trim() ? { codigoInvitacion: codigoInvitacion.trim() } : {}),
       });
       // Optionally, navigate to a success page or back to /join where it shows "Mis Campañas"
-      navigate('/join');
+      navigate('/mis-campanas');
     } catch (error) {
       console.error('Error creando campaña', error);
       alert('Hubo un error al crear la campaña. Intenta de nuevo.');
@@ -242,10 +256,10 @@ export function CreateCampaign() {
               <label className="cc-label">Logo</label>
               <div className="cc-file-wrap">
                 <label className="cc-file-btn" htmlFor="logo-input">
-                  {logoFile ? '✅ Logo cargado' : 'Seleccionar archivo'}
+                  {uploadingLogo ? 'Subiendo...' : logoFile ? '✅ Logo cargado' : 'Seleccionar archivo'}
                 </label>
                 <input id="logo-input" type="file" accept="image/*" className="cc-file-hidden"
-                  onChange={e => handleFile(e, setLogoFile)} />
+                  onChange={e => handleFile(e, setLogoFile, 'campanas/logos', setUploadingLogo)} />
                 {logoFile && <img src={logoFile} alt="logo" className="cc-file-preview" />}
               </div>
             </div>
@@ -254,10 +268,10 @@ export function CreateCampaign() {
               <label className="cc-label">Imagen</label>
               <div className="cc-file-wrap">
                 <label className="cc-file-btn" htmlFor="imagen-input">
-                  {imagenFile ? '✅ Imagen cargada' : 'Seleccionar archivo'}
+                  {uploadingImagen ? 'Subiendo...' : imagenFile ? '✅ Imagen cargada' : 'Seleccionar archivo'}
                 </label>
                 <input id="imagen-input" type="file" accept="image/*" className="cc-file-hidden"
-                  onChange={e => handleFile(e, setImagenFile)} />
+                  onChange={e => handleFile(e, setImagenFile, 'campanas/imagenes', setUploadingImagen)} />
                 {imagenFile && <img src={imagenFile} alt="portada" className="cc-file-preview" />}
               </div>
             </div>
@@ -329,7 +343,7 @@ export function CreateCampaign() {
               className={`cc-mesa-filtro ${categoriaActiva === cat.key ? 'active' : ''}`}
               onClick={() => { cambiarCategoria(cat.key); setFiltroAbierto(false); }}
             >
-              {cat.icon} {cat.key}
+              {cat.key}
             </button>
           ))}
     <button
@@ -337,7 +351,7 @@ export function CreateCampaign() {
       onClick={() => { mapaRandom(); setFiltroAbierto(false); }}
       disabled={mapasSeleccionados.length >= 10}
     >
-      🎲 Random
+       Random
     </button>
   </div>
 </div>

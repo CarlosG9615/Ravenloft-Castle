@@ -422,6 +422,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
 
   const [stageSize, setStageSize] = useState<Size>({ width: 1, height: 1 });
   const [mapPan, setMapPan] = useState<PanPoint>({ x: 0, y: 0 });
+  const [zoomFactor, setZoomFactor] = useState(1);
   const [isPanning, setIsPanning] = useState(false);
   const [isPointerOnMap, setIsPointerOnMap] = useState(false);
   const [openTurnModalTokenId, setOpenTurnModalTokenId] = useState<string | null>(null);
@@ -470,9 +471,14 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   }, [enemyTokens]);
 
   const [mapImage] = useImage(mapConfig.imageUrl);
-  const dismissedConflictKeyRef = useRef('');
+  const dismissedConflictKeyRef = useRef(sessionStorage.getItem('gb_dismissed_conflict') ?? '');
   const currentConflictKeyRef = useRef('');
+  const setDismissedConflict = (key: string) => { dismissedConflictKeyRef.current = key; sessionStorage.setItem('gb_dismissed_conflict', key); };
+  const clearDismissedConflict = () => { dismissedConflictKeyRef.current = ''; sessionStorage.removeItem('gb_dismissed_conflict'); };
   const lastMoveInitiatorRef = useRef<{ type: 'personaje' | 'enemigo'; id: string } | null>(null);
+  const prevTokenCellsRef = useRef<Record<string, CellPosition>>({});
+  const prevEnemyTokenCellsRef = useRef<Record<string, CellPosition>>({});
+  const movementSnapshotReadyRef = useRef(false);
   const isCellBlocked = useCallback((col: number, row: number): boolean => {
     if (blockedCells.has(`${col},${row}`)) return true; // derrumbamiento
     if (ALWAYS_WALKABLE.has(`${col},${row}`)) return false;
@@ -736,6 +742,38 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     setTokenCells(next);
   }, [tokens]);
 
+  // Infer the latest movement source from synced board positions.
+  // This keeps conflict attacker/defender labels correct across clients.
+  useEffect(() => {
+    if (!movementSnapshotReadyRef.current) {
+      movementSnapshotReadyRef.current = true;
+      prevTokenCellsRef.current = { ...tokenCells };
+      prevEnemyTokenCellsRef.current = { ...enemyTokenCells };
+      return;
+    }
+
+    const changedTokenIds = Object.keys(tokenCells).filter((id) => {
+      const prev = prevTokenCellsRef.current[id];
+      const next = tokenCells[id];
+      return !!prev && !!next && (prev.col !== next.col || prev.row !== next.row);
+    });
+
+    const changedEnemyIds = Object.keys(enemyTokenCells).filter((id) => {
+      const prev = prevEnemyTokenCellsRef.current[id];
+      const next = enemyTokenCells[id];
+      return !!prev && !!next && (prev.col !== next.col || prev.row !== next.row);
+    });
+
+    if (changedEnemyIds.length === 1 && changedTokenIds.length === 0) {
+      lastMoveInitiatorRef.current = { type: 'enemigo', id: changedEnemyIds[0] };
+    } else if (changedTokenIds.length === 1 && changedEnemyIds.length === 0) {
+      lastMoveInitiatorRef.current = { type: 'personaje', id: changedTokenIds[0] };
+    }
+
+    prevTokenCellsRef.current = { ...tokenCells };
+    prevEnemyTokenCellsRef.current = { ...enemyTokenCells };
+  }, [tokenCells, enemyTokenCells]);
+
   const tokensActivos = useMemo(() => {
     return tokens.filter((token) => {
       if (jugadores.length === 0) return true;
@@ -805,7 +843,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
   const remainingMovement = rolledMovement !== null ? Math.max(0, rolledMovement - stepsUsed) : null;
 
   const fitScale = Math.min(stageSize.width / mapConfig.naturalWidth, stageSize.height / mapConfig.naturalHeight);
-  const renderScale = fitScale * 0.85;
+  const renderScale = fitScale * 0.85 * zoomFactor;
   const mapRenderWidth = mapConfig.naturalWidth * renderScale;
   const mapRenderHeight = mapConfig.naturalHeight * renderScale;
   const mapOriginX = (stageSize.width - mapRenderWidth) / 2 + mapPan.x;
@@ -1039,6 +1077,28 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     setIsPanning(false);
   };
 
+  const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
+    e.evt.preventDefault();
+    const pointer = e.target.getStage()?.getPointerPosition();
+    if (!pointer) return;
+    const oldZoom = zoomFactor;
+    const newZoom = e.evt.deltaY < 0
+      ? Math.min(oldZoom * 1.1, 4)
+      : Math.max(oldZoom / 1.1, 0.3);
+    const oldRenderScale = fitScale * 0.85 * oldZoom;
+    const newRenderScale = fitScale * 0.85 * newZoom;
+    const oldCenterX = (stageSize.width  - mapConfig.naturalWidth  * oldRenderScale) / 2;
+    const oldCenterY = (stageSize.height - mapConfig.naturalHeight * oldRenderScale) / 2;
+    const localX = (pointer.x - oldCenterX - mapPan.x) / oldRenderScale;
+    const localY = (pointer.y - oldCenterY - mapPan.y) / oldRenderScale;
+    const newCenterX = (stageSize.width  - mapConfig.naturalWidth  * newRenderScale) / 2;
+    const newCenterY = (stageSize.height - mapConfig.naturalHeight * newRenderScale) / 2;
+    setZoomFactor(newZoom);
+    setMapPan({ x: pointer.x - newCenterX - localX * newRenderScale, y: pointer.y - newCenterY - localY * newRenderScale });
+  };
+
+  
+
   const resetCharacterTurns = () => {
     setOpenTurnModalTokenId(null);
     if (tokens.length > 0) setSelectedTokenId(tokens[0].id);
@@ -1093,7 +1153,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
 
       if (!enemy) continue;
 
-      const key = `${currentTurnTokenId ?? 'no-turn'}:${token.id}:${enemy.enemy.instanciaId}:${tokenCell.col},${tokenCell.row}:${enemy.cell.col},${enemy.cell.row}`;
+      const key = `${token.id}:${enemy.enemy.instanciaId}:${tokenCell.col},${tokenCell.row}:${enemy.cell.col},${enemy.cell.row}`;
       currentConflictKeyRef.current = key;
       if (dismissedConflictKeyRef.current === key) {
         setEnemyConflict(null);
@@ -1103,8 +1163,8 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
       let attackerSide: 'personaje' | 'enemigo' = activeTurn === 'master' ? 'enemigo' : 'personaje';
       const last = lastMoveInitiatorRef.current;
       if (last) {
-        if (last.type === 'enemigo' && last.id === enemy.enemy.instanciaId) attackerSide = 'enemigo';
-        else if (last.type === 'personaje' && last.id === token.id) attackerSide = 'personaje';
+        if (last.type === 'enemigo' && last.id.toString() === enemy.enemy.instanciaId.toString()) attackerSide = 'enemigo';
+        else if (last.type === 'personaje' && last.id.toString() === token.id.toString()) attackerSide = 'personaje';
       }
 
       detected = {
@@ -1119,8 +1179,11 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     }
 
     if (!detected) {
-      currentConflictKeyRef.current = '';
-      dismissedConflictKeyRef.current = '';
+      // Solo limpiar si ya hay datos cargados; evita borrar el sessionStorage en el estado inicial vacío
+      if (tokens.length > 0 && enemyTokens.length > 0) {
+        currentConflictKeyRef.current = '';
+        clearDismissedConflict();
+      }
     }
 
     setEnemyConflict(detected);
@@ -1131,14 +1194,14 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
     if (!currentTurnTokenId || !miPersonajeId) {
       setEnemyConflict(null);
       currentConflictKeyRef.current = '';
-      dismissedConflictKeyRef.current = '';
+      clearDismissedConflict();
       return;
     }
 
     if (currentTurnTokenId.toString() !== miPersonajeId.toString()) {
       setEnemyConflict(null);
       currentConflictKeyRef.current = '';
-      dismissedConflictKeyRef.current = '';
+      clearDismissedConflict();
     }
   }, [currentTurnTokenId, miPersonajeId, esMaster]);
 
@@ -1285,6 +1348,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
             </div>
           </div>
         )}
+
       </div>
 
       <Stage
@@ -1298,6 +1362,7 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
         onMouseUp={handleStagePointerUp}
         onMouseLeave={handleStagePointerUp}
         onTouchEnd={handleStagePointerUp}
+        onWheel={handleWheel}
       >
         {/* Layer 1: mapa */}
         <Layer listening={false}>
@@ -1524,11 +1589,11 @@ export function GameBoard({ mapConfig, tokens, onTokenMove, jugadores = [], turn
         })()}
         cancelText="Cerrar"
         onConfirm={() => {
-          dismissedConflictKeyRef.current = currentConflictKeyRef.current;
+          setDismissedConflict(currentConflictKeyRef.current);
           setEnemyConflict(null);
         }}
         onCancel={() => {
-          dismissedConflictKeyRef.current = currentConflictKeyRef.current;
+          setDismissedConflict(currentConflictKeyRef.current);
           setEnemyConflict(null);
         }}
         showImage={false}

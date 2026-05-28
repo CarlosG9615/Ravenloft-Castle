@@ -405,7 +405,7 @@ export function UserProfile() {
               {error && <div className="profile-alert profile-alert--error">⚠ {error}</div>}
 
               <div className="profile-field">
-                <label className="profile-label">Nombre de Usuario</label>
+                <label className="profile-label profile-edit-title">Nombre de Usuario</label>
                 <input
                   type="text"
                   className="profile-input"
@@ -416,7 +416,7 @@ export function UserProfile() {
               </div>
 
               <div className="profile-field">
-                <label className="profile-label">Correo Electrónico</label>
+                <label className="profile-label profile-edit-title">Correo Electrónico</label>
                 <input
                   type="email"
                   className="profile-input"
@@ -426,12 +426,12 @@ export function UserProfile() {
                 />
               </div>
 
-              <div className="profile-divider-text">
+              <div className="profile-divider-text profile-edit-title">
                 Cambiar contraseña (deja en blanco para no cambiarla)
               </div>
 
               <div className="profile-field">
-                <label className="profile-label">Nueva Contraseña</label>
+                <label className="profile-label profile-edit-subtitle">Nueva Contraseña</label>
                 <input
                   type="password"
                   className="profile-input"
@@ -442,7 +442,7 @@ export function UserProfile() {
               </div>
 
               <div className="profile-field">
-                <label className="profile-label">Confirmar Contraseña</label>
+                <label className="profile-label profile-edit-subtitle">Confirmar Contraseña</label>
                 <input
                   type="password"
                   className="profile-input"

@@ -1,8 +1,8 @@
 package com.gvc.ravenloftcastleapi.repository;
 
-import com.gvc.ravenloftcastleapi.dto.mision.ParticipanteJugadorDTO;
-import com.gvc.ravenloftcastleapi.entity.MisionParticipante;
-import com.gvc.ravenloftcastleapi.entity.Personaje;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,8 +10,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import com.gvc.ravenloftcastleapi.dto.mision.ParticipanteJugadorDTO;
+import com.gvc.ravenloftcastleapi.entity.MisionParticipante;
+import com.gvc.ravenloftcastleapi.entity.Personaje;
 
 @Repository
 public interface MisionParticipanteRepository extends JpaRepository<MisionParticipante, Long> {
@@ -35,6 +36,8 @@ public interface MisionParticipanteRepository extends JpaRepository<MisionPartic
     Optional<MisionParticipante> findByMisionIdAndUsuarioId(Long misionId, Long usuarioId);
 
     Optional<MisionParticipante> findByMisionIdAndPersonajeId(Long misionId, Long personajeId);
+
+    void deleteByPersonajeId(Long personajeId);
 
     List<MisionParticipante> findByMisionIdAndPersonajeIsNotNull(Long misionId);
 

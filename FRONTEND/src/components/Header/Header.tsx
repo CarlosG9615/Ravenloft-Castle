@@ -8,8 +8,9 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { WS_URL } from '../../services/api';
 import './Header.css';
-import { Bell } from 'lucide-react';
+import { Bell, Accessibility } from 'lucide-react';
 import { resolveProfileAvatar } from '../../utils/avatarUtils';
+import { useAccessibility } from '../../services/AccessibilityContext';
 
 
 
@@ -17,6 +18,7 @@ export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isLoggedIn, user, logout, updateUser } = useAuth();
+  const { enabled: accessibilityEnabled, toggleAccessibility } = useAccessibility();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -27,6 +29,8 @@ export function Header() {
 
   const [campañasOpen, setCampañasOpen] = useState(false);
   const campañasRef = useRef<HTMLDivElement>(null);
+  const [personajesOpen, setPersonajesOpen] = useState(false);
+  const personajesRef = useRef<HTMLDivElement>(null);
 
   const noLeidas = notificaciones.filter(n => !n.leida).length;
   const privateRoutes = ['/characters', '/join', '/join/story-mode', '/create', '/tools'];
@@ -52,6 +56,9 @@ export function Header() {
       }
       if (campañasRef.current && !campañasRef.current.contains(e.target as Node)) {
         setCampañasOpen(false);
+      }
+      if (personajesRef.current && !personajesRef.current.contains(e.target as Node)) {
+        setPersonajesOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -138,8 +145,64 @@ export function Header() {
     return '🔔';
   };
 
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(prev => !prev);
+    setDropdownOpen(false);
+    setNotifOpen(false);
+    setCampañasOpen(false);
+    setPersonajesOpen(false);
+  };
+
   return (
     <header className="header">
+
+      <div className="mobile-menu-anchor">
+        <button
+          className="mobile-menu-btn"
+          type="button"
+          aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+          aria-expanded={mobileMenuOpen}
+          onClick={toggleMobileMenu}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+
+        {/* MENÚ MÓVIL */}
+        {mobileMenuOpen && (
+          <div className="mobile-menu">
+            <a className={'mobile-nav-link' + (isActive('/home') ? ' active' : '')} onClick={() => handleNavClick('/home')}>Inicio</a>
+            <div className="mobile-nav-group">
+              <div className="mobile-nav-group-title">Personajes</div>
+              <a className="mobile-nav-link mobile-nav-link--sub" onClick={() => handleNavClick('/characters/new')}>Crear Personaje</a>
+              {isLoggedIn && (
+                <a className="mobile-nav-link mobile-nav-link--sub" onClick={() => handleNavClick('/mis-personajes')}>Mis Personajes</a>
+              )}
+            </div>
+
+            <div className="mobile-nav-group">
+              <div className="mobile-nav-group-title">Campañas</div>
+              <a className="mobile-nav-link mobile-nav-link--sub" onClick={() => handleNavClick('/create')}>Crear Sala</a>
+              <a className="mobile-nav-link mobile-nav-link--sub" onClick={() => handleNavClick('/join')}>Unirte a una Partida</a>
+              {isLoggedIn && (
+                <a className="mobile-nav-link mobile-nav-link--sub" onClick={() => handleNavClick('/mis-campanas')}>Mis Campañas</a>
+              )}
+            </div>
+
+            <a className={'mobile-nav-link' + (isActive('/join/story-mode') ? ' active' : '')} onClick={() => handleNavClick('/join/story-mode')}>Modo Historia</a>
+            <a className={'mobile-nav-link' + (isActive('/subscription') ? ' active' : '')} onClick={() => handleNavClick('/subscription')}>Planes</a>
+
+            {isLoggedIn && (
+              <>
+                <div className="dropdown-divider" style={{ margin: '8px 16px' }} />
+                <a className="mobile-nav-link" onClick={() => { navigate('/profile'); setMobileMenuOpen(false); }}>Mi Perfil</a>
+                <a className="mobile-nav-link mobile-nav-link--danger" onClick={handleLogout}>Cerrar Sesión</a>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       <nav className="nav-menu">
         <a className={'nav-link' + (isActive('/home') ? ' active' : '')}
@@ -147,12 +210,26 @@ export function Header() {
         >
           Inicio
         </a>
-        <a className={'nav-link' + (isActive('/characters') ? ' active' : '')}
-        onClick={() => handleNavClick('/characters')}
-        >
-        Personajes
-        </a>
-
+        {/* ── DESPLEGABLE PERSONAJES ── */}
+        <div className="nav-dropdown-wrap" ref={personajesRef}>
+          <a className={`nav-link ${personajesOpen ? 'active' : ''}`}
+            onClick={() => setPersonajesOpen(!personajesOpen)}
+          >
+            Personajes ▾
+          </a>
+          {personajesOpen && (
+            <div className="nav-dropdown">
+              <a className="nav-dropdown-item" onClick={() => { handleNavClick('/characters/new'); setPersonajesOpen(false); }}>
+                Crear Personaje
+              </a>
+              {isLoggedIn && (
+                <a className="nav-dropdown-item" onClick={() => { handleNavClick('/mis-personajes'); setPersonajesOpen(false); }}>
+                  Mis Personajes
+                </a>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* ── DESPLEGABLE CAMPAÑAS ── */}
   <div className="nav-dropdown-wrap" ref={campañasRef}>
@@ -192,6 +269,14 @@ export function Header() {
       </nav>
 
       <div className="header-actions">
+        <button
+          className={`icon-btn-clean ${accessibilityEnabled ? 'icon-btn-clean--active' : ''}`}
+          title={accessibilityEnabled ? 'Desactivar accesibilidad' : 'Activar accesibilidad'}
+          aria-pressed={accessibilityEnabled}
+          onClick={toggleAccessibility}
+        >
+          <Accessibility size={24} color={accessibilityEnabled ? 'var(--yellow-gold)' : 'rgba(255,255,255,0.8)'} />
+        </button>
         <button className="icon-btn-clean" title="Idioma">🌐</button>
 
         {isLoggedIn && user ? (
@@ -303,27 +388,6 @@ export function Header() {
         )}
       </div>
 
-      {/* MENÚ MÓVIL */}
-      {mobileMenuOpen && (
-  <div className="mobile-menu">
-    <a className={'mobile-nav-link' + (isActive('/home') ? ' active' : '')} onClick={() => handleNavClick('/home')}>Inicio</a>
-    <a className={'mobile-nav-link' + (isActive('/characters') ? ' active' : '')} onClick={() => handleNavClick('/characters')}>Personajes</a>
-    <a className="mobile-nav-link" onClick={() => handleNavClick('/create')}>Crear Sala</a>
-    <a className="mobile-nav-link" onClick={() => handleNavClick('/join')}>Unirte a una Partida</a>
-    {isLoggedIn && (
-      <a className="mobile-nav-link" onClick={() => { navigate('/mis-campanas'); setMobileMenuOpen(false); }}>Mis Campañas</a>
-    )}
-    <a className={'mobile-nav-link' + (isActive('/join/story-mode') ? ' active' : '')} onClick={() => handleNavClick('/join/story-mode')}>Modo Historia</a>
-    <a className={'mobile-nav-link' + (isActive('/subscription') ? ' active' : '')} onClick={() => handleNavClick('/subscription')}>Planes</a>
-    {isLoggedIn && (
-      <>
-        <div className="dropdown-divider" style={{ margin: '8px 16px' }} />
-        <a className="mobile-nav-link" onClick={() => { navigate('/profile'); setMobileMenuOpen(false); }}>Mi Perfil</a>
-        <a className="mobile-nav-link mobile-nav-link--danger" onClick={handleLogout}>Cerrar Sesión</a>
-      </>
-    )}
-  </div>
-)}  
     </header>
   );
 }

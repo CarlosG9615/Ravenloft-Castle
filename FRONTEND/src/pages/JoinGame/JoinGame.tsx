@@ -6,6 +6,7 @@ import { obtenerCampanasActivas, unirseACampana } from '../../services/campanaSe
 import { getPersonajes } from '../../services/personajeService';
 import { getAvatarUrl, getCampanaUrl, getCartaUrl } from '../../utils/imageUtils';
 import { useAuth } from '../../services/AuthContext';
+import { useAccessibility } from '../../services/AccessibilityContext';
 import { CharacterSelectModal } from '../../components/CharacterSelectModal/CharacterSelectModal';
 
 interface Jugador {
@@ -130,7 +131,7 @@ function ModalCampana({
             : <div className="jg-modal-hero-placeholder" />
           }
           <div className="jg-modal-hero-overlay" />
-          <button className="jg-modal-close" onClick={onClose}>✕</button>
+          <button type="button" className="jg-modal-close" onClick={e => { e.stopPropagation(); onClose(); }}>✕</button>
           <div className="jg-modal-hero-info">
             <span className="jg-dificultad-badge" style={{ background: getDificultadColor(campana.dificultad) }}>
               {campana.dificultad}
@@ -196,14 +197,18 @@ function ModalCampana({
   );
 }
 
+const CARDS_POR_PAGINA = 2;
+
 export function JoinGame() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { enabled: accessibilityEnabled } = useAccessibility();
   const [campanas, setCampanas] = useState<Campana[]>([]);
   const [campanaSeleccionada, setCampanaSeleccionada] = useState<Campana | null>(null);
   const [campanaParaUnirse, setCampanaParaUnirse] = useState<Campana | null>(null);
   const [filtro, setFiltro] = useState<string>('todas');
   const [busqueda, setBusqueda] = useState('');
+  const [pagina, setPagina] = useState(1);
   const [isCharacterModalOpen, setIsCharacterModalOpen] = useState(false);
   const [personajes, setPersonajes] = useState<Personaje[]>([]);
   const [personajesCargando, setPersonajesCargando] = useState(false);
@@ -270,8 +275,16 @@ export function JoinGame() {
     const coincideBusqueda = c.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       c.master.toLowerCase().includes(busqueda.toLowerCase());
     const coincideFiltro = filtro === 'todas' || normalizarDificultad(c.dificultad) === normalizarDificultad(filtro);
-    return coincideBusqueda && coincideFiltro;
+    const noSoyMaster = c.masterId !== user?.id;
+    return coincideBusqueda && coincideFiltro && noSoyMaster;
   });
+
+  useEffect(() => { setPagina(1); }, [filtro, busqueda, accessibilityEnabled]);
+
+  const totalPaginas = Math.ceil(campanasFiltradas.length / CARDS_POR_PAGINA);
+  const campanasMostradas = accessibilityEnabled
+    ? campanasFiltradas.slice((pagina - 1) * CARDS_POR_PAGINA, pagina * CARDS_POR_PAGINA)
+    : campanasFiltradas;
 
   const abrirSeleccionPersonaje = (campana: Campana) => {
     setCampanaParaUnirse(campana);
@@ -305,25 +318,36 @@ export function JoinGame() {
       console.error('Error al unirse a la campaña:', err);
     }
 
+    const p = personajeSeleccionado as any;
+
     const jugadorRed = crearJugadorBase({
-      id: personajeSeleccionado.id,
-      nombre: personajeSeleccionado.nombre,
-      clase: (personajeSeleccionado as { clase?: string }).clase,
-      hp: (personajeSeleccionado as { hp?: number }).hp,
-      hpMax: (personajeSeleccionado as { hpMax?: number }).hpMax,
-      avatar: personajeSeleccionado.avatar,
+      id: p.id,
+      nombre: p.nombre,
+      clase: p.clase,
+      hp: p.puntosGolpeActual ?? p.hp ?? p.hpMax ?? 20,
+      hpMax: p.puntosGolpeMax ?? p.hpMax ?? p.hp ?? 20,
+      avatar: p.avatar,
     });
 
-    const misJugadores = [...campanaParaUnirse.jugadores, jugadorRed];
+    // Añadir stats para que el master los vea
+    const jugadorConStats = {
+      ...jugadorRed,
+      fuerza: p.fuerza ?? p.statsFinales?.fuerza ?? p.statsBase?.fuerza ?? 10,
+      destreza: p.destreza ?? p.statsFinales?.destreza ?? p.statsBase?.destreza ?? 10,
+      constitucion: p.constitucion ?? p.statsFinales?.constitucion ?? p.statsBase?.constitucion ?? 10,
+      inteligencia: p.inteligencia ?? p.statsFinales?.inteligencia ?? p.statsBase?.inteligencia ?? 10,
+      sabiduria: p.sabiduria ?? p.statsFinales?.sabiduria ?? p.statsBase?.sabiduria ?? 10,
+      carisma: p.carisma ?? p.statsFinales?.carisma ?? p.statsBase?.carisma ?? 10,
+    };
 
     navigate('/tablero', {
       state: {
         campanaId: campanaParaUnirse.id,
         campaaNombre: campanaParaUnirse.nombre,
         mapaUrl: '/images/mapas/bosque/caminoForestal.jpg',
-        jugadores: misJugadores,
+        jugadores: [...campanaParaUnirse.jugadores, jugadorConStats],
         esMaster: false,
-        jugadorActual: jugadorRed,
+        jugadorActual: jugadorConStats,
         masterNombre: campanaParaUnirse.master,
       },
     });
@@ -386,7 +410,6 @@ export function JoinGame() {
       <div className="jg-contenido">
         <div className="jg-header">
           <h1 className="jg-titulo">Unirte a una partida</h1>
-          <h2 className="jg-subtitulo">Unete a una aventura</h2>
           <p className="jg-descripcion">Encuentra tu grupo y forja tu leyenda en RavenLoft Castle</p>
         </div>
 
@@ -429,7 +452,7 @@ export function JoinGame() {
         </div>
 
         <div className="jg-grid">
-          {campanasFiltradas.map((campana, i) => {
+          {campanasMostradas.map((campana, i) => {
             const plazasLibres = campana.maxJugadores - campana.jugadores.length;
             return (
               <div
@@ -466,6 +489,21 @@ export function JoinGame() {
             );
           })}
         </div>
+        {accessibilityEnabled && totalPaginas > 1 && (
+          <div className="jg-paginacion">
+            <button
+              className="jg-pag-btn"
+              onClick={() => setPagina(p => Math.max(1, p - 1))}
+              disabled={pagina === 1}
+            >← Anterior</button>
+            <span className="jg-pag-info">Página {pagina} de {totalPaginas}</span>
+            <button
+              className="jg-pag-btn"
+              onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+              disabled={pagina === totalPaginas}
+            >Siguiente →</button>
+          </div>
+        )}
         {campanasFiltradas.length === 0 && (
           <div className="jg-vacio">
             <div className="jg-vacio-icon">🗡</div>
