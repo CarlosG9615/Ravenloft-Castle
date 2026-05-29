@@ -11,7 +11,7 @@
     "copy-dice-assets": "xcopy node_modules\\@3d-dice\\dice-box\\dist\\assets public\\assets /Y /E /I"
   },
   "dependencies": {
-    "@3d-dice/dice-box": "^1.1.3",
+    "@3d-dice/dice-box": "^1.1.4",
     "@3d-dice/dice-roller-parser": "^0.2.6",
     "@fortawesome/fontawesome-free": "^7.2.0",
     "@stomp/stompjs": "^7.3.0",
